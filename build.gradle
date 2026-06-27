@@ -323,6 +323,15 @@ void patchLegacy1211Sources(File generatedMain) {
 		bowRapidFire.setText(text, "UTF-8")
 	}
 
+	File hungerManager = new File(generatedMain, "com/kingdomcomecombat/mixin/HungerManagerInjuryMixin.java")
+	if (hungerManager.exists()) {
+		hungerManager.setText(hungerManager.getText("UTF-8")
+				.replace("import net.minecraft.server.network.ServerPlayerEntity;",
+						"import net.minecraft.entity.player.PlayerEntity;")
+				.replace("ServerPlayerEntity", "PlayerEntity")
+				.replace("net/minecraft/server/network/PlayerEntity", "net/minecraft/entity/player/PlayerEntity"), "UTF-8")
+	}
+
 	File handCannon = new File(generatedMain, "com/kingdomcomecombat/item/HandCannonItem.java")
 	if (handCannon.exists()) {
 		String text = handCannon.getText("UTF-8")
@@ -442,6 +451,9 @@ processResources {
 					'"minecraft:generic.armor_toughness"'
 			) }
 		}
+		filesMatching("data/kingdom_come_combat/recipe/*.json") {
+			filter { String line -> legacyRecipeIngredientLine(line) }
+		}
 	}
 	if (needsLegacyRenderStates) {
 		filesMatching("kingdom_come_combat.mixins.json") {
@@ -451,6 +463,25 @@ processResources {
 			filter { String line -> legacyClientMixinJsonLine(line) }
 		}
 	}
+}
+
+String legacyRecipeIngredientLine(String line) {
+	def keyIngredient = line =~ /^(\s*"[A-Za-z]"\s*:\s*)"(#[a-z0-9_.-]+:[a-z0-9_.\/-]+|[a-z0-9_.-]+:[a-z0-9_.\/-]+)"(,?)$/
+	if (keyIngredient.matches()) {
+		String id = keyIngredient.group(2)
+		String kind = id.startsWith("#") ? "tag" : "item"
+		String value = id.startsWith("#") ? id.substring(1) : id
+		return keyIngredient.group(1) + "{\"${kind}\": \"${value}\"}" + keyIngredient.group(3)
+	}
+
+	def listIngredient = line =~ /^(\s*)"(#[a-z0-9_.-]+:[a-z0-9_.\/-]+|[a-z0-9_.-]+:[a-z0-9_.\/-]+)"(,?)$/
+	if (listIngredient.matches()) {
+		String id = listIngredient.group(2)
+		String kind = id.startsWith("#") ? "tag" : "item"
+		String value = id.startsWith("#") ? id.substring(1) : id
+		return listIngredient.group(1) + "{\"${kind}\": \"${value}\"}" + listIngredient.group(3)
+	}
+	return line
 }
 
 tasks.named("processClientResources").configure {

@@ -1,0 +1,15 @@
+{
+  "_comment": "速度控制拉弓/装填速度；硬度是每秒体力消耗；威力是箭矢速度倍率。",
+  "items": {
+    "minecraft:bow": {
+      "speed": 1.0,
+      "hardness": 1.0,
+      "power": 1.0
+    },
+    "minecraft:crossbow": {
+      "speed": 1.0,
+      "hardness": 1.0,
+      "power": 1.0
+    }
+  }
+}

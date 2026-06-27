@@ -1,0 +1,18 @@
+{
+  "type": "modonomicon:content",
+  "category": "kingdom_come_combat:combat",
+  "description": "book.kingdom_come_combat.combat_manual.acquisition.description",
+  "icon": {"id": "minecraft:book"},
+  "id": "kingdom_come_combat:combat/acquisition",
+  "name": "book.kingdom_come_combat.combat_manual.acquisition.name",
+  "pages": [
+    {
+      "type": "modonomicon:text",
+      "text": "book.kingdom_come_combat.combat_manual.acquisition.intro.text",
+      "title": "book.kingdom_come_combat.combat_manual.acquisition.intro.title"
+    }
+  ],
+  "sort_number": 0,
+  "x": 0,
+  "y": 0
+}

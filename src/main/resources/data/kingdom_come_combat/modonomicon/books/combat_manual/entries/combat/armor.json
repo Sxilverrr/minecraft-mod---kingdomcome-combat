@@ -1,0 +1,24 @@
+{
+  "type": "modonomicon:content",
+  "category": "kingdom_come_combat:combat",
+  "description": "book.kingdom_come_combat.combat_manual.armor.description",
+  "icon": {"id": "minecraft:iron_chestplate"},
+  "id": "kingdom_come_combat:combat/armor",
+  "name": "book.kingdom_come_combat.combat_manual.armor.name",
+  "pages": [
+    {
+      "type": "modonomicon:text",
+      "text": "book.kingdom_come_combat.combat_manual.armor.intro.text",
+      "title": "book.kingdom_come_combat.combat_manual.armor.intro.title"
+    },
+    {
+      "type": "modonomicon:text",
+      "text": "book.kingdom_come_combat.combat_manual.armor.enchantments.text",
+      "title": "book.kingdom_come_combat.combat_manual.armor.enchantments.title"
+    }
+  ],
+  "parents": [{"entry": "kingdom_come_combat:combat/panels"}],
+  "sort_number": 6,
+  "x": 3,
+  "y": 1
+}

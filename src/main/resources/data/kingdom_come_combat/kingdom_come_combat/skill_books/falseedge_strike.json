@@ -1,0 +1,9 @@
+{
+  "id": "falseedge_strike",
+  "title": "逆刃斩击",
+  "author": "Kingdom Come Combat",
+  "illustration": "falseedge_strike",
+  "first_page": "输入：刺、上、左。直刺、上段斩后，以左斩沿对手武器滑入。",
+  "second_page": "逆刃斩击的危险在于它不像寻常劈砍。让敌人以为你会按旧路收剑，然后用短刃线擦过他的防守。翻到这里，你已经开始练习逆刃斩击。",
+  "translations": {"en_us": {"title": "False Edge Strike", "first_page": "Input: Thrust, Up, Left. After a thrust and an overhead cut, slide a left strike along the opponent's weapon.", "second_page": "The danger of the False Edge Strike is that it does not follow the path of an ordinary cut. Draw the enemy into the expected recovery, then slip the short edge past the guard."}}
+}

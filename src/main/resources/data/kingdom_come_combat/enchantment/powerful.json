@@ -1,0 +1,23 @@
+{
+  "anvil_cost": 2,
+  "description": {
+    "translate": "enchantment.kingdom_come_combat.powerful"
+  },
+  "effects": {},
+  "exclusive_set": "#kingdom_come_combat:exclusive_set/crossbow_charge",
+  "max_cost": {
+    "base": 45,
+    "per_level_above_first": 10
+  },
+  "max_level": 5,
+  "min_cost": {
+    "base": 8,
+    "per_level_above_first": 10
+  },
+  "primary_items": "#minecraft:enchantable/crossbow",
+  "slots": [
+    "mainhand"
+  ],
+  "supported_items": "#minecraft:enchantable/crossbow",
+  "weight": 5
+}

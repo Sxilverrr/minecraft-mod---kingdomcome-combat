@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "equipment",
+  "ingredients": [
+    "#minecraft:wool",
+    "minecraft:string",
+    "minecraft:string"
+  ],
+  "result": {
+    "id": "kingdom_come_combat:bandage",
+    "count": 1
+  }
+}

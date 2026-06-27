@@ -1,0 +1,9 @@
+{
+  "id": "rossen",
+  "title": "罗森式",
+  "author": "Kingdom Come Combat",
+  "illustration": "rossen",
+  "first_page": "输入：上、左、左、右。上段攻击、两次左击后，以右击收尾，偏开对手剑并击中头部。",
+  "second_page": "此招式把敌人的剑一步步推离中线。最后一击不变换角度，顺着空隙切入头部。翻到这里，你已经开始练习罗森式。",
+  "translations": {"en_us": {"title": "Rossen", "first_page": "Input: Up, Left, Left, Right. Follow an overhead attack with two left strikes, then finish from the right to displace the opponent's sword and strike the head.", "second_page": "This technique pushes the enemy's blade away from the centerline one step at a time. The final strike enters the opening and cuts into the head."}}
+}

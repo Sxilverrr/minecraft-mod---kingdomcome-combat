@@ -1,0 +1,24 @@
+{
+  "type": "modonomicon:content",
+  "category": "kingdom_come_combat:combat",
+  "description": "book.kingdom_come_combat.combat_manual.stamina.description",
+  "icon": {"id": "minecraft:rabbit_foot"},
+  "id": "kingdom_come_combat:combat/stamina",
+  "name": "book.kingdom_come_combat.combat_manual.stamina.name",
+  "pages": [
+    {
+      "type": "modonomicon:text",
+      "text": "book.kingdom_come_combat.combat_manual.stamina.intro.text",
+      "title": "book.kingdom_come_combat.combat_manual.stamina.intro.title"
+    },
+    {
+      "type": "modonomicon:text",
+      "text": "book.kingdom_come_combat.combat_manual.stamina.blocking.text",
+      "title": "book.kingdom_come_combat.combat_manual.stamina.blocking.title"
+    }
+  ],
+  "parents": [{"entry": "kingdom_come_combat:combat/basics"}],
+  "sort_number": 2,
+  "x": 1,
+  "y": -1
+}

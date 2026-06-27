@@ -1,0 +1,8 @@
+{
+  "items": {
+    "minecraft:shield": {
+      "type": "large",
+      "block_impact_mitigation": 0.94
+    }
+  }
+}

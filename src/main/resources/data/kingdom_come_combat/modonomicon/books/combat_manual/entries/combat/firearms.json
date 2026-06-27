@@ -1,0 +1,20 @@
+{
+  "type": "modonomicon:content",
+  "category": "kingdom_come_combat:combat",
+  "description": "book.kingdom_come_combat.combat_manual.firearms.description",
+  "icon": {"id": "kingdom_come_combat:hand_cannon"},
+  "id": "kingdom_come_combat:combat/firearms",
+  "name": "book.kingdom_come_combat.combat_manual.firearms.name",
+  "pages": [
+    {
+      "type": "modonomicon:text",
+      "title": "book.kingdom_come_combat.combat_manual.firearms.intro.title",
+      "text": "book.kingdom_come_combat.combat_manual.firearms.intro.text"
+    },
+    {"type": "modonomicon:crafting_recipe", "recipe_id_1": "kingdom_come_combat:hand_cannon", "recipe_id_2": "kingdom_come_combat:bullet_with_gunpowder"}
+  ],
+  "parents": [{"entry": "kingdom_come_combat:combat/panels"}],
+  "sort_number": 8,
+  "x": 3,
+  "y": 2
+}

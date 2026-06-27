@@ -1,0 +1,9 @@
+{
+  "id": "short_strike",
+  "title": "短击",
+  "author": "Kingdom Come Combat",
+  "illustration": "short_strike",
+  "first_page": "输入：上、上、左。两次上段攻击后，以左击绕过对手武器。",
+  "second_page": "短击在于突然针对头顶的打击。越短越难被读到。翻到这里，你已经开始练习短击。",
+  "translations": {"en_us": {"title": "Kurzhaw", "first_page": "Input: Up, Up, Left. Follow two overhead attacks with a short left strike around the opponent's weapon.", "second_page": "Kurzhaw is a sudden attack to the crown. The tighter the motion, the harder it is to read."}}
+}

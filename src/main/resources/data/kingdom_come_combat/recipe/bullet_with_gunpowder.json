@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "equipment",
+  "ingredients": [
+    "minecraft:iron_nugget",
+    "minecraft:gunpowder"
+  ],
+  "result": {
+    "id": "kingdom_come_combat:bullet_with_gunpowder",
+    "count": 4
+  }
+}

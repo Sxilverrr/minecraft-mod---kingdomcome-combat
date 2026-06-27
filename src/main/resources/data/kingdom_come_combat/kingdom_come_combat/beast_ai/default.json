@@ -1,0 +1,33 @@
+{
+  "_comment": "野兽 AI 配置。无仇恨或未进入 combat_enter_distance 时不接管，继续使用原版 AI。attack_move/attack_animation 为空时不禁用原版 tryAttack。",
+  "_fields": {
+    "mode": "circle_lunge 或 hold_and_rush。",
+    "combat_enter_distance": "有目标且进入该距离后启用野兽战斗 AI。",
+    "attack_distance": "发起自定义攻击的距离。",
+    "min_distance": "非攻击期与目标保持的最近距离；只有前冲/攻击期间可以突破。",
+    "attack_min_distance": "前冲/攻击期间仍会保持的最近距离，避免攻击时贴进目标身体。",
+    "attack_interval_ticks": "两次自定义攻击之间的最小间隔，兼容旧名 min_attack_interval_ticks。",
+    "attack_move": "使用 moves/default.json named_moves 里的配置。为空且 attack_animation 也为空时使用原版攻击。",
+    "attack_animation": "没有 attack_move 时可直接指定动画名，会生成一个默认 body direct-hit 攻击。",
+    "circle_distance": "模式一绕圈距离，也可用于模式二保持距离。",
+    "circle_speed_min": "模式一绕圈最慢水平速度。",
+    "circle_speed_max": "模式一绕圈最快水平速度。",
+    "circle_min_ticks": "模式一每轮绕圈最短时间。",
+    "circle_max_ticks": "模式一每轮绕圈最长时间。",
+    "lunge_speed": "前冲速度。",
+    "chase_distance": "模式一命中追击时，目标拉开超过该距离会回到绕圈。",
+    "hold_distance_ticks": "模式二保持距离/原地等待时间。",
+    "can_lunge": "模式二是否允许前冲。false 时只用 approach_speed 正常前进。",
+    "jump_attack": "是否使用类似原版蜘蛛的前跳跃攻击。",
+    "jump_velocity": "jump_attack 开启时的向上速度。",
+    "always_approach_until_close": "模式二不保持距离，持续朝目标移动直到够近发起进攻。",
+    "approach_speed": "普通前进/调整距离速度。",
+    "pursue_speed": "连续进攻追击速度。",
+    "break_off_distance": "模式二连续进攻时，目标主动拉开超过该距离后停止连攻。",
+    "max_chain_attacks": "连续进攻最多攻击次数，避免无限贴身循环。"
+  },
+  "entities": {
+
+    }
+  }
+

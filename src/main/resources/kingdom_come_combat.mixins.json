@@ -1,0 +1,38 @@
+{
+	"required": true,
+	"package": "com.kingdomcomecombat.mixin",
+	"compatibilityLevel": "JAVA_21",
+	"mixins": [
+		"AbstractHorseEntityRidingMixin",
+		"ArmorSlotBandageMixin",
+		"BowRapidFireMixin",
+		"CrossbowStableProjectileMixin",
+		"HungerManagerInjuryMixin",
+		"InstantHealthClearsInjuryMixin",
+		"ItemStackPotionCoatingMixin",
+		"ItemStackWoodenSwordDurabilityMixin",
+		"LecternScreenHandlerSkillBookMixin",
+		"LivingEntityBloodiedBodyMixin",
+		"LivingEntityBloodSplashMixin",
+		"LivingEntityProjectileArmorMixin",
+		"LivingEntityHurtSoundVolumeMixin",
+		"MobEntityVanillaAttackMixin",
+		"PersistentProjectileKnockbackMixin",
+		"PersistentProjectileCritTrailMixin",
+		"PersistentProjectileExtendedHeadHitboxMixin",
+		"PersistentProjectileStableGravityMixin",
+		"PlayerEntityVanillaAttackMixin",
+		"RangedWeaponStaminaMixin",
+		"PlayerEntityLegInjurySprintMixin",
+		"PlayerEntitySleepInjuryMixin",
+		"PlayerScreenHandlerBandageMixin",
+		"ServerPlayerComboProgressMixin",
+		"ServerPlayerInteractionManagerPotionCoatingMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	},
+	"overwrites": {
+		"requireAnnotations": true
+	}
+}

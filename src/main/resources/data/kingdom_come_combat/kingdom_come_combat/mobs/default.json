@@ -1,0 +1,718 @@
+{
+  "_comment": "非人形敌对/战斗生物的天然护甲、体力和原版近战攻击面板。每次攻击都是单个攻击区域命中单个细分部位；不使用 face 和 neck。友好生物不配置；远程怪物通常不配置 melee_attack；health 由原版或其他系统处理。",
+  "_part_ids": [
+    "face",
+    "neck",
+    "crown",
+    "side_head",
+    "shoulder",
+    "arm",
+    "hand",
+    "chest",
+    "abdomen",
+    "thigh",
+    "knee",
+    "calf",
+    "foot"
+  ],
+  "entities": {
+    "minecraft:iron_golem": {
+      "armor": {
+        "head": {
+          "defense": {
+            "thrust": 70.0,
+            "strike": 30.0,
+            "slash": 80.0
+          },
+          "impact_mitigation": 0.50,
+          "durability": 80
+        },
+        "body": {
+          "defense": {
+            "thrust": 70.0,
+            "strike": 30.0,
+            "slash": 80.0
+          },
+          "impact_mitigation": 0.50,
+          "durability": 60
+        }
+      },
+      "stamina": 300.0,
+      "stamina_regen_per_tick": 0.1,
+      "melee_attack": {
+        "impact": 30.0,
+        "knockback": 0.9,
+        "vertical_knockback": 0.65,
+        "defense_tier": 2,
+        "damage_modifiers": {
+          "thrust": 0.0,
+          "strike": 1.0,
+          "slash": 0.0
+        },
+        "hit_zones": [
+          {
+            "hit": "head",
+            "parts": ["chest"]
+          },
+          {
+            "hit": "body",
+            "parts": ["chest"]
+          }
+        ]
+      }
+    },
+
+
+    "minecraft:warden": {
+      "armor": {
+        "head": {
+          "defense": {
+            "thrust": 5.0,
+            "strike": 5.0,
+            "slash": 5.0
+          },
+          "impact_mitigation": 0.35,
+          "durability": 400
+        },
+        "body": {
+          "defense": {
+            "thrust": 5.0,
+            "strike": 5.0,
+            "slash": 5.0
+          },
+          "impact_mitigation": 0.45,
+          "durability": 1200
+        }
+      },
+      "stamina": 700.0,
+      "stamina_regen_per_tick": 0.18,
+      "melee_attack": {
+        "impact": 45.0,
+        "knockback": 1.2,
+        "vertical_knockback": 0.55,
+        "defense_tier": 3,
+        "damage_modifiers": {
+          "thrust": 0.0,
+          "strike": 1.0,
+          "slash": 0.0
+        },
+        "hit_zones": [
+          {
+            "hit": "head",
+            "parts": ["chest"]
+          },
+          {
+            "hit": "body",
+            "parts": ["chest"]
+          },
+          {
+            "hit": "legs",
+            "parts": ["thigh"]
+          }
+        ]
+      }
+    },
+
+    "minecraft:ravager": {
+      "armor": {
+        "head": {
+          "defense": {
+            "thrust": 15.0,
+            "strike": 15.0,
+            "slash": 15.0
+          },
+          "impact_mitigation": 0.30,
+          "durability": 250
+        },
+        "body": {
+          "defense": {
+            "thrust": 20.0,
+            "strike": 20.0,
+            "slash": 20.0
+          },
+          "impact_mitigation": 0.25,
+          "durability": 500
+        }
+      },
+      "stamina": 350.0,
+      "stamina_regen_per_tick": 0.12,
+      "melee_attack": {
+        "impact": 28.0,
+        "knockback": 1.1,
+        "vertical_knockback": 0.35,
+        "defense_tier": 2,
+        "damage_modifiers": {
+          "thrust": 0.0,
+          "strike": 1.0,
+          "slash": 0.0
+        },
+        "hit_zones": [
+          {
+            "hit": "head",
+            "parts": ["chest"]
+          },
+          {
+            "hit": "body",
+            "parts": ["chest"]
+          },
+          {
+            "hit": "legs",
+            "parts": ["thigh"]
+          }
+        ]
+      }
+    },
+
+    "minecraft:enderman": {
+      "stamina": 180.0,
+      "stamina_regen_per_tick": 0.16,
+      "melee_attack": {
+        "impact": 14.0,
+        "knockback": 0.45,
+        "vertical_knockback": 0.2,
+        "defense_tier": 1,
+        "damage_modifiers": {
+          "thrust": 0.0,
+          "strike": 0.0,
+          "slash": 1.0
+        },
+        "hit_zones": [
+          {
+            "hit": "head",
+            "parts": ["chest"]
+          },
+          {
+            "hit": "body",
+            "parts": ["chest"]
+          },
+          {
+            "hit": "legs",
+            "parts": ["thigh"]
+          }
+        ]
+      }
+    },
+
+    "minecraft:spider": {
+      "stamina": 90.0,
+      "stamina_regen_per_tick": 0.12,
+      "melee_attack": {
+        "impact": 7.0,
+        "knockback": 0.25,
+        "vertical_knockback": 0.15,
+        "defense_tier": 1,
+        "damage_modifiers": {
+          "thrust": 0.0,
+          "strike": 0.0,
+          "slash": 1.0
+        },
+        "hit_zones": [
+          {
+            "hit": "head",
+            "parts": ["side_head"]
+          },
+          {
+            "hit": "body",
+            "parts": ["abdomen"]
+          },
+          {
+            "hit": "legs",
+            "parts": ["calf"]
+          }
+        ]
+      }
+    },
+
+    "minecraft:cave_spider": {
+      "stamina": 80.0,
+      "stamina_regen_per_tick": 0.14,
+      "melee_attack": {
+        "impact": 5.0,
+        "knockback": 0.2,
+        "vertical_knockback": 0.1,
+        "defense_tier": 1,
+        "damage_modifiers": {
+          "thrust": 0.0,
+          "strike": 0.0,
+          "slash": 1.0
+        },
+        "hit_zones": [
+          {
+            "hit": "head",
+            "parts": ["side_head"]
+          },
+          {
+            "hit": "body",
+            "parts": ["abdomen"]
+          },
+          {
+            "hit": "legs",
+            "parts": ["calf"]
+          }
+        ]
+      }
+    },
+
+    "minecraft:silverfish": {
+      "stamina": 45.0,
+      "stamina_regen_per_tick": 0.12,
+      "melee_attack": {
+        "impact": 3.0,
+        "knockback": 0.1,
+        "vertical_knockback": 0.05,
+        "defense_tier": 1,
+        "damage_modifiers": {
+          "thrust": 1.0,
+          "strike": 0.0,
+          "slash": 0.0
+        },
+        "hit_zones": [
+          {
+            "hit": "head",
+            "parts": ["side_head"]
+          },
+          {
+            "hit": "body",
+            "parts": ["abdomen"]
+          }
+        ]
+      }
+    },
+
+    "minecraft:endermite": {
+      "stamina": 50.0,
+      "stamina_regen_per_tick": 0.14,
+      "melee_attack": {
+        "impact": 3.5,
+        "knockback": 0.1,
+        "vertical_knockback": 0.05,
+        "defense_tier": 1,
+        "damage_modifiers": {
+          "thrust": 1.0,
+          "strike": 0.0,
+          "slash": 0.0
+        },
+        "hit_zones": [
+          {
+            "hit": "head",
+            "parts": ["side_head"]
+          },
+          {
+            "hit": "body",
+            "parts": ["abdomen"]
+          }
+        ]
+      }
+    },
+
+    "minecraft:slime": {
+      "stamina": 80.0,
+      "stamina_regen_per_tick": 0.10,
+      "melee_attack": {
+        "impact": 6.0,
+        "knockback": 0.35,
+        "vertical_knockback": 0.2,
+        "defense_tier": 1,
+        "damage_modifiers": {
+          "thrust": 0.0,
+          "strike": 1.0,
+          "slash": 0.0
+        },
+        "hit_zones": [
+          {
+            "hit": "head",
+            "parts": ["chest"]
+          },
+          {
+            "hit": "body",
+            "parts": ["chest"]
+          }
+        ]
+      }
+    },
+
+    "minecraft:magma_cube": {
+      "armor": {
+        "body": {
+          "defense": {
+            "thrust": 15.0,
+            "strike": 20.0,
+            "slash": 35.0
+          },
+          "impact_mitigation": 0.20,
+          "durability": 180
+        }
+      },
+      "stamina": 100.0,
+      "stamina_regen_per_tick": 0.10,
+      "melee_attack": {
+        "impact": 8.0,
+        "knockback": 0.4,
+        "vertical_knockback": 0.25,
+        "defense_tier": 1,
+        "damage_modifiers": {
+          "thrust": 0.0,
+          "strike": 1.0,
+          "slash": 0.0
+        },
+        "hit_zones": [
+          {
+            "hit": "head",
+            "parts": ["chest"]
+          },
+          {
+            "hit": "body",
+            "parts": ["chest"]
+          }
+        ]
+      }
+    },
+
+    "minecraft:bee": {
+      "stamina": 45.0,
+      "stamina_regen_per_tick": 0.16,
+      "melee_attack": {
+        "impact": 3.0,
+        "knockback": 0.08,
+        "vertical_knockback": 0.08,
+        "defense_tier": 1,
+        "damage_modifiers": {
+          "thrust": 1.0,
+          "strike": 0.0,
+          "slash": 0.0
+        },
+        "hit_zones": [
+          {
+            "hit": "body",
+            "parts": ["abdomen"]
+          }
+        ]
+      }
+    },
+
+    "minecraft:polar_bear": {
+      "stamina": 180.0,
+      "stamina_regen_per_tick": 0.12,
+      "melee_attack": {
+        "impact": 15.0,
+        "knockback": 0.65,
+        "vertical_knockback": 0.25,
+        "defense_tier": 2,
+        "damage_modifiers": {
+          "thrust": 0.0,
+          "strike": 0.0,
+          "slash": 1.0
+        },
+        "hit_zones": [
+          {
+            "hit": "head",
+            "parts": ["side_head"]
+          },
+          {
+            "hit": "body",
+            "parts": ["chest"]
+          },
+          {
+            "hit": "legs",
+            "parts": ["thigh"]
+          }
+        ]
+      }
+    },
+
+    "minecraft:goat": {
+      "stamina": 110.0,
+      "stamina_regen_per_tick": 0.15,
+      "melee_attack": {
+        "impact": 9.0,
+        "knockback": 0.75,
+        "vertical_knockback": 0.25,
+        "defense_tier": 1,
+        "damage_modifiers": {
+          "thrust": 0.0,
+          "strike": 1.0,
+          "slash": 0.0
+        },
+        "hit_zones": [
+          {
+            "hit": "head",
+            "parts": ["crown"]
+          },
+          {
+            "hit": "body",
+            "parts": ["chest"]
+          },
+          {
+            "hit": "legs",
+            "parts": ["thigh"]
+          }
+        ]
+      }
+    },
+
+    "minecraft:hoglin": {
+      "stamina": 190.0,
+      "stamina_regen_per_tick": 0.12,
+      "melee_attack": {
+        "impact": 18.0,
+        "knockback": 0.9,
+        "vertical_knockback": 0.35,
+        "defense_tier": 2,
+        "damage_modifiers": {
+          "thrust": 0.0,
+          "strike": 1.0,
+          "slash": 0.0
+        },
+        "hit_zones": [
+          {
+            "hit": "head",
+            "parts": ["chest"]
+          },
+          {
+            "hit": "body",
+            "parts": ["chest"]
+          },
+          {
+            "hit": "legs",
+            "parts": ["thigh"]
+          }
+        ]
+      }
+    },
+
+    "minecraft:zoglin": {
+      "stamina": 210.0,
+      "stamina_regen_per_tick": 0.13,
+      "melee_attack": {
+        "impact": 20.0,
+        "knockback": 0.95,
+        "vertical_knockback": 0.35,
+        "defense_tier": 2,
+        "damage_modifiers": {
+          "thrust": 0.0,
+          "strike": 1.0,
+          "slash": 0.0
+        },
+        "hit_zones": [
+          {
+            "hit": "head",
+            "parts": ["chest"]
+          },
+          {
+            "hit": "body",
+            "parts": ["chest"]
+          },
+          {
+            "hit": "legs",
+            "parts": ["thigh"]
+          }
+        ]
+      }
+    },
+
+    "minecraft:phantom": {
+      "stamina": 100.0,
+      "stamina_regen_per_tick": 0.16,
+      "melee_attack": {
+        "impact": 7.0,
+        "knockback": 0.25,
+        "vertical_knockback": 0.15,
+        "defense_tier": 1,
+        "damage_modifiers": {
+          "thrust": 0.0,
+          "strike": 0.0,
+          "slash": 1.0
+        },
+        "hit_zones": [
+          {
+            "hit": "head",
+            "parts": ["chest"]
+          },
+          {
+            "hit": "body",
+            "parts": ["chest"]
+          }
+        ]
+      }
+    },
+
+    "minecraft:guardian": {
+      "armor": {
+        "body": {
+          "defense": {
+            "thrust": 30.0,
+            "strike": 20.0,
+            "slash": 45.0
+          },
+          "impact_mitigation": 0.25,
+          "durability": 10
+        }
+      },
+      "stamina": 120.0,
+      "stamina_regen_per_tick": 0.10
+    },
+
+    "minecraft:elder_guardian": {
+      "armor": {
+        "body": {
+          "defense": {
+            "thrust": 45.0,
+            "strike": 30.0,
+            "slash": 60.0
+          },
+          "impact_mitigation": 0.35,
+          "durability": 50
+        }
+      },
+      "stamina": 220.0,
+      "stamina_regen_per_tick": 0.10
+    },
+
+    "minecraft:shulker": {
+      "armor": {
+        "head": {
+          "defense": {
+            "thrust": 55.0,
+            "strike": 35.0,
+            "slash": 75.0
+          },
+          "impact_mitigation": 0.45,
+          "durability": 35
+        },
+        "body": {
+          "defense": {
+            "thrust": 55.0,
+            "strike": 35.0,
+            "slash": 75.0
+          },
+          "impact_mitigation": 0.45,
+          "durability": 50
+        }
+      },
+      "stamina": 100.0,
+      "stamina_regen_per_tick": 0.06
+    },
+
+    "minecraft:blaze": {
+      "stamina": 100.0,
+      "stamina_regen_per_tick": 0.12
+    },
+
+    "minecraft:ghast": {
+      "stamina": 80.0,
+      "stamina_regen_per_tick": 0.08
+    },
+
+    "minecraft:breeze": {
+      "stamina": 160.0,
+      "stamina_regen_per_tick": 0.18
+    },
+
+    "minecraft:creeper": {
+      "stamina": 90.0,
+      "stamina_regen_per_tick": 0.10
+    },
+
+    "minecraft:vex": {
+      "stamina": 90.0,
+      "stamina_regen_per_tick": 0.18,
+      "melee_attack": {
+        "impact": 7.0,
+        "knockback": 0.25,
+        "vertical_knockback": 0.15,
+        "defense_tier": 1,
+        "damage_modifiers": {
+          "thrust": 0.0,
+          "strike": 0.0,
+          "slash": 1.0
+        },
+        "hit_zones": [
+          {
+            "hit": "head",
+            "parts": ["side_head"]
+          },
+          {
+            "hit": "body",
+            "parts": ["chest"]
+          }
+        ]
+      }
+    },
+
+    "minecraft:ender_dragon": {
+      "armor": {
+        "head": {
+          "defense": {
+            "thrust": 0,
+            "strike": 0,
+            "slash": 0
+          },
+          "impact_mitigation": 0.35,
+          "durability": 800
+        },
+        "body": {
+          "defense": {
+            "thrust": 15,
+            "strike": 15,
+            "slash": 15
+          },
+          "impact_mitigation": 0.40,
+          "durability": 1600
+        }
+      },
+      "stamina": 900.0,
+      "stamina_regen_per_tick": 0.20,
+      "melee_attack": {
+        "impact": 35.0,
+        "knockback": 1.4,
+        "vertical_knockback": 0.8,
+        "defense_tier": 3,
+        "damage_modifiers": {
+          "thrust": 0.0,
+          "strike": 1.0,
+          "slash": 0.0
+        },
+        "hit_zones": [
+          {
+            "hit": "head",
+            "parts": ["chest"]
+          },
+          {
+            "hit": "body",
+            "parts": ["chest"]
+          },
+          {
+            "hit": "legs",
+            "parts": ["thigh"]
+          }
+        ]
+      }
+    },
+
+    "minecraft:wither": {
+      "armor": {
+        "head": {
+          "defense": {
+            "thrust": 5.0,
+            "strike": 5.0,
+            "slash": 5.0
+          },
+          "impact_mitigation": 0.30,
+          "durability": 600
+        },
+        "body": {
+          "defense": {
+            "thrust": 10.0,
+            "strike": 10.0,
+            "slash": 20.0
+          },
+          "impact_mitigation": 0.35,
+          "durability": 1000
+        }
+      },
+      "stamina": 800.0,
+      "stamina_regen_per_tick": 0.18
+    }
+
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "type": "modonomicon:content",
+  "category": "kingdom_come_combat:combat",
+  "description": "book.kingdom_come_combat.combat_manual.potion_coating.description",
+  "icon": {"id": "minecraft:potion"},
+  "id": "kingdom_come_combat:combat/potion_coating",
+  "name": "book.kingdom_come_combat.combat_manual.potion_coating.name",
+  "pages": [
+    {
+      "type": "modonomicon:text",
+      "text": "book.kingdom_come_combat.combat_manual.potion_coating.intro.text",
+      "title": "book.kingdom_come_combat.combat_manual.potion_coating.intro.title"
+    }
+  ],
+  "parents": [{"entry": "kingdom_come_combat:combat/panels"}],
+  "sort_number": 6,
+  "x": 2,
+  "y": 2
+}

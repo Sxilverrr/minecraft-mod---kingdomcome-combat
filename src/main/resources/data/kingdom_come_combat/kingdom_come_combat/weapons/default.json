@@ -1,0 +1,64 @@
+{
+  "_comment": "一个文件可以写多个武器。damage_panel 是武器刺击/打击/斩击修正。attack_speed_multiplier 是攻击动画倍率，会和护甲/技能等速度倍率乘算。armor_break_multiplier 是攻击造成护甲耐久消耗的倍率。real_hitbox_size_units/offset/rotation 可按武器覆盖真实武器碰撞盒。attack_moves/stance_animations 可按方向绑定单独动作。",
+  "items": {
+    "minecraft:wooden_sword": {
+      "damage_panel": {
+        "thrust": 0.2,
+        "strike": 0.5,
+        "slash": 0.2
+      },
+      "attack_speed_multiplier": 1.0,
+      "block_impact_mitigation": 0.78,
+      "armor_break_multiplier": 0.1
+    },
+    "minecraft:mace": {
+      "damage_panel": {
+        "thrust": 0.0,
+        "strike": 1.7,
+        "slash": 0.0
+      },
+      "attack_speed_multiplier": 0.8,
+      "base_impact": 10.0,
+      "block_impact_mitigation": 0.65,
+      "armor_break_multiplier": 0.2,
+      "attack_moves": {
+        "right": "attack_right_heavy",
+        "left": "attack_left_heavy",
+        "up": "attack_up_heavy",
+        "down": "attack_down_heavy"
+      }
+    },
+    "kingdom_come_combat:wooden_longsword": {
+      "damage_panel": {
+        "thrust": 0.2,
+        "strike": 0.5,
+        "slash": 0.2
+      },
+      "attack_speed_multiplier": 1.0,
+      "block_impact_mitigation": 0.79,
+      "armor_break_multiplier": 0.1,
+      "real_hitbox_size_units": {
+        "x": 5.0,
+        "y": 1.5,
+        "z": 22.5
+      },
+      "real_hitbox_rotation_degrees": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": -45.0
+      },
+      "attack_moves": {
+        "right": "attack_right_longsword",
+        "left": "attack_left_longsword",
+        "up": "attack_up_longsword",
+        "down": "attack_down_longsword"
+      },
+      "stance_animations": {
+        "right": "stance_right_longsword",
+        "left": "stance_left_longsword",
+        "up": "stance_up_longsword",
+        "down": "stance_down_longsword"
+      }
+    }
+  }
+}

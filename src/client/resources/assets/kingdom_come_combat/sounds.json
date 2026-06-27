@@ -1,0 +1,172 @@
+{
+  "combat.block.weapon": {
+    "subtitle": "subtitles.kingdom_come_combat.combat.block.weapon",
+    "sounds": [
+      "kingdom_come_combat:sfx/sword_sword_clash43",
+      "kingdom_come_combat:sfx/sword_sword_clash44",
+      "kingdom_come_combat:sfx/sword_sword_clash46",
+      "kingdom_come_combat:sfx/sword_sword_clash50",
+      "kingdom_come_combat:sfx/sword_sword_clash51",
+      "kingdom_come_combat:sfx/sword_sword_clash53",
+      "kingdom_come_combat:sfx/sword_sword_clash54",
+      "kingdom_come_combat:sfx/sword_sword_clash55",
+      "kingdom_come_combat:sfx/sword_sword_clash58",
+      "kingdom_come_combat:sfx/sword_sword_clash60",
+      "kingdom_come_combat:sfx/sword_sword_clash61",
+      "kingdom_come_combat:sfx/sword_sword_clash62",
+      "kingdom_come_combat:sfx/sword_sword_clash63",
+      "kingdom_come_combat:sfx/sword_sword_clash64"
+    ]
+  },
+  "combat.block.perfect": {
+    "subtitle": "subtitles.kingdom_come_combat.combat.block.perfect",
+    "sounds": [
+      "kingdom_come_combat:sfx/sword_sword_clash58",
+      "kingdom_come_combat:sfx/sword_sword_clash60",
+      "kingdom_come_combat:sfx/sword_sword_clash61",
+      "kingdom_come_combat:sfx/sword_sword_clash62",
+      "kingdom_come_combat:sfx/sword_sword_clash63",
+      "kingdom_come_combat:sfx/sword_sword_clash64"
+    ]
+  },
+  "combat.block.shield": {
+    "subtitle": "subtitles.kingdom_come_combat.combat.block.shield",
+    "sounds": [
+      "kingdom_come_combat:sfx/sword_shield_01",
+      "kingdom_come_combat:sfx/sword_shield_02",
+      "kingdom_come_combat:sfx/sword_shield_04",
+      "kingdom_come_combat:sfx/sword_shield_05",
+      "kingdom_come_combat:sfx/sword_shield_06",
+      "kingdom_come_combat:sfx/sword_shield_07",
+      "kingdom_come_combat:sfx/shield_hit_01",
+      "kingdom_come_combat:sfx/shield_hit_02",
+      "kingdom_come_combat:sfx/shield_hit_03"
+    ]
+  },
+  "combat.block.wood": {
+    "subtitle": "subtitles.kingdom_come_combat.combat.block.wood",
+    "sounds": [
+      "kingdom_come_combat:sfx/hit_shield-wood1",
+      "kingdom_come_combat:sfx/hit_shield-wood2",
+      "kingdom_come_combat:sfx/hit_shield-wood3",
+      "kingdom_come_combat:sfx/hit_shield-wood4",
+      "kingdom_come_combat:sfx/hit_shield-wood5",
+      "kingdom_come_combat:sfx/hit_shield-wood6",
+      "kingdom_come_combat:sfx/wooden_sword_wooden_sword_clash21",
+      "kingdom_come_combat:sfx/wooden_sword_wooden_sword_clash22",
+      "kingdom_come_combat:sfx/wooden_sword_wooden_sword_clash23"
+    ]
+  },
+  "combat.weapon_clash.hit_sword": {
+    "subtitle": "subtitles.kingdom_come_combat.combat.weapon_clash.hit_sword",
+    "sounds": [
+      "kingdom_come_combat:sfx/sword_hit_sword_01",
+      "kingdom_come_combat:sfx/sword_hit_sword_02",
+      "kingdom_come_combat:sfx/sword_hit_sword_03"
+    ]
+  },
+  "combat.hit.armor": {
+    "subtitle": "subtitles.kingdom_come_combat.combat.hit.armor",
+    "sounds": [
+      "kingdom_come_combat:sfx/sword_hit_armor_01",
+      "kingdom_come_combat:sfx/sword_hit_armor_02",
+      "kingdom_come_combat:sfx/sword_hit_armor_03",
+      "kingdom_come_combat:sfx/sword_hit_armor_04"
+    ]
+  },
+  "combat.hit.armor_plate": {
+    "subtitle": "subtitles.kingdom_come_combat.combat.hit.armor_plate",
+    "sounds": [
+      "kingdom_come_combat:sfx/sword_plate1_01",
+      "kingdom_come_combat:sfx/sword_plate1_02",
+      "kingdom_come_combat:sfx/sword_plate1_03",
+      "kingdom_come_combat:sfx/sword_plate1_04",
+      "kingdom_come_combat:sfx/sword_plate1_05",
+      "kingdom_come_combat:sfx/sword_plate1_06",
+      "kingdom_come_combat:sfx/sword_plate1_07"
+    ]
+  },
+  "combat.hit.helmet": {
+    "subtitle": "subtitles.kingdom_come_combat.combat.hit.helmet",
+    "sounds": [
+      "kingdom_come_combat:sfx/hammer_hit_helmet_01",
+      "kingdom_come_combat:sfx/hammer_hit_helmet_02",
+      "kingdom_come_combat:sfx/hammer_hit_helmet_03"
+    ]
+  },
+  "combat.hit.armor_spark": {
+    "subtitle": "subtitles.kingdom_come_combat.combat.hit.armor_spark",
+    "sounds": [
+      "kingdom_come_combat:sfx/sfx_swordscrp_01",
+      "kingdom_come_combat:sfx/sfx_swordscrp_02",
+      "kingdom_come_combat:sfx/sfx_swordscrp_03"
+    ]
+  },
+  "combat.hit.chainmail_scrape": {
+    "subtitle": "subtitles.kingdom_come_combat.combat.hit.chainmail_scrape",
+    "sounds": [
+      "kingdom_come_combat:sfx/sword_scrape05",
+      "kingdom_come_combat:sfx/sword_scrape07",
+      "kingdom_come_combat:sfx/sword_scrape08",
+      "kingdom_come_combat:sfx/sword_scrape11",
+      "kingdom_come_combat:sfx/sword_scrape14"
+    ]
+  },
+  "combat.hit.pommel": {
+    "subtitle": "subtitles.kingdom_come_combat.combat.hit.pommel",
+    "sounds": [
+      "kingdom_come_combat:sfx/sword_pommel_hit_01",
+      "kingdom_come_combat:sfx/sword_pommel_hit_02",
+      "kingdom_come_combat:sfx/sword_pommel_hit_03",
+      "kingdom_come_combat:sfx/sword_pommel_hit_04"
+    ]
+  },
+  "combat.hit.mace_body": {
+    "subtitle": "subtitles.kingdom_come_combat.combat.hit.mace_body",
+    "sounds": [
+      "kingdom_come_combat:sfx/mace_hit_body_01",
+      "kingdom_come_combat:sfx/mace_hit_body_02"
+    ]
+  },
+  "combat.hit.flesh1": {
+    "subtitle": "subtitles.kingdom_come_combat.combat.hit.flesh1",
+    "sounds": [
+      "kingdom_come_combat:sfx/sword_flesh1_01",
+      "kingdom_come_combat:sfx/sword_flesh1_02",
+      "kingdom_come_combat:sfx/sword_flesh1_03",
+      "kingdom_come_combat:sfx/sword_flesh1_04",
+      "kingdom_come_combat:sfx/sword_flesh1_05"
+    ]
+  },
+  "combat.hit.flesh2": {
+    "subtitle": "subtitles.kingdom_come_combat.combat.hit.flesh2",
+    "sounds": [
+      "kingdom_come_combat:sfx/sword_flesh2_01",
+      "kingdom_come_combat:sfx/sword_flesh2_03",
+      "kingdom_come_combat:sfx/sword_flesh2_04",
+      "kingdom_come_combat:sfx/sword_flesh2_06",
+      "kingdom_come_combat:sfx/sword_flesh2_07"
+    ]
+  },
+  "combat.hit.flesh_add": {
+    "subtitle": "subtitles.kingdom_come_combat.combat.hit.flesh_add",
+    "sounds": [
+      "kingdom_come_combat:sfx/hit_add_01",
+      "kingdom_come_combat:sfx/hit_add_02",
+      "kingdom_come_combat:sfx/hit_add_03",
+      "kingdom_come_combat:sfx/hit_add_04",
+      "kingdom_come_combat:sfx/hit_add_05",
+      "kingdom_come_combat:sfx/hit_add_06",
+      "kingdom_come_combat:sfx/skin_01",
+      "kingdom_come_combat:sfx/skin_02",
+      "kingdom_come_combat:sfx/skin_03"
+    ]
+  },
+  "combat.hit.stab_in": {
+    "subtitle": "subtitles.kingdom_come_combat.combat.hit.stab_in",
+    "sounds": [
+      "kingdom_come_combat:sfx/sword_stab_in_01",
+      "kingdom_come_combat:sfx/sword_stab_in_02"
+    ]
+  }
+}

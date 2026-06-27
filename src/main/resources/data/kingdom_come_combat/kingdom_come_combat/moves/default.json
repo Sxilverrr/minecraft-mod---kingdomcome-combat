@@ -1,0 +1,626 @@
+{
+  "_comment": "普通动作表。moves 的 key 可以是 right/left/up/down，也可以是 右/左/上/下。hit_zones.parts 使用 _part_ids 里的细分部位 id。",
+  "_part_ids": [
+    "face",
+    "neck",
+    "crown",
+    "side_head",
+    "shoulder",
+    "arm",
+    "hand",
+    "chest",
+    "abdomen",
+    "thigh",
+    "knee",
+    "calf",
+    "foot"
+  ],
+  "named_moves": {
+    "zombie_left": {
+      "id": "zombie_left",
+      "animation": "zombie_left",
+      "damage_modifiers": {
+        "thrust": 0.0,
+        "strike": 1.35,
+        "slash": 0.0
+      },
+      "hit_zones": [
+        {
+          "hit": "head",
+          "parts": ["face"]
+        },
+        {
+          "hit": "body",
+          "parts": ["chest"]
+        },
+        {
+          "hit": "arms",
+          "parts": ["arm"]
+        },
+        {
+          "hit": "legs",
+          "parts": ["thigh"]
+        }
+      ],
+      "impact_multiplier": 1.0,
+      "stamina_cost": 4.0,
+      "use_real_hitbox": false
+    },
+    "zombie_right": {
+      "id": "zombie_right",
+      "animation": "zombie_right",
+      "damage_modifiers": {
+        "thrust": 0.0,
+        "strike": 1.35,
+        "slash": 0.0
+      },
+      "hit_zones": [
+        {
+          "hit": "head",
+          "parts": ["face"]
+        },
+        {
+          "hit": "body",
+          "parts": ["chest"]
+        },
+        {
+          "hit": "arms",
+          "parts": ["arm"]
+        },
+        {
+          "hit": "legs",
+          "parts": ["thigh"]
+        }
+      ],
+      "impact_multiplier": 1.0,
+      "stamina_cost": 4.0,
+      "use_real_hitbox": false
+    },
+    "attack_right_heavy": {
+      "id": "attack_right_heavy",
+      "animation": "attack_right_heavy",
+      "damage_modifiers": {
+        "thrust": 1.0,
+        "strike": 1.0,
+        "slash": 1.0
+      },
+      "hit_zones": [
+        {
+          "hit": "head",
+          "parts": ["side_head"]
+        },
+        {
+          "hit": "body",
+          "parts": ["chest", "abdomen"]
+        },
+        {
+          "hit": "arms",
+          "parts": ["arm"]
+        },
+        {
+          "hit": "legs",
+          "parts": ["thigh", "knee"]
+        }
+      ],
+      "impact_multiplier": 1.4,
+      "stamina_cost": 8.0,
+      "use_real_hitbox": true,
+      "transition_ticks": 3
+    },
+    "attack_left_heavy": {
+      "id": "attack_left_heavy",
+      "animation": "attack_left_heavy",
+      "damage_modifiers": {
+        "thrust": 1.0,
+        "strike": 1.0,
+        "slash": 1.0
+      },
+      "hit_zones": [
+        {
+          "hit": "head",
+          "parts": ["side_head"]
+        },
+        {
+          "hit": "body",
+          "parts": ["chest", "abdomen"]
+        },
+        {
+          "hit": "arms",
+          "parts": ["arm"]
+        },
+        {
+          "hit": "legs",
+          "parts": ["thigh", "knee"]
+        }
+      ],
+      "impact_multiplier": 1.4,
+      "stamina_cost": 8.0,
+      "use_real_hitbox": true,
+      "transition_ticks": 3
+    },
+    "attack_up_heavy": {
+      "id": "attack_up_heavy",
+      "animation": "attack_up_heavy",
+      "damage_modifiers": {
+        "thrust": 1.0,
+        "strike": 1.0,
+        "slash": 1.0
+      },
+      "hit_zones": [
+        {
+          "hit": "head",
+          "parts": ["crown"]
+        },
+        {
+          "hit": "body",
+          "parts": ["chest"]
+        },
+        {
+          "hit": "arms",
+          "parts": ["shoulder"]
+        },
+        {
+          "hit": "legs",
+          "parts": ["thigh", "knee"]
+        },
+        {
+          "hit": "arms",
+          "parts": ["shoulder"]
+        }
+      ],
+      "impact_multiplier": 1.4,
+      "stamina_cost": 8.0,
+      "use_real_hitbox": true,
+      "transition_ticks": 3
+    },
+    "attack_down_heavy": {
+      "id": "attack_down_heavy",
+      "animation": "attack_down_heavy",
+      "damage_modifiers": {
+        "thrust": 1.0,
+        "strike": 1.0,
+        "slash": 1.0
+      },
+      "hit_zones": [
+        {
+          "hit": "head",
+          "parts": ["crown"]
+        },
+        {
+          "hit": "body",
+          "parts": ["abdomen"]
+        },
+        {
+          "hit": "arms",
+          "parts": ["hand"]
+        },
+        {
+          "hit": "legs",
+          "parts": ["knee"]
+        }
+      ],
+      "impact_multiplier": 1.4,
+      "stamina_cost": 8.0,
+      "use_real_hitbox": true,
+      "transition_ticks": 3
+    },
+    "attack_right_longsword": {
+      "id": "attack_right_longsword",
+      "animation": "attack_right_longsword",
+      "damage_modifiers": {
+        "thrust": 0.0,
+        "strike": 0.8,
+        "slash": 1.0
+      },
+      "hit_zones": [
+        {
+          "hit": "head",
+          "parts": ["side_head"]
+        },
+        {
+          "hit": "body",
+          "parts": ["chest"]
+        },
+        {
+          "hit": "arms",
+          "parts": ["arm"]
+        },
+        {
+          "hit": "legs",
+          "parts": ["thigh"]
+        }
+      ],
+      "impact_multiplier": 1.0,
+      "stamina_cost": 7.0,
+      "use_real_hitbox": true,
+      "transition_ticks": 3
+    },
+    "attack_left_longsword": {
+      "id": "attack_left_longsword",
+      "animation": "attack_left_longsword",
+      "damage_modifiers": {
+        "thrust": 0.0,
+        "strike": 0.80,
+        "slash": 1.0
+      },
+      "hit_zones": [
+        {
+          "hit": "head",
+          "parts": ["side_head"]
+        },
+        {
+          "hit": "body",
+          "parts": ["chest"]
+        },
+        {
+          "hit": "arms",
+          "parts": ["arm"]
+        },
+        {
+          "hit": "legs",
+          "parts": ["thigh"]
+        }
+      ],
+      "impact_multiplier": 1.0,
+      "stamina_cost": 7.0,
+      "use_real_hitbox": true,
+      "transition_ticks": 3
+    },
+    "attack_up_longsword": {
+      "id": "attack_up_longsword",
+      "animation": "attack_up_longsword",
+      "damage_modifiers": {
+        "thrust": 0,
+        "strike": 0.8,
+        "slash": 1
+      },
+      "hit_zones": [
+        {
+          "hit": "head",
+          "parts": ["crown"]
+        },
+        {
+          "hit": "body",
+          "parts": ["chest"]
+        },
+        {
+          "hit": "arms",
+          "parts": ["shoulder"]
+        }
+      ],
+      "impact_multiplier": 1.0,
+      "stamina_cost": 6.0,
+      "use_real_hitbox": true,
+      "transition_ticks": 3
+    },
+    "attack_down_longsword": {
+      "id": "attack_down_longsword",
+      "animation": "attack_down_longsword",
+      "damage_modifiers": {
+        "thrust": 1.1,
+        "strike": 0.5,
+        "slash": 0.0
+      },
+      "hit_zones": [
+        {
+          "hit": "head",
+          "parts": ["face"]
+        },
+        {
+          "hit": "body",
+          "parts": ["abdomen"]
+        },
+        {
+          "hit": "arms",
+          "parts": ["arm"]
+        },
+        {
+          "hit": "legs",
+          "parts": ["thigh"]
+        }
+      ],
+      "impact_multiplier": 1.0,
+      "stamina_cost": 8.0,
+      "use_real_hitbox": true,
+      "transition_ticks": 3
+    },
+
+
+    "master_counter_right": {
+      "id": "master_counter_right",
+      "animation": "master_strike_right",
+      "damage_modifiers": {
+        "thrust": 0.0,
+        "strike": 0.6,
+        "slash": 1.2
+      },
+      "hit_zones": [
+        {
+          "hit": "head",
+          "parts": ["neck"]
+        }
+      ],
+      "hit_reaction": false,
+      "impact_multiplier": 1.75,
+      "stamina_cost": 8.0,
+      "use_real_hitbox": false,
+      "master_counter_spacing": 1.3,
+      "transition_ticks": 3,
+      "direct_hit_tick": 13,
+      "weapon_clash_tick": 4,
+      "weapon_clash_sound": "sword_hit_sword"
+    },
+    "master_counter_right_victim": {
+      "id": "master_counter_right_victim",
+      "animation": "master_strike_hit_right",
+      "damage_modifiers": {
+        "thrust": 0.0,
+        "strike": 0.0,
+        "slash": 0.0
+      },
+      "hit_zones": [],
+      "impact_multiplier": 0.0,
+      "stamina_cost": 0.0,
+      "use_real_hitbox": false,
+      "transition_ticks": 3
+    },
+    "master_counter_left": {
+      "id": "master_counter_left",
+      "animation": "master_strike_left",
+      "damage_modifiers": {
+        "thrust": 1.3,
+        "strike": 0.0,
+        "slash": 0.0
+      },
+      "hit_zones": [
+        {
+          "hit": "body",
+          "parts": ["chest"]
+        }
+      ],
+      "impact_multiplier": 1.25,
+      "hit_reaction": false,
+      "stamina_cost": 8.0,
+      "master_counter_spacing": 1.0,
+      "use_real_hitbox": false,
+      "transition_ticks": 3,
+      "direct_hit_tick": 8,
+      "weapon_clash_tick": 4,
+      "weapon_clash_sound": "sword_hit_sword"
+    },
+    "master_counter_left_victim": {
+      "id": "master_counter_left_victim",
+      "animation": "master_strike_hit_left",
+      "damage_modifiers": {
+        "thrust": 0.0,
+        "strike": 0.0,
+        "slash": 0.0
+      },
+      "hit_zones": [],
+      "impact_multiplier": 0.0,
+      "stamina_cost": 0.0,
+      "use_real_hitbox": false,
+      "transition_ticks": 3
+    },
+    "master_counter_up": {
+      "id": "master_counter_up",
+      "animation": "master_strike_up",
+      "damage_modifiers": {
+        "thrust": 1.2,
+        "strike": 0.0,
+        "slash": 0.0
+      },
+      "hit_zones": [
+        {
+          "hit": "body",
+          "parts": ["chest"]
+        }
+      ],
+      "impact_multiplier": 1.2,
+      "hit_reaction": false,
+      "stamina_cost": 8.0,
+      "master_counter_spacing": 1.8,
+      "use_real_hitbox": false,
+      "transition_ticks": 3,
+      "direct_hit_tick": 12,
+      "weapon_clash_tick": 4,
+      "weapon_clash_sound": "sword_hit_sword"
+    },
+    "master_counter_up_victim": {
+      "id": "master_counter_up_victim",
+      "animation": "master_strike_hit_up",
+      "damage_modifiers": {
+        "thrust": 0.0,
+        "strike": 0.0,
+        "slash": 0.0
+      },
+      "hit_zones": [],
+      "impact_multiplier": 0.0,
+      "stamina_cost": 0.0,
+      "use_real_hitbox": false,
+      "transition_ticks": 3
+    },
+    "master_counter_down": {
+      "id": "master_counter_down",
+      "animation": "master_strike_down",
+      "damage_modifiers": {
+        "thrust": 0.0,
+        "strike": 0.7,
+        "slash": 1.4
+      },
+      "hit_zones": [
+        {
+          "hit": "head",
+          "parts": ["crown"]
+        }
+      ],
+      "impact_multiplier": 2.25,
+      "hit_reaction": false,
+      "stamina_cost": 8.0,
+      "master_counter_spacing": 1.4,
+      "use_real_hitbox": false,
+      "transition_ticks": 3,
+      "direct_hit_tick": 13,
+      "weapon_clash_tick": 6,
+      "weapon_clash_sound": "sword_hit_sword"
+    },
+    "master_counter_left_down": {
+      "id": "master_counter_down_victim",
+      "animation": "master_strike_hit_down",
+      "damage_modifiers": {
+        "thrust": 0.0,
+        "strike": 0.0,
+        "slash": 0.0
+      },
+      "hit_zones": [],
+      "impact_multiplier": 0.0,
+      "stamina_cost": 0.0,
+      "use_real_hitbox": false,
+      "transition_ticks": 3
+    },
+    "beast_body_slam": {
+      "id": "beast_body_slam",
+      "animation": "beast_body_slam",
+      "damage_modifiers": {
+        "thrust": 0.0,
+        "strike": 1.0,
+        "slash": 0.0
+      },
+      "hit_zones": [
+        {
+          "hit": "body",
+          "parts": ["chest", "abdomen"]
+        },
+        {
+          "hit": "legs",
+          "parts": ["knee", "thigh"]
+        }
+      ],
+      "direct_hit_height_parts": [
+        {
+          "max_height": 0.35,
+          "part": "knee"
+        },
+        {
+          "max_height": 0.65,
+          "part": "abdomen"
+        },
+        {
+          "max_height": 1.0,
+          "part": "chest"
+        }
+      ],
+      "impact_multiplier": 1.0,
+      "stamina_cost": 12.0,
+      "use_real_hitbox": false,
+      "transition_ticks": 4,
+      "direct_hit_tick": 8
+    }
+  },
+  "moves": {
+    "right": {
+      "id": "right_slash",
+      "damage_modifiers": {
+        "thrust": 0.0,
+        "strike": 0.8,
+        "slash": 1.0
+      },
+      "hit_zones": [
+        {
+          "hit": "head",
+          "parts": ["side_head"]
+        },
+        {
+          "hit": "shoulder",
+          "parts": ["shoulder"]
+        },
+        {
+          "hit": "legs",
+          "parts": ["thigh"]
+        }
+      ],
+      "impact_multiplier": 1.0,
+      "stamina_cost": 5.0,
+      "use_real_hitbox": true
+    },
+    "left": {
+      "id": "left_slash",
+      "damage_modifiers": {
+        "thrust": 0.0,
+        "strike": 0.8,
+        "slash": 1.0
+      },
+      "hit_zones": [
+        {
+          "hit": "head",
+          "parts": ["side_head"]
+        },
+        {
+          "hit": "shoulder",
+          "parts": ["shoulder"]
+        },
+        {
+          "hit": "legs",
+          "parts": ["thigh"]
+        }
+      ],
+      "impact_multiplier": 1.0,
+      "stamina_cost": 5.0,
+      "use_real_hitbox": true
+    },
+    "up": {
+      "id": "upper_cut",
+      "damage_modifiers": {
+        "thrust": 0,
+        "strike": 0.9,
+        "slash": 1.0
+      },
+      "hit_zones": [
+        {
+          "hit": "head",
+          "parts": ["crown"]
+        },
+        {
+          "hit": "body",
+          "parts": ["chest"]
+        },
+        {
+          "hit": "legs",
+          "parts": ["thigh"]
+        },
+        {
+          "hit": "arms",
+          "parts": ["shoulder"]
+        }
+      ],
+      "impact_multiplier": 1.0,
+      "stamina_cost": 7.0,
+      "use_real_hitbox": true
+    },
+    "down": {
+      "id": "downward_cut",
+      "damage_modifiers": {
+        "thrust": 1.0,
+        "strike": 0.6,
+        "slash": 0.0
+      },
+      "hit_zones": [
+        {
+          "hit": "head",
+          "parts": ["face"]
+        },
+        {
+          "hit": "body",
+          "parts": ["abdomen"]
+        },
+        {
+          "hit": "legs",
+          "parts": ["knee"]
+        }
+      ],
+      "impact_multiplier": 1.0,
+      "stamina_cost": 6.0,
+      "use_real_hitbox": true
+    }
+  }
+}

@@ -1,0 +1,9 @@
+pluginManagement {
+    repositories {
+        maven { url = "https://maven.fabricmc.net/" }
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+
+rootProject.name = "kingdom_come_combat-26.2"

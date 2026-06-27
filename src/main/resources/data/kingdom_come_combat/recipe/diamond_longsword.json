@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": [
+    " M ",
+    "MMM",
+    " S "
+  ],
+  "key": {
+    "M": "minecraft:diamond",
+    "S": "minecraft:stick"
+  },
+  "result": {
+    "id": "kingdom_come_combat:diamond_longsword",
+    "count": 1
+  }
+}

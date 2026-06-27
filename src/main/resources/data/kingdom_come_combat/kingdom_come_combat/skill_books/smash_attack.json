@@ -1,0 +1,9 @@
+{
+  "id": "smash_attack",
+  "title": "粉碎打击",
+  "author": "Kingdom Come Combat",
+  "illustration": "smash_attack",
+  "first_page": "输入：上、左、右。上段、左斩后，以右斩收尾，用剑柄击中对手面部。",
+  "second_page": "粉碎打击是短剑击中敌人面部的招式，只把最后一击砸实，轻松的惩罚所有不喜欢保护面部的敌人。翻到这里，你已经开始练习粉碎打击。",
+  "translations": {"en_us": {"title": "Crushing Blow", "first_page": "Input: Up, Left, Right. After an overhead and left cut, finish from the right and smash the pommel into the opponent's face.", "second_page": "Crushing Blow is a short-sword technique aimed at the face. Commit to the final blow to punish enemies who leave their face exposed."}}
+}

@@ -1,0 +1,9 @@
+{
+  "id": "knee_break_longsword",
+  "title": "长剑破膝打击",
+  "author": "Kingdom Come Combat",
+  "illustration": "knee_break_longsword",
+  "first_page": "输入：左、上、左、右。左击、上段斩后，从左侧以刺击攻击对手膝部。",
+  "second_page": "长剑破膝打击的前两击要把敌人的防守带高，后续攻击才落向关节。翻到这里，你已经开始练习长剑破膝打击。",
+  "translations": {"en_us": {"title": "Knee Strike: Longsword", "first_page": "Input: Left, Up, Left, Right. Use a left and overhead strike to draw the guard high, then attack the knee from the left.", "second_page": "The opening blows must lift the enemy's defense before the following attack drops into the exposed joint."}}
+}

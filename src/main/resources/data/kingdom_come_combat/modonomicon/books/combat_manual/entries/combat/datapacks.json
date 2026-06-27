@@ -1,0 +1,25 @@
+{
+  "type": "modonomicon:content",
+  "category": "kingdom_come_combat:combat",
+  "description": "book.kingdom_come_combat.combat_manual.datapacks.description",
+  "icon": {
+    "id": "minecraft:knowledge_book"
+  },
+  "id": "kingdom_come_combat:combat/datapacks",
+  "name": "book.kingdom_come_combat.combat_manual.datapacks.name",
+  "pages": [
+    {
+      "type": "modonomicon:text",
+      "text": "book.kingdom_come_combat.combat_manual.datapacks.intro.text",
+      "title": "book.kingdom_come_combat.combat_manual.datapacks.intro.title"
+    }
+  ],
+  "parents": [
+    {
+      "entry": "kingdom_come_combat:combat/combos"
+    }
+  ],
+  "sort_number": 8,
+  "x": 3,
+  "y": 0
+}

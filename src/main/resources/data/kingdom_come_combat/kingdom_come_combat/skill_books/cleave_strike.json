@@ -1,0 +1,9 @@
+{
+  "id": "cleave_strike",
+  "title": "顺劈斩",
+  "author": "Kingdom Come Combat",
+  "illustration": "cleave_strike",
+  "first_page": "输入：左、刺、右。左击后假装直刺，再以右击沿对手武器切入。",
+  "second_page": "直刺只是诱饵。等对手追着剑尖移动，右击便贴着他的兵器滑进去。",
+  "translations": {"en_us": {"title": "Oben Abnehmen", "first_page": "Input: Left, Thrust, Right. Feint a thrust after the left strike, then enter along the opponent's weapon from the right.", "second_page": "The thrust is only bait. Once the opponent follows the point, let the right strike slide in along their weapon."}}
+}

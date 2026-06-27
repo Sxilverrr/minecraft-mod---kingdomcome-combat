@@ -1,0 +1,19 @@
+{
+  "type": "modonomicon:content",
+  "category": "kingdom_come_combat:combat",
+  "description": "book.kingdom_come_combat.combat_manual.techniques.description",
+  "icon": {"id": "minecraft:shield"},
+  "id": "kingdom_come_combat:combat/techniques",
+  "name": "book.kingdom_come_combat.combat_manual.techniques.name",
+  "pages": [
+    {
+      "type": "modonomicon:text",
+      "text": "book.kingdom_come_combat.combat_manual.techniques.intro.text",
+      "title": "book.kingdom_come_combat.combat_manual.techniques.intro.title"
+    }
+  ],
+  "parents": [{"entry": "kingdom_come_combat:combat/basics"}],
+  "sort_number": 4,
+  "x": 1,
+  "y": 1
+}

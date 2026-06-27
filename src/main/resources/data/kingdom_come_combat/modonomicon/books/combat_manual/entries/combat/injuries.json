@@ -1,0 +1,19 @@
+{
+  "type": "modonomicon:content",
+  "category": "kingdom_come_combat:combat",
+  "description": "book.kingdom_come_combat.combat_manual.injuries.description",
+  "icon": {"id": "kingdom_come_combat:bandage"},
+  "id": "kingdom_come_combat:combat/injuries",
+  "name": "book.kingdom_come_combat.combat_manual.injuries.name",
+  "pages": [
+    {
+      "type": "modonomicon:text",
+      "text": "book.kingdom_come_combat.combat_manual.injuries.intro.text",
+      "title": "book.kingdom_come_combat.combat_manual.injuries.intro.title"
+    }
+  ],
+  "parents": [{"entry": "kingdom_come_combat:combat/stamina"}],
+  "sort_number": 3,
+  "x": 2,
+  "y": -1
+}

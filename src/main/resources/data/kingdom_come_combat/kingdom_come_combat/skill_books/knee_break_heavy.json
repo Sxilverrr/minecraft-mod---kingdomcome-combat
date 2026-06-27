@@ -1,0 +1,9 @@
+{
+  "id": "knee_break_heavy",
+  "title": "碎膝重击",
+  "author": "Kingdom Come Combat",
+  "illustration": "knee_break_heavy",
+  "first_page": "输入：上、左、左、右。左斩后，从右侧以刺击攻击对手面部，然后迅速进行三次攻击，最后以攻击膝盖收尾",
+  "second_page": "碎膝重击是最华丽的致命招式，3次攻击，次次命中要害。并且可以重创敌人的膝盖，让他们难以移动",
+  "translations": {"en_us": {"title": "Knee break", "first_page": "Input: up，left，left，right. after the slash on the left, stab the enemy in the face and strike the knee.", "second_page": "Knee break contain the attack to the weak part, 3 attack all aiming for a kill, while also injure the enemy making them hard to move"}}
+}

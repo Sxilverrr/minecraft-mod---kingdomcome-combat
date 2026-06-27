@@ -1,0 +1,7 @@
+{
+  "parent": "kingdom_come_combat:item/fighting_mace",
+  "textures": {
+    "1": "kingdom_come_combat:item/netherite_fighting_mace",
+    "particle": "kingdom_come_combat:item/netherite_fighting_mace"
+  }
+}

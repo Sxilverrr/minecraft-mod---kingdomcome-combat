@@ -1,0 +1,9 @@
+{
+  "id": "comboleft",
+  "title": "左上挑斩",
+  "author": "Kingdom Come Combat",
+  "illustration": "comboleft",
+  "first_page": "输入：左、右、左。左击、右击后，再以左击收尾，绕过对手武器。",
+  "second_page": "关键在于不要让第二击成为终点。右击牵开敌人的剑，最后一记左击才顺着空隙上挑。翻到这里，你已经开始练习左上挑斩。",
+  "translations": {"en_us": {"title": "Lower left strike", "first_page": "Input: Left, Right, Left. Follow the opening cuts with a final rising strike from the left around the opponent's weapon.", "second_page": "Use the right strike to draw the enemy's sword aside, then lift the final left cut through the opening."}}
+}

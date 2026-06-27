@@ -1,0 +1,376 @@
+{
+  "_comment": "被动技能配置路径：data/<namespace>/kingdom_come_combat/passive_skills/*.json。每个技能可配置 name/display_name/title、description/desc/text、icon/texture、source(book、advancement、experience)、advancement/achievement、experience_cost/xp_cost/cost。source=book 需要在 data/<namespace>/kingdom_come_combat/skill_books/<id>.json 创建 passive_id 对应的技能书；source=advancement 会在玩家完成对应 advancement 后自动学习；source=experience 会出现在技能界面的可学习 tab，长按后消耗 experience_cost 经验点数学习，不是等级。icon 可写完整资源路径，也可只写文件名，对应 textures/gui/passive_skills/<icon>.png。",
+  "skills": {
+    "dodge": {
+      "name": "闪避",
+      "description": "步伐是战斗的关键一环，为你寻找优势的位置或事躲开致命的攻击",
+      "translations": {
+        "en_us": {
+          "name": "Dodge",
+          "description": "Footwork is a vital part of combat, letting you find an advantageous position or evade a lethal blow."
+        }
+      },
+      "icon": "",
+      "source": "book"
+    },
+    "master_counter": {
+      "name": "大师之击",
+      "description": "大师之击包含了剑术大师记录的4种化被动为主动的攻击，交击，怒击，顶击，曲击。当敌人进攻时以相同方向的攻击触发，命中敌人。",
+      "translations": {
+        "en_us": {
+          "name": "Master Strike",
+          "description": "Master Strike turns defense into an immediate attack through four counters recorded by swordmasters. Match the direction of an incoming attack to strike the enemy during their assault."
+        }
+      },
+      "icon": "",
+      "source": "experience",
+      "experience_cost": 2500
+    },
+    "steady_guard": {
+      "name": "稳固防守",
+      "description": "1次致命的打击比100次无用的打击更有效，所以静观其变。5秒不进攻会令体力恢复速度加快20%，持续到下次进攻开始",
+      "translations": {
+        "en_us": {
+          "name": "Steady Guard",
+          "description": "One decisive blow is worth more than a hundred wasted strikes. Watch and wait. After 5 seconds without attacking, stamina regeneration increases by 20% until your next attack."
+        }
+      },
+      "icon": "",
+      "source": "book",
+      "perks": {
+        "stamina_regen_multiplier": 1.2
+      }
+    },
+    "hunter": {
+      "name": "怪物猎人",
+      "description": "沉着冷静的应对你的敌人，击杀敌人会令你回复10点体力值",
+      "translations": {
+        "en_us": {
+          "name": "Monster Hunter",
+          "description": "Face your foes with calm resolve. Killing an enemy restores 15 stamina."
+        }
+      },
+      "icon": "",
+      "source": "advancement",
+      "advancement": "minecraft:adventure/kill_a_mob",
+      "perks": {
+        "kill_stamina_restore": 15.0
+      }
+    },
+    "fighter": {
+      "name": "角斗士",
+      "description": "从古罗马起放弃盾牌的打法，代表着纯粹的血腥。如果只使用了一只手，造成额外的7%伤害",
+      "translations": {
+        "en_us": {
+          "name": "Gladiator",
+          "description": "A shieldless style from ancient arenas, pure and bloody. If your offhand is empty, deal 7% more damage."
+        }
+      },
+      "icon": "",
+      "source": "experience",
+      "experience_cost": 1500,
+      "perks": {
+        "condition_offhand_empty": 1.0,
+        "damage_multiplier": 1.07
+      }
+    },
+    "strong_arm": {
+      "name": "贝奥武夫之臂",
+      "description": "力大无穷，你可以单手举起长剑，把他当成短剑使用。只有在副手有东西时触发。如果这样使用长剑，剑的面板下降20%，体力消耗+20%，攻击速度减少20%",
+      "translations": {
+        "en_us": {
+          "name": "Beowulf's Arm",
+          "description": "Your immense strength lets you wield a longsword like a short sword while your offhand is occupied. Doing so reduces its damage and attack speed by 20% and increases attack stamina cost by 20%."
+        }
+      },
+      "icon": "",
+      "source": "experience",
+      "experience_cost": 1500,
+      "perks": {
+        "condition_weapon_longsword": 1.0,
+        "condition_offhand_occupied": 1.0,
+        "damage_multiplier": 0.8,
+        "attack_stamina_cost_multiplier": 1.2,
+        "attack_speed_multiplier": 0.8
+      }
+    },
+    "combo_attack": {
+      "name": "势不可挡",
+      "description": "你的攻击速度极快，敌人难以反应，直到一击毙命。使用短剑快速连续攻击时，每次命中都会令后续攻击额外造成3%伤害；只要攻击间隔没有中断，增幅就会持续叠加。",
+      "translations": {
+        "en_us": {
+          "name": "Unstoppable",
+          "description": "Your attacks come too quickly for the enemy to react. Each rapid successive hit with a short sword adds 3% damage to subsequent attacks, stacking until the attack rhythm is broken."
+        }
+      },
+      "icon": "",
+      "source": "experience",
+      "experience_cost": 2500,
+      "perks": {
+        "condition_weapon_short_sword": 1.0,
+        "rapid_attack_damage_per_stack": 0.03,
+        "rapid_attack_window_ticks": 30.0
+      }
+    },
+    "sword_master": {
+      "name": "剑术大师",
+      "description": "长剑作为最经典的武器有着最多的招式，千变万化，大师们研究了无数种架势和招式。当你使用长剑成功释放连招时，回复20点体力",
+      "translations": {
+        "en_us": {
+          "name": "Swordmaster",
+          "description": "Longswords offer a vast repertoire of guards and techniques. Successfully landing a longsword combo restores 20 stamina."
+        }
+      },
+      "icon": "",
+      "source": "experience",
+      "experience_cost": 1500,
+      "perks": {
+        "condition_weapon_longsword": 1.0,
+        "condition_combo": 1.0,
+        "combo_stamina_restore": 20.0
+      }
+    },
+    "brutal_strike": {
+      "name": "致残打击",
+      "description": "残暴的劈砍带来的巨大伤口会深深的陷入所有人，当你使用斧头释放连招时，额外造成2层部位击伤",
+      "translations": {
+        "en_us": {
+          "name": "Crippling Strike",
+          "description": "Brutal axe blows leave grievous wounds. Landing an axe combo inflicts 2 additional levels of injury on the struck body part."
+        }
+      },
+      "icon": "",
+      "source": "experience",
+      "experience_cost": 1000,
+      "perks": {
+        "condition_weapon_axe": 1.0,
+        "condition_combo": 1.0,
+        "combo_injury_levels": 2.0
+      }
+    },
+    "knight": {
+      "name": "骑士精神",
+      "description": "代表着骑士精神的阶级早已消亡，但是战马，纹章与骑枪依旧存在。骑士从不畏惧强敌。你在马匹上额外造成10%的伤害，额外减少15%的体力消耗",
+      "translations": {
+        "en_us": {
+          "name": "Chivalry",
+          "description": "The knightly order may be gone, but warhorses, heraldry, and lances remain. While mounted, deal 10% additional damage and spend 15% less stamina."
+        }
+      },
+      "icon": "",
+      "source": "experience",
+      "experience_cost": 1000,
+      "perks": {
+        "condition_mounted": 1.0,
+        "damage_multiplier": 1.1,
+        "stamina_cost_multiplier": 0.85
+      }
+    },
+    "darksoul": {
+      "name": "黑暗之魂",
+      "description": "如果你体力足够好，就可以穿着板甲却还灵动自如，你甚至觉得自己能在地上打个滚。降低盔甲的负面效果20%",
+      "translations": {
+        "en_us": {
+          "name": "Dark Soul",
+          "description": "With sufficient endurance, even plate armor cannot stop you from moving freely. Armor penalties are reduced by 20%."
+        }
+      },
+      "icon": "",
+      "source": "experience",
+      "experience_cost": 1000,
+      "perks": {
+        "armor_penalty_multiplier": 0.8
+      }
+    },
+    "headshot": {
+      "name": "箭矢穿颅",
+      "description": "你轻而易举的就射中了敌人的头部，享受着箭矢穿透的声音。如果你的箭矢命中了头部，造成额外20%的伤害。",
+      "translations": {
+        "en_us": {
+          "name": "Skullpiercer",
+          "description": "You place arrows through the enemy's head with ease. Projectiles that strike the head deal 20% additional damage."
+        }
+      },
+      "icon": "",
+      "source": "experience",
+      "experience_cost": 1500,
+      "perks": {
+        "condition_head_hit": 1.0,
+        "head_hit_damage_multiplier": 1.2
+      }
+    },
+    "crossbow": {
+      "name": "稳固射击",
+      "description": "屏息然后握紧弩机，不要手抖，冷静瞄准。你射出的弩箭扩散减少50%，速度+10%。",
+      "translations": {
+        "en_us": {
+          "name": "Steady Shot",
+          "description": "Hold your breath, steady the stock, and take careful aim. Crossbow projectile spread is reduced by 50% and projectile speed is increased by 10%."
+        }
+      },
+      "icon": "",
+      "source": "experience",
+      "experience_cost": 1000,
+      "perks": {
+        "condition_weapon_crossbow": 1.0,
+        "projectile_spread_multiplier": 0.5,
+        "projectile_speed_multiplier": 1.1
+      }
+    },
+    "duel": {
+      "name": "决斗者",
+      "description": "决斗不是一项高雅的运动，做好了拼死一搏的准备时，人会爆发出惊人的力量。如果你不穿着重甲（护甲值低于8点），额外获得20%的体力恢复速度，减少15%的闪避体力消耗，造成15%的额外伤害，释放大师之击时回复25体力。",
+      "translations": {
+        "en_us": {
+          "name": "Duelist",
+          "description": "When your armor value is below 8, gain 20% stamina regeneration, spend 15% less stamina when dodging, deal 15% additional damage, and restore 25 stamina after a Master Strike."
+        }
+      },
+      "icon": "",
+      "source": "experience",
+      "experience_cost": 2000,
+      "perks": {
+        "condition_armor_below": 8.0,
+        "damage_multiplier": 1.15,
+        "stamina_regen_multiplier": 1.2,
+        "dodge_stamina_cost_multiplier": 0.85,
+        "master_counter_stamina_restore": 25.0
+      }
+    },
+    "death": {
+      "name": "亡者之怒",
+      "description": "你的气息或许已经紊乱，奄奄一息，难以招架。可此时复仇的亡魂仍在燃烧。如果血量低于25%，造成额外的35%伤害，获得3层止痛效果，持续到血量高于25%",
+      "translations": {
+        "en_us": {
+          "name": "Wrath of the Dead",
+          "description": "While below 25% health, deal 35% additional damage and gain 3 levels of Analgesia until your health rises above 25%."
+        }
+      },
+      "icon": "",
+      "source": "experience",
+      "experience_cost": 2000,
+      "perks": {
+        "condition_health_below": 0.25,
+        "damage_multiplier": 1.35,
+        "analgesia_level": 3.0
+      }
+    },
+    "dodge_buff": {
+      "name": "灵巧步伐",
+      "description": "战斗就像一支令人沉醉的舞蹈，轻巧的步伐让你能轻松的闪避敌人的攻击，你闪避消耗的体力降低40%",
+      "translations": {
+        "en_us": {
+          "name": "Nimble Footwork",
+          "description": "Combat becomes a graceful dance beneath your practiced steps. Dodging costs 40% less stamina."
+        }
+      },
+      "icon": "",
+      "source": "experience",
+      "experience_cost": 1500,
+      "perks": {
+        "dodge_stamina_cost_multiplier": 0.6
+      }
+    },
+    "slash": {
+      "name": "切割者",
+      "description": "剑不要求一击毙命，但是你可以通过切割肌肉来消减敌人，你的连招会令敌人的体力恢复速度降低10%，持续2分钟，最多叠加3层",
+      "translations": {
+        "en_us": {
+          "name": "Sinew Cutter",
+          "description": "Your combos cut muscle and reduce the target's stamina regeneration by 10% for 2 minutes. This effect stacks up to 3 times."
+        }
+      },
+      "icon": "",
+      "source": "experience",
+      "experience_cost": 1500,
+      "perks": {
+        "condition_combo": 1.0,
+        "target_stamina_regen_multiplier": 0.9,
+        "target_stamina_regen_duration_ticks": 2400.0,
+        "target_stamina_regen_max_stacks": 3.0
+      }
+    },
+    "stable": {
+      "name": "久经沙场",
+      "description": "你的战斗技能已经炉火纯青，自然也能更快的从力竭中恢复过来，增加你的耐力恢复速度10%",
+      "translations": {
+        "en_us": {
+          "name": "Battle-Hardened",
+          "description": "Long experience has taught you to recover quickly from exhaustion. Stamina regeneration is increased by 10%."
+        }
+      },
+      "icon": "",
+      "source": "experience",
+      "experience_cost": 1500,
+      "perks": {
+        "stamina_regen_multiplier": 1.1
+      }
+    },
+    "bloody": {
+      "name": "热血沸腾",
+      "description": "当你击倒敌人时，你感觉到了前所未有的力量，当你击杀敌人时，在接下来的30s内获得体力恢复速度+20%",
+      "translations": {
+        "en_us": {
+          "name": "Blood Rush",
+          "description": "Killing an enemy fills you with newfound strength, increasing stamina regeneration by 20% for 30 seconds."
+        }
+      },
+      "icon": "",
+      "source": "experience",
+      "experience_cost": 1500,
+      "perks": {
+        "kill_stamina_regen_multiplier": 1.2,
+        "kill_stamina_regen_duration_ticks": 600.0
+      }
+    },
+    "blood_stop": {
+      "name": "浓稠之血",
+      "description": "你的血液浓稠，让你得以更好的生存，流血dot的伤害间隔翻倍",
+      "translations": {
+        "en_us": {
+          "name": "Thick Blood",
+          "description": "Your unusually thick blood helps keep you alive. The interval between bleeding damage ticks is doubled."
+        }
+      },
+      "icon": "",
+      "source": "experience",
+      "experience_cost": 1500,
+      "perks": {
+        "bleeding_interval_multiplier": 2.0
+      }
+    },
+    "fighting_skill": {
+      "name": "沙场老兵",
+      "description": "当你战斗时，你感觉自己甚至忘记了伤痛，攻击命中敌人时为自己提供持续30s的止痛2效果",
+      "translations": {
+        "en_us": {
+          "name": "Veteran Warrior",
+          "description": "In battle, you can forget even the deepest pain. Hitting an enemy grants 2 levels of Analgesia for 30 seconds."
+        }
+      },
+      "icon": "",
+      "source": "experience",
+      "experience_cost": 2000,
+      "perks": {
+        "hit_analgesia_level": 2.0,
+        "hit_analgesia_duration_ticks": 600.0
+      }
+    },
+    "hunter_plus": {
+      "name": "资深猎人",
+      "description": "你已经猎杀了无数生物，你对他们了如指掌，再也不会畏惧，击杀敌人会令你回复15点体力值，可以和怪物猎人叠加",
+      "translations": {
+        "en_us": {
+          "name": "Veteran Hunter",
+          "description": "You have hunted every kind of monster and no longer fear them. Killing an enemy restores 15 stamina, stacking with Monster Hunter."
+        }
+      },
+      "icon": "",
+      "source": "advancement",
+      "advancement": "minecraft:adventure/kill_all_mobs",
+      "perks": {
+        "kill_stamina_restore": 15.0
+      }
+    }
+  }
+}

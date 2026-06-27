@@ -1,0 +1,21 @@
+{
+  "type": "modonomicon:content",
+  "category": "kingdom_come_combat:combat",
+  "description": "book.kingdom_come_combat.combat_manual.basics.description",
+  "icon": {
+    "id": "minecraft:iron_sword"
+  },
+  "id": "kingdom_come_combat:combat/basics",
+  "name": "book.kingdom_come_combat.combat_manual.basics.name",
+  "pages": [
+    {
+      "type": "modonomicon:text",
+      "text": "book.kingdom_come_combat.combat_manual.basics.intro.text",
+      "title": "book.kingdom_come_combat.combat_manual.basics.intro.title"
+    }
+  ],
+  "parents": [{"entry": "kingdom_come_combat:combat/acquisition"}],
+  "sort_number": 1,
+  "x": 1,
+  "y": 0
+}

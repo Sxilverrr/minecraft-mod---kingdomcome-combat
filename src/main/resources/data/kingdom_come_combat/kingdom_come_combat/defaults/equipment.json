@@ -1,0 +1,281 @@
+{
+  "_comment": "没有单独写武器/盔甲面板的物品会使用这里的默认规则。护甲默认用物品的原版 armor attribute 乘以这里的倍率生成自定义面板，但自定义攻击本身会绕过原版护甲减伤。",
+  "_part_ids": [
+    "face",
+    "neck",
+    "crown",
+    "side_head",
+    "shoulder",
+    "arm",
+    "hand",
+    "chest",
+    "abdomen",
+    "thigh",
+    "knee",
+    "calf",
+    "foot"
+  ],
+  "weapons": {
+    "_weapon_type_items_comment": "数据包可在以下列表中填写其他模组的物品 id，将其定义为本模组的长剑、短剑或重武器。重武器使用 fighting_mace 面板和重武器动作。",
+    "longsword_items": [],
+    "short_sword_items": [],
+    "heavy_weapon_items": [],
+    "default": {
+      "thrust": 0.0,
+      "strike": 0.5,
+      "slash": 0.5,
+      "attack_speed_multiplier": 1.0,
+      "base_impact": 10.0,
+      "block_impact_mitigation": 0.65,
+      "armor_break_multiplier": 0.2,
+      "real_hitbox_size_units": {
+        "x": 3.0,
+        "y": 1.0,
+        "z": 22.5
+      }
+    },
+    "sword": {
+      "thrust": 1.2,
+      "strike": 0.2,
+      "slash": 1.2,
+      "attack_speed_multiplier": 1.0,
+      "base_impact": 12.0,
+      "block_impact_mitigation": 0.75,
+      "armor_break_multiplier": 0.35,
+      "real_hitbox_size_units": {
+        "x": 3.0,
+        "y": 1.0,
+        "z": 22.5
+      }
+    },
+    "longsword": {
+      "thrust": 1.1,
+      "strike": 0.30,
+      "slash": 1.1,
+      "attack_speed_multiplier": 1.0,
+      "base_impact": 14.0,
+      "block_impact_mitigation": 0.80,
+      "armor_break_multiplier": 0.40,
+      "real_hitbox_size_units": {
+        "x": 5.0,
+        "y": 1.5,
+        "z": 19.0
+      },
+      "real_hitbox_rotation_degrees": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": -45.0
+      },
+      "attack_moves": {
+        "right": "attack_right_longsword",
+        "left": "attack_left_longsword",
+        "up": "attack_up_longsword",
+        "down": "attack_down_longsword"
+      },
+      "stance_animations": {
+        "right": "stance_right_longsword",
+        "left": "stance_left_longsword",
+        "up": "stance_up_longsword",
+        "down": "stance_down_longsword"
+      }
+    },
+    "pickaxe": {
+      "thrust": 2.1,
+      "strike": 1.4,
+      "slash": 0.0,
+      "attack_speed_multiplier": 1.0,
+      "base_impact": 20.0,
+      "block_impact_mitigation": 0.65,
+      "armor_break_multiplier": 1.5,
+      "real_hitbox_size_units": {
+        "x": 3.0,
+        "y": 1.0,
+        "z": 22.5
+      }
+    },
+    "axe": {
+      "thrust": 0.0,
+      "strike": 0.70,
+      "slash": 1.0,
+      "attack_speed_multiplier": 1.0,
+      "base_impact": 24.0,
+      "block_impact_mitigation": 0.65,
+      "armor_break_multiplier": 1.3,
+      "real_hitbox_size_units": {
+        "x": 3.0,
+        "y": 1.0,
+        "z": 22.5
+      }
+    },
+    "fighting_mace": {
+      "thrust": 0.3,
+      "strike": 0.9,
+      "slash": 0.3,
+      "attack_speed_multiplier": 0.95,
+      "base_impact": 28.0,
+      "block_impact_mitigation": 0.60,
+      "armor_break_multiplier": 1.6,
+      "real_hitbox_size_units": {
+        "x": 10.0,
+        "y": 10.0,
+        "z": 44.5
+      },
+      "real_hitbox_rotation_degrees": {
+        "x": 0.0,
+        "y": 90.0,
+        "z": 0.0
+      },
+      "attack_moves": {
+        "right": "attack_right_heavy",
+        "left": "attack_left_heavy",
+        "up": "attack_up_heavy",
+        "down": "attack_down_heavy"
+      }
+    },
+    "shovel": {
+      "thrust": 0.0,
+      "strike": 0.5,
+      "slash": 0.5,
+      "attack_speed_multiplier": 1.0,
+      "base_impact": 10.0,
+      "block_impact_mitigation": 0.65,
+      "armor_break_multiplier": 0.2,
+      "real_hitbox_size_units": {
+        "x": 3.0,
+        "y": 1.0,
+        "z": 22.5
+      }
+    },
+    "hoe": {
+      "thrust": 0.0,
+      "strike": 0.5,
+      "slash": 0.5,
+      "attack_speed_multiplier": 1.0,
+      "base_impact": 10.0,
+      "block_impact_mitigation": 0.65,
+      "armor_break_multiplier": 0.2,
+      "real_hitbox_size_units": {
+        "x": 3.0,
+        "y": 1.0,
+        "z": 22.5
+      }
+    }
+  },
+  "armor": {
+    "helmet_and_boots_multiplier": {
+      "thrust": 21.0,
+      "strike": 15.0,
+      "slash": 22.0
+    },
+    "chestplate_and_leggings_multiplier": {
+      "thrust": 8.0,
+      "strike": 7.0,
+      "slash": 9.0
+    },
+    "protection": 1,
+    "impact_mitigation": 0.4,
+    "protected_parts_by_slot": {
+      "head": ["crown", "side_head"],
+      "chest": ["shoulder", "chest", "abdomen"],
+      "legs": ["abdomen", "thigh", "knee"],
+      "feet": ["calf", "foot"],
+      "body": ["shoulder", "chest", "abdomen", "thigh"]
+    }
+  },
+  "part_damage_multipliers": {
+    "face": 2.1,
+    "neck": 2.5,
+    "crown": 1.8,
+    "side_head": 2,
+    "shoulder": 0.9,
+    "arm": 0.75,
+    "hand": 0.70,
+    "chest": 1.2,
+    "abdomen": 1.1,
+    "thigh": 0.8,
+    "knee": 1.0,
+    "calf": 0.75,
+    "foot": 0.70
+  },
+  "enchantments": {
+    "armor_defense_per_level": {
+      "minecraft:protection": {
+        "thrust": 4.0,
+        "strike": 4.0,
+        "slash": 5.0
+      },
+      "kingdom_come_combat:cushioning": {
+        "thrust": 0.0,
+        "strike": 2.0,
+        "slash": 0.0
+      }
+    },
+    "armor_defense_first_two_bonus": {
+    },
+    "armor_impact_mitigation_per_level": {
+      "kingdom_come_combat:cushioning": 0.08
+    },
+    "weapon_damage_per_level": {
+      "minecraft:sharpness": {
+        "thrust": 0.0,
+        "strike": 0.0,
+        "slash": 2.0
+      },
+      "kingdom_come_combat:pointed": {
+        "thrust": 2.0,
+        "strike": 0.0,
+        "slash": 0.0
+      },
+      "kingdom_come_combat:heavy": {
+        "thrust": 0.0,
+        "strike": 2.0,
+        "slash": 0.0
+      }
+    },
+    "weapon_damage_first_two_bonus": {
+      "minecraft:sharpness": {
+        "thrust": 0.0,
+        "strike": 0.0,
+        "slash": 2.0
+      },
+      "kingdom_come_combat:pointed": {
+        "thrust": 2.0,
+        "strike": 0.0,
+        "slash": 0.0
+      },
+      "kingdom_come_combat:heavy": {
+        "thrust": 0.0,
+        "strike": 1.0,
+        "slash": 0.0
+      }
+    },
+    "durability_reduction_per_level": {
+      "minecraft:unbreaking": 0.20
+    },
+    "max_durability_reduction": 0.90
+  },
+  "global": {
+    "low_stamina_armor_panel_reduction": 0.1,
+    "blocked_strike_to_impact_ratio": 0.12,
+    "exhausted_armor_panel_reduction": 0.35,
+    "imperfect_block_impact_mitigation": 0.65,
+    "perfect_block_impact_mitigation": 0.90,
+    "perfect_block_impact": 10.0,
+    "combat_min_distance": 1.6,
+    "real_hitbox_size_units": {
+      "x": 3.0,
+      "y": 1.0,
+      "z": 22.5
+    },
+    "real_hitbox_offset_units": {
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0
+    },
+    "real_hitbox_rotation_degrees": {
+      "x": 0.0,
+      "y": 0.0,
+      "z": -45.0
+    }
+  }
+}

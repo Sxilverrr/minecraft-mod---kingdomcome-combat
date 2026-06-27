@@ -1,0 +1,21 @@
+{
+  "default_multiplier": 1.0,
+  "damage_types": {
+    "minecraft:arrow": 1.25,
+    "minecraft:trident": 1.20,
+    "minecraft:mob_attack": 1.0,
+    "minecraft:player_attack": 1.0,
+    "minecraft:magic": 0.35,
+    "minecraft:on_fire": 0.0,
+    "minecraft:in_fire": 0.0,
+    "minecraft:lava": 0.0,
+    "minecraft:fall": 0.45,
+    "minecraft:drown": 0.15,
+    "kingdom_come_combat:custom_combat": 1.15
+  },
+  "damage_type_tags": {
+    "minecraft:is_fire": 0.0,
+    "minecraft:is_explosion": 0.65,
+    "minecraft:is_projectile": 1.25
+  }
+}

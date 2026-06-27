@@ -1,0 +1,19 @@
+{
+  "type": "modonomicon:content",
+  "category": "kingdom_come_combat:combat",
+  "description": "book.kingdom_come_combat.combat_manual.panels.description",
+  "icon": {"id": "kingdom_come_combat:iron_longsword"},
+  "id": "kingdom_come_combat:combat/panels",
+  "name": "book.kingdom_come_combat.combat_manual.panels.name",
+  "pages": [
+    {
+      "type": "modonomicon:text",
+      "text": "book.kingdom_come_combat.combat_manual.panels.intro.text",
+      "title": "book.kingdom_come_combat.combat_manual.panels.intro.title"
+    }
+  ],
+  "parents": [{"entry": "kingdom_come_combat:combat/techniques"}],
+  "sort_number": 5,
+  "x": 2,
+  "y": 1
+}

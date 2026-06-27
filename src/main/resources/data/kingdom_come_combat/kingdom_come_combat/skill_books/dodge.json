@@ -1,0 +1,10 @@
+{
+  "id": "dodge",
+  "passive_id": "dodge",
+  "title": "闪避",
+  "author": "Kingdom Come Combat",
+  "illustration": "",
+  "first_page": "这本书记录了一种被动战斗技巧：闪避。",
+  "second_page": "你反复练习脚步、重心和时机，学会了在锁定战斗中避开袭来的攻击。",
+  "translations": {"en_us": {"title": "Dodge", "first_page": "This book records a passive combat technique: Dodge.", "second_page": "Through repeated practice of footwork, balance, and timing, you learn to evade incoming attacks during locked combat."}}
+}

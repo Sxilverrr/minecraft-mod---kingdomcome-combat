@@ -1,0 +1,11 @@
+{
+  "allow_open_book_with_invalid_links": false,
+  "description": "book.kingdom_come_combat.combat_manual.description",
+  "display_mode": "node",
+  "generate_book_item": true,
+  "model": "modonomicon:modonomicon_red",
+  "name": "book.kingdom_come_combat.combat_manual.name",
+  "page_display_mode": "double_page",
+  "show_recently_unlocked": false,
+  "tooltip": "book.kingdom_come_combat.combat_manual.tooltip"
+}

@@ -1,0 +1,15 @@
+{
+  "display": {
+    "icon": {"id": "kingdom_come_combat:iron_longsword"},
+    "title": {"translate": "advancement.kingdom_come_combat.bohemian_swordmaster.title"},
+    "description": {"translate": "advancement.kingdom_come_combat.bohemian_swordmaster.description"},
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false,
+    "background": "minecraft:textures/gui/advancements/backgrounds/adventure.png"
+  },
+  "criteria": {
+    "all_combos": {"trigger": "minecraft:impossible"}
+  }
+}

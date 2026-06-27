@@ -1,0 +1,9 @@
+{
+  "id": "brutal_up_strike",
+  "title": "残暴上击",
+  "author": "Kingdom Come Combat",
+  "illustration": "brutal_up_strike",
+  "first_page": "输入：左、右、上、左。用重武器连续变换攻势，最后从下方施展残暴的上击。",
+  "second_page": "残暴上击对刺击、打击和斩击伤害均有强化。命中腿部时攻击膝盖，命中其他部位时则视为击中脸部。翻到这里，你已经开始练习残暴上击。",
+  "translations": {"en_us": {"title": "Brutal Uppercut", "first_page": "Input: Left, Right, Up, Left. Change the line of attack with a heavy weapon, then finish with a brutal rising blow from below.", "second_page": "Brutal Uppercut strengthens thrust, strike, and slash damage alike. Leg hits target the knee; all other hits count as strikes to the face."}}
+}

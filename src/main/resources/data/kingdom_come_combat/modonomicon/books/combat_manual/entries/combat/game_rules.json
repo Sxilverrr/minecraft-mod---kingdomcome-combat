@@ -1,0 +1,24 @@
+{
+  "type": "modonomicon:content",
+  "category": "kingdom_come_combat:combat",
+  "description": "book.kingdom_come_combat.combat_manual.game_rules.description",
+  "icon": {"id": "minecraft:command_block"},
+  "id": "kingdom_come_combat:combat/game_rules",
+  "name": "book.kingdom_come_combat.combat_manual.game_rules.name",
+  "pages": [
+    {
+      "type": "modonomicon:text",
+      "text": "book.kingdom_come_combat.combat_manual.game_rules.intro.text",
+      "title": "book.kingdom_come_combat.combat_manual.game_rules.intro.title"
+    },
+    {
+      "type": "modonomicon:text",
+      "text": "book.kingdom_come_combat.combat_manual.game_rules.details.text",
+      "title": "book.kingdom_come_combat.combat_manual.game_rules.details.title"
+    }
+  ],
+  "parents": [{"entry": "kingdom_come_combat:combat/datapacks"}],
+  "sort_number": 9,
+  "x": 4,
+  "y": 0
+}

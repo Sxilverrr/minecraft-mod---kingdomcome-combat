@@ -1,0 +1,50 @@
+{
+	"schemaVersion": 1,
+	"id": "kingdom_come_combat",
+	"version": "${version}",
+	"name": "Kingdom Come Combat",
+	"description": "minecraft, but with the combat system from kingdom come deliverance 2, you can lock the enemy and attack them with different direction, cast combo, do a parry dodge. and more. A lot of the things was data driven, so you can use a data pack to change it",
+	"authors": [
+		"DUCK goose"
+	],
+	"contact": {
+		"homepage": "https://fabricmc.net/",
+		"sources": "https://github.com/FabricMC/fabric-example-mod"
+	},
+	"license": "CC0-1.0",
+	"icon": "assets/kingdom_come_combat/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"com.kingdomcomecombat.KingdomComeCombat"
+		],
+		"client": [
+			"com.kingdomcomecombat.client.KingdomComeCombatClient"
+		],
+		"modmenu": [
+			"com.kingdomcomecombat.client.config.KccModMenuIntegration"
+		]
+	},
+	"mixins": [
+		"kingdom_come_combat.mixins.json",
+		{
+			"config": "kingdom_come_combat.client.mixins.json",
+			"environment": "client"
+		}
+	],
+	"depends": {
+		"fabricloader": ">=0.19.2",
+		"minecraft": "${minecraft_dependency}",
+		"java": ">=21",
+		"fabric-api": "*",
+		"cloth-config": ">=${cloth_dependency}",
+		"player_animation_library": "*"
+	},
+	"suggests": {
+		"firstperson": "*",
+		"geckolib": "*",
+		"modonomicon": "*",
+		"guardvillagers": "*"
+	}
+
+}

@@ -1,0 +1,9 @@
+{
+  "id": "pommel_strike",
+  "title": "剑柄打击",
+  "author": "Kingdom Come Combat",
+  "illustration": "pommel_strike",
+  "first_page": "输入：刺、刺、右。两次直刺后，以右斩收尾，用剑柄撞击对手面部。",
+  "second_page": "剑柄打击不是针对不喜欢穿戴护面甲敌人的首选。在敌人被两次刺击钉住时，把长剑变成近身的铁锤。翻到这里，你已经开始练习剑柄打击。",
+  "translations": {"en_us": {"title": "Pommel Strike", "first_page": "Input: Thrust, Thrust, Right. Pin the opponent with two thrusts, then finish from the right and drive the pommel into the face.", "second_page": "Once two thrusts have fixed the enemy in place, turn the longsword into a close-range hammer."}}
+}

@@ -1,0 +1,9 @@
+{
+  "id": "butcher",
+  "title": "屠杀击",
+  "author": "Kingdom Come Combat",
+  "illustration": "butcher",
+  "first_page": "输入：下，右，左。全力挥砍尝试几种尽可能大的范围，适合针对成群的敌人",
+  "second_page": "针对头侧面的普通打击，主要适用于击杀不戴头盔的大群敌人",
+  "translations": {"en_us": {"title": "Butcher", "first_page": "Input: Down, Right, Left. Commit to broad, powerful cuts suited to fighting groups of enemies.", "second_page": "A sweeping strike aimed at the side of the head, most effective against groups of unhelmeted foes."}}
+}

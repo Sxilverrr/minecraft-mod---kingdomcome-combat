@@ -1,0 +1,9 @@
+{
+  "id": "fiore_half_sword",
+  "title": "费奥雷半剑式",
+  "author": "Kingdom Come Combat",
+  "illustration": "fiore_half_sword",
+  "first_page": "输入：上、左、右。上段、左斩后，以右斩收尾，双手半剑刺向对手胸口。",
+  "second_page": "半剑式不是为了漂亮，而是为了穿过盔甲。握住剑身时要让剑尖像凿子一样稳定。翻到这里，你已经开始练习费奥雷半剑式。",
+  "translations": {"en_us": {"title": "Fiore Halbschwerten", "first_page": "Input: Up, Left, Right. After an overhead and left cut, finish from the right by taking the blade in both hands and thrusting into the chest.", "second_page": "Half-swording is meant to defeat armor, not to look elegant. Grip the blade and keep the point steady as a chisel."}}
+}

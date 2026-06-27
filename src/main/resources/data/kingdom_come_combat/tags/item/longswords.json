@@ -1,0 +1,12 @@
+{
+  "replace": false,
+  "values": [
+    "kingdom_come_combat:wooden_longsword",
+    "kingdom_come_combat:stone_longsword",
+    "kingdom_come_combat:copper_longsword",
+    "kingdom_come_combat:golden_longsword",
+    "kingdom_come_combat:iron_longsword",
+    "kingdom_come_combat:diamond_longsword",
+    "kingdom_come_combat:netherite_longsword"
+  ]
+}

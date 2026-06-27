@@ -1,0 +1,30 @@
+{
+  "type": "modonomicon:content",
+  "category": "kingdom_come_combat:combat",
+  "description": "book.kingdom_come_combat.combat_manual.combos.description",
+  "icon": {
+    "id": "kingdom_come_combat:skill_book"
+  },
+  "id": "kingdom_come_combat:combat/combos",
+  "name": "book.kingdom_come_combat.combat_manual.combos.name",
+  "pages": [
+    {
+      "type": "modonomicon:text",
+      "text": "book.kingdom_come_combat.combat_manual.combos.intro.text",
+      "title": "book.kingdom_come_combat.combat_manual.combos.intro.title"
+    },
+    {
+      "type": "modonomicon:text",
+      "text": "book.kingdom_come_combat.combat_manual.combos.sequences.text",
+      "title": "book.kingdom_come_combat.combat_manual.combos.sequences.title"
+    }
+  ],
+  "parents": [
+    {
+      "entry": "kingdom_come_combat:combat/basics"
+    }
+  ],
+  "sort_number": 7,
+  "x": 2,
+  "y": 0
+}

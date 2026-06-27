@@ -1,0 +1,23 @@
+{
+  "type": "modonomicon:content",
+  "category": "kingdom_come_combat:combat",
+  "description": "book.kingdom_come_combat.combat_manual.longswords.description",
+  "icon": {"id": "kingdom_come_combat:iron_longsword"},
+  "id": "kingdom_come_combat:combat/longswords",
+  "name": "book.kingdom_come_combat.combat_manual.longswords.name",
+  "pages": [
+    {
+      "type": "modonomicon:text",
+      "title": "book.kingdom_come_combat.combat_manual.longswords.intro.title",
+      "text": "book.kingdom_come_combat.combat_manual.longswords.intro.text"
+    },
+    {"type": "modonomicon:crafting_recipe", "recipe_id_1": "kingdom_come_combat:wooden_longsword", "recipe_id_2": "kingdom_come_combat:stone_longsword"},
+    {"type": "modonomicon:crafting_recipe", "recipe_id_1": "kingdom_come_combat:copper_longsword", "recipe_id_2": "kingdom_come_combat:iron_longsword"},
+    {"type": "modonomicon:crafting_recipe", "recipe_id_1": "kingdom_come_combat:golden_longsword", "recipe_id_2": "kingdom_come_combat:diamond_longsword"},
+    {"type": "modonomicon:crafting_recipe", "recipe_id_1": "kingdom_come_combat:netherite_longsword"}
+  ],
+  "parents": [{"entry": "kingdom_come_combat:combat/panels"}],
+  "sort_number": 7,
+  "x": 3,
+  "y": 0
+}

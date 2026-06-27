@@ -1,0 +1,37 @@
+{
+  "_comment": "闪避可以规避的原版伤害。damage_with_attacker=true 表示多数有攻击者的伤害可闪避；排除列表优先生效。",
+  "dodge": {
+    "damage_with_attacker": true,
+    "damage_types": [
+      "minecraft:mob_attack",
+      "minecraft:mob_attack_no_aggro",
+      "minecraft:player_attack",
+      "minecraft:arrow",
+      "minecraft:trident",
+      "minecraft:thrown",
+      "minecraft:sting",
+      "minecraft:sonic_boom",
+      "minecraft:indirect_magic"
+    ],
+    "damage_type_tags": [
+      "minecraft:is_projectile"
+    ],
+    "excluded_damage_types": [
+      "minecraft:fall",
+      "minecraft:fly_into_wall",
+      "minecraft:in_wall",
+      "minecraft:drown",
+      "minecraft:starve",
+      "minecraft:on_fire",
+      "minecraft:in_fire",
+      "minecraft:lava",
+      "minecraft:hot_floor",
+      "minecraft:freeze",
+      "minecraft:out_of_world",
+      "minecraft:generic",
+      "minecraft:magic",
+      "minecraft:wither",
+      "minecraft:thorns"
+    ]
+  }
+}

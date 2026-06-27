@@ -1,0 +1,384 @@
+{
+  "_comment": "一个文件可以写多个盔甲。protected_parts 的 key 使用 _part_ids 里的细分部位 id。",
+  "_part_ids": [
+    "face",
+    "neck",
+    "crown",
+    "side_head",
+    "shoulder",
+    "arm",
+    "hand",
+    "chest",
+    "abdomen",
+    "thigh",
+    "knee",
+    "calf",
+    "foot"
+  ],
+  "items": {
+    "minecraft:iron_chestplate": {
+      "stamina_cost_increase": 0.05,
+      "attack_speed_penalty": 0.05,
+      "movement_speed_penalty": 0.04,
+      "defense": {
+        "thrust": 50.0,
+        "strike": 50.0,
+        "slash": 55.0
+      },
+      "protected_parts": {
+        "abdomen": {
+          "protection": 1.0,
+          "impact_mitigation": 0.54
+        },
+        "chest": {
+          "protection": 1.0,
+          "impact_mitigation": 0.675
+        },
+        "shoulder": {
+          "protection": 0.9,
+          "impact_mitigation": 0.495
+        }
+      }
+    },
+    "minecraft:iron_helmet": {
+      "stamina_cost_increase": 0.01,
+      "attack_speed_penalty": 0.0,
+      "movement_speed_penalty": 0.00,
+      "defense": {
+        "thrust": 45.0,
+        "strike": 40.0,
+        "slash": 55.0
+      },
+      "protected_parts": {
+        "crown": {
+          "protection": 1,
+          "impact_mitigation": 0.45
+        },
+        "side_head": {
+          "protection": 1,
+          "impact_mitigation": 0.45
+        },
+        "face": {
+          "protection": 0.1,
+          "impact_mitigation": 0.09
+        }
+      }
+    },
+    "minecraft:iron_leggings": {
+      "stamina_cost_increase": 0.03,
+      "attack_speed_penalty": 0.0,
+      "movement_speed_penalty": 0.05,
+      "defense": {
+        "thrust": 45.0,
+        "strike": 40.0,
+        "slash": 55.0
+      },
+      "protected_parts": {
+        "abdomen": {
+          "protection": 1,
+          "impact_mitigation": 0.54
+        },
+        "thigh": {
+          "protection": 1,
+          "impact_mitigation": 0.45
+        },
+        "knee": {
+          "protection": 1,
+          "impact_mitigation": 0.54
+        }
+      }
+    },
+    "minecraft:iron_boots": {
+      "stamina_cost_increase": 0.00,
+      "attack_speed_penalty": 0.0,
+      "movement_speed_penalty": 0.03,
+      "defense": {
+        "thrust": 40.0,
+        "strike": 25.0,
+        "slash": 45.0
+      },
+      "protected_parts": {
+        "feet": {
+          "protection": 1,
+          "impact_mitigation": 0.27
+        },
+        "calf": {
+          "protection": 1,
+          "impact_mitigation": 0.27
+        }
+      }
+    },
+    "minecraft:chainmail_chestplate": {
+      "stamina_cost_increase": 0.01,
+      "attack_speed_penalty": 0.01,
+      "movement_speed_penalty": 0.01,
+      "defense": {
+        "thrust": 40.0,
+        "strike": 30.0,
+        "slash": 55.0
+      },
+      "protected_parts": {
+        "abdomen": {
+          "protection": 1.0,
+          "impact_mitigation": 0.45
+        },
+        "chest": {
+          "protection": 1.0,
+          "impact_mitigation": 0.585
+        },
+        "shoulder": {
+          "protection": 0.9,
+          "impact_mitigation": 0.405
+        }
+      }
+    },
+    "minecraft:chainmail_helmet": {
+      "stamina_cost_increase": 0.01,
+      "attack_speed_penalty": 0.01,
+      "movement_speed_penalty": 0.01,
+      "defense": {
+        "thrust": 36.0,
+        "strike": 24.0,
+        "slash": 55.0
+      },
+      "protected_parts": {
+        "crown": {
+          "protection": 1,
+          "impact_mitigation": 0.36
+        },
+        "side_head": {
+          "protection": 1,
+          "impact_mitigation": 0.36
+        }
+      }
+    },
+    "minecraft:chainmail_leggings": {
+      "stamina_cost_increase": 0.01,
+      "attack_speed_penalty": 0.01,
+      "movement_speed_penalty": 0.01,
+      "defense": {
+        "thrust": 36.0,
+        "strike": 24.0,
+        "slash": 55.0
+      },
+      "protected_parts": {
+        "abdomen": {
+          "protection": 1,
+          "impact_mitigation": 0.45
+        },
+        "thigh": {
+          "protection": 1,
+          "impact_mitigation": 0.36
+        },
+        "knee": {
+          "protection": 1,
+          "impact_mitigation": 0.45
+        }
+      }
+    },
+    "minecraft:chainmail_boots": {
+      "stamina_cost_increase": 0.01,
+      "attack_speed_penalty": 0.01,
+      "movement_speed_penalty": 0.01,
+      "defense": {
+        "thrust": 32.0,
+        "strike": 15.0,
+        "slash": 45.0
+      },
+      "protected_parts": {
+        "feet": {
+          "protection": 1,
+          "impact_mitigation": 0.18
+        },
+        "calf": {
+          "protection": 1,
+          "impact_mitigation": 0.18
+        }
+      }
+    },
+    "minecraft:diamond_chestplate": {
+      "stamina_cost_increase": 0.07,
+      "attack_speed_penalty": 0.07,
+      "movement_speed_penalty": 0.06,
+      "defense": {
+        "thrust": 55.0,
+        "strike": 45.0,
+        "slash": 63.0
+      },
+      "protected_parts": {
+        "abdomen": {
+          "protection": 1.0,
+          "impact_mitigation": 0.585
+        },
+        "chest": {
+          "protection": 1.0,
+          "impact_mitigation": 0.72
+        },
+        "shoulder": {
+          "protection": 0.9,
+          "impact_mitigation": 0.522
+        }
+      }
+    },
+    "minecraft:diamond_helmet": {
+      "stamina_cost_increase": 0.03,
+      "attack_speed_penalty": 0.0,
+      "movement_speed_penalty": 0.00,
+      "defense": {
+        "thrust": 45.0,
+        "strike": 38.0,
+        "slash": 60.0
+      },
+      "protected_parts": {
+        "crown": {
+          "protection": 1,
+          "impact_mitigation": 0.495
+        },
+        "side_head": {
+          "protection": 1,
+          "impact_mitigation": 0.495
+        },
+        "face": {
+          "protection": 0.1,
+          "impact_mitigation": 0.09
+        }
+      }
+    },
+    "minecraft:diamond_leggings": {
+      "stamina_cost_increase": 0.04,
+      "attack_speed_penalty": 0.0,
+      "movement_speed_penalty": 0.09,
+      "defense": {
+        "thrust": 53.0,
+        "strike": 35.0,
+        "slash": 60.0
+      },
+      "protected_parts": {
+        "abdomen": {
+          "protection": 1,
+          "impact_mitigation": 0.585
+        },
+        "thigh": {
+          "protection": 1,
+          "impact_mitigation": 0.495
+        },
+        "knee": {
+          "protection": 1,
+          "impact_mitigation": 0.585
+        }
+      }
+    },
+    "minecraft:diamond_boots": {
+      "stamina_cost_increase": 0.03,
+      "attack_speed_penalty": 0.0,
+      "movement_speed_penalty": 0.04,
+      "defense": {
+        "thrust": 40.0,
+        "strike": 32.0,
+        "slash": 42.0
+      },
+      "protected_parts": {
+        "feet": {
+          "protection": 1,
+          "impact_mitigation": 0.27
+        },
+        "calf": {
+          "protection": 1,
+          "impact_mitigation": 0.27
+        }
+      }
+    },
+    "minecraft:netherite_chestplate": {
+      "stamina_cost_increase": 0.09,
+      "attack_speed_penalty": 0.09,
+      "movement_speed_penalty": 0.07,
+      "defense": {
+        "thrust": 55.0,
+        "strike": 50.0,
+        "slash": 72.0
+      },
+      "protected_parts": {
+        "abdomen": {
+          "protection": 1.0,
+          "impact_mitigation": 0.63
+        },
+        "chest": {
+          "protection": 1.0,
+          "impact_mitigation": 0.72
+        },
+        "shoulder": {
+          "protection": 1.0,
+          "impact_mitigation": 0.585
+        }
+      }
+    },
+    "minecraft:netherite_helmet": {
+      "stamina_cost_increase": 0.05,
+      "attack_speed_penalty": 0.0,
+      "movement_speed_penalty": 0.02,
+      "defense": {
+        "thrust": 50.0,
+        "strike": 43.0,
+        "slash": 68.0
+      },
+      "protected_parts": {
+        "crown": {
+          "protection": 1,
+          "impact_mitigation": 0.54
+        },
+        "side_head": {
+          "protection": 1,
+          "impact_mitigation": 0.54
+        },
+        "face": {
+          "protection": 0.3,
+          "impact_mitigation": 0.18
+        }
+      }
+    },
+    "minecraft:netherite_leggings": {
+      "stamina_cost_increase": 0.05,
+      "attack_speed_penalty": 0.0,
+      "movement_speed_penalty": 0.09,
+      "defense": {
+        "thrust": 55.0,
+        "strike": 40.0,
+        "slash": 70.0
+      },
+      "protected_parts": {
+        "abdomen": {
+          "protection": 1,
+          "impact_mitigation": 0.585
+        },
+        "thigh": {
+          "protection": 1,
+          "impact_mitigation": 0.54
+        },
+        "knee": {
+          "protection": 1,
+          "impact_mitigation": 0.585
+        }
+      }
+    },
+    "minecraft:netherite_boots": {
+      "stamina_cost_increase": 0.04,
+      "attack_speed_penalty": 0.0,
+      "movement_speed_penalty": 0.04,
+      "defense": {
+        "thrust": 44.0,
+        "strike": 37.0,
+        "slash": 48.0
+      },
+      "protected_parts": {
+        "feet": {
+          "protection": 1,
+          "impact_mitigation": 0.45
+        },
+        "calf": {
+          "protection": 1,
+          "impact_mitigation": 0.45
+        }
+      }
+    }
+  }
+}

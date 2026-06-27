@@ -1,0 +1,9 @@
+{
+  "id": "horizontal_strike",
+  "title": "横批",
+  "author": "Kingdom Come Combat",
+  "illustration": "horizontal_strike",
+  "first_page": "输入：上、右、左。以连续换向牵制对手，最后用一记横批扫向目标。适用于长剑和短剑。",
+  "second_page": "横批以斩击为主，并辅以打击伤害。命中头部时攻击面部，命中其他部位时则集中伤害腹部。翻到这里，你已经开始练习横批。",
+  "translations": {"en_us": {"title": "Mittelhaw", "first_page": "Input: Up, Right, Left. Change direction repeatedly to occupy the opponent, then finish with a horizontal sweep. Usable with short swords and longswords.", "second_page": "Mittelhaw emphasizes slash damage with supporting strike damage. Head hits target the face; all other hits are focused on the abdomen."}}
+}

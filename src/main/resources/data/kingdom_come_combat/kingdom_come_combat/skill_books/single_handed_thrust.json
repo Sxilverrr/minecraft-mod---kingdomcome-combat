@@ -1,0 +1,9 @@
+{
+  "id": "single_handed_thrust",
+  "title": "单手刺击",
+  "author": "Kingdom Come Combat",
+  "illustration": "single_handed_thrust",
+  "first_page": "输入：下，左，右。用剑单手直刺对方的面部",
+  "second_page": "单手刺击，伤害略低，但是容易命中且直击要害，属于出其不意的打法，在长剑上效果更佳",
+  "translations": {"en_us": {"title": "Single handed thrust", "first_page": "Input: down, left, and right. use the sword to stab the enemy in the face", "second_page": "although the damage was a bit low, but a hit on the face will make do for it, it was easy to use and easy to hit"}}
+}

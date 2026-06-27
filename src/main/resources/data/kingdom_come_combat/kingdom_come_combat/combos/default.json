@@ -1,0 +1,890 @@
+{
+  "_comment": "一个文件可以写多个连招。hit_zones.parts 使用 _part_ids 里的细分部位 id。",
+  "_required_weapon_tag_comment": "required_weapon_tag 可写 swords、short_swords、longswords、axes、pickaxes、hammers 或 heavy_weapons。heavy_weapons/重武器 包括重锤、斧和镐。",
+  "_weapon_clash_tick_comment": "weapon_clash_tick >= 0 时，会在该动作动画 tick 触发一次剑刃中段火星和武器碰撞音效，并消耗双方主手武器耐久。weapon_clash_sound 留空走默认 sword_clash，写 sword_hit_sword 则使用 sword_hit_sword_01-03。",
+  "_part_ids": [
+    "face",
+    "neck",
+    "crown",
+    "side_head",
+    "shoulder",
+    "arm",
+    "hand",
+    "chest",
+    "abdomen",
+    "thigh",
+    "knee",
+    "calf",
+    "foot"
+  ],
+  "combos": {
+    "rossen": {
+      "display_name": "罗森式",
+      "level": 4,
+      "sequence": "上左左右",
+      "animation": "combo_rossen",
+      "victim_animation": "combo_rossen_hit",
+      "required_weapon_tag": "longswords",
+      "damage_modifiers": {
+        "thrust": 0.2,
+        "strike": 0.8,
+        "slash": 1.0
+      },
+      "hit_zones": [
+        {
+          "hit": "head",
+          "parts": ["face"]
+        }
+      ],
+      "impact_multiplier": 1.75,
+      "stamina_cost": 16.0,
+      "horizontal_knockback": 0.6,
+      "blade_trail": true,
+      "hit_reaction": true,
+      "hit_reaction_interrupts_attack": true,
+      "hit_reaction_movement_lock_ticks": 30,
+      "suction": true,
+      "suction_distance": 2.6,
+      "suction_fixed_distance": 1.4,
+      "lunge": false,
+      "use_real_hitbox": false,
+      "injury_type": "head",
+      "injury_level": 4,
+      "attack_chain": [
+        {
+          "tick": 5,
+          "hit_weapon": true,
+          "weapon_clash_sound": "sword_hit_sword"
+        },
+        {
+          "tick": 16,
+          "damage_modifiers": {
+            "thrust": 0.6,
+            "strike": 0.8,
+            "slash": 0.6
+          },
+          "hit_zones": [
+            {
+              "hit": "head",
+              "parts": ["face"]
+            }
+          ]
+        }
+      ]
+    },
+    "falseedge_strike": {
+      "display_name": "逆刃斩击",
+      "level": 4,
+      "sequence": "下上左",
+      "animation": "combo_falseedge_strike",
+      "victim_animation": "combo_falseedge_strike_hit",
+      "required_weapon_tag": "short_sword",
+      "damage_modifiers": {
+        "thrust": 0.0,
+        "strike": 0.8,
+        "slash": 1.0
+      },
+      "hit_zones": [
+        {
+          "hit": "head",
+          "parts": ["side_head"]
+        }
+      ],
+      "impact_multiplier": 1.25,
+      "stamina_cost": 15.0,
+      "horizontal_knockback": 0.4,
+      "blade_trail": true,
+      "hit_reaction": true,
+      "hit_reaction_interrupts_attack": true,
+      "hit_reaction_movement_lock_ticks": 27,
+      "suction": true,
+      "suction_distance": 2.6,
+      "suction_fixed_distance": 1.6,
+      "lunge": false,
+      "use_real_hitbox": false,
+      "injury_type": "head",
+      "injury_level": 2,
+      "attack_chain": [
+        {
+          "tick": 3,
+          "hit_weapon": true,
+          "weapon_clash_sound": "sword_hit_sword"
+        },
+        {
+          "tick": 7,
+          "damage_modifiers": {
+            "thrust": 0.0,
+            "strike": 0.8,
+            "slash": 1.0
+          },
+          "hit_zones": [
+            {
+              "hit": "head",
+              "parts": ["side_head"]
+            }
+          ]
+        },
+        {
+          "tick": 15,
+          "damage_modifiers": {
+            "thrust": 0.0,
+            "strike": 0.8,
+            "slash": 1.0
+          },
+          "hit_zones": [
+            {
+              "hit": "head",
+              "parts": ["side_head"]
+            }
+          ]
+        }
+      ]
+    },
+    "butcher": {
+      "display_name": "屠杀击",
+      "level": 2,
+      "sequence": "下右左",
+      "animation": "combo_highspot_cut",
+      "required_weapon_tag": "longswords",
+      "damage_modifiers": {
+        "thrust": 0.0,
+        "strike": 0.6,
+        "slash": 1.0
+      },
+      "hit_zones": [
+        {
+          "hit": "legs",
+          "parts": ["thigh"]
+        },
+        {
+          "hit": "any",
+          "parts": ["side_head"]
+        }
+      ],
+      "impact_multiplier": 1.7,
+      "stamina_cost": 50.0,
+      "horizontal_knockback": 1.6,
+      "blade_trail": true,
+      "hit_reaction": true,
+      "hit_reaction_animation": "neck_hit",
+      "hit_reaction_interrupts_attack": true,
+      "hit_reaction_movement_lock_ticks": 15,
+      "weapon_clash_tick": 0,
+      "weapon_clash_sound": "",
+      "suction": false,
+      "lunge": true,
+      "use_real_hitbox": true,
+      "injury_type": "head",
+      "injury_level": 1
+    },
+    "highspot_cut": {
+      "display_name": "高位横批",
+      "level": 2,
+      "sequence": "下右右左",
+      "animation": "combo_highspot_cut",
+      "required_weapon_tag": "short_sword",
+      "damage_modifiers": {
+        "thrust": 0.0,
+        "strike": 0.6,
+        "slash": 1.0
+      },
+      "hit_zones": [
+        {
+          "hit": "legs",
+          "parts": ["thigh"]
+        },
+        {
+          "hit": "any",
+          "parts": ["neck"]
+        }
+      ],
+      "impact_multiplier": 1.7,
+      "stamina_cost": 12.0,
+      "horizontal_knockback": 0.8,
+      "blade_trail": true,
+      "hit_reaction": true,
+      "hit_reaction_animation": "neck_hit",
+      "hit_reaction_interrupts_attack": true,
+      "hit_reaction_movement_lock_ticks": 12,
+      "weapon_clash_tick": 0,
+      "weapon_clash_sound": "",
+      "suction": false,
+      "lunge": true,
+      "use_real_hitbox": true,
+      "injury_type": "head",
+      "injury_level": 2
+    },
+    "smash_attack": {
+      "display_name": "粉碎打击",
+      "level": 1,
+      "sequence": "上左右",
+      "animation": "attack_smash",
+      "required_weapon_tag": "short_swords",
+      "damage_modifiers": {
+        "thrust": 0.2,
+        "strike": 2.6,
+        "slash": 0.0
+      },
+      "hit_zones": [
+        {
+          "hit": "legs",
+          "parts": ["thigh"]
+        },
+        {
+          "hit": "any",
+          "parts": ["face"]
+        }
+      ],
+      "impact_multiplier": 1.7,
+      "stamina_cost": 8.0,
+      "horizontal_knockback": 0.8,
+      "blade_trail": false,
+      "hit_reaction": true,
+      "hit_reaction_animation": "smash_hit",
+      "hit_reaction_interrupts_attack": true,
+      "hit_reaction_movement_lock_ticks": 15,
+      "weapon_clash_tick": 0,
+      "weapon_clash_sound": "",
+      "suction": false,
+      "lunge": true,
+      "use_real_hitbox": false,
+      "injury_type": "head",
+      "injury_level": 2
+    },
+    "smash_attack_heavy": {
+      "display_name": "重武器粉碎打击",
+      "level": 1,
+      "sequence": "上左右",
+      "animation": "combo_smash_heavy",
+      "required_weapon_tag": "heavy_weapons",
+      "damage_modifiers": {
+        "thrust": 1.0,
+        "strike": 1.0,
+        "slash": 0.0
+      },
+      "hit_zones": [
+        {
+          "hit": "legs",
+          "parts": ["thigh"]
+        },
+        {
+          "hit": "any",
+          "parts": ["face"]
+        }
+      ],
+      "impact_multiplier": 1.5,
+      "stamina_cost": 12.0,
+      "horizontal_knockback": 0.6,
+      "blade_trail": false,
+      "hit_reaction": true,
+      "hit_reaction_animation": "smash_hit",
+      "hit_reaction_interrupts_attack": true,
+      "hit_reaction_movement_lock_ticks": 15,
+      "weapon_clash_tick": 0,
+      "weapon_clash_sound": "",
+      "suction": false,
+      "lunge": true,
+      "use_real_hitbox": false,
+      "injury_type": "head",
+      "injury_level": 3
+    },
+    "single_handed_thrust": {
+      "display_name": "单手刺击",
+      "level": 3,
+      "sequence": "下左右",
+      "animation": "combo_smash_heavy",
+      "required_weapon_tag": "swords",
+      "damage_modifiers": {
+        "thrust": 0.8,
+        "strike": 0.8,
+        "slash": 0.0
+      },
+      "hit_zones": [
+        {
+          "hit": "legs",
+          "parts": ["thigh"]
+        },
+        {
+          "hit": "any",
+          "parts": ["face"]
+        }
+      ],
+      "impact_multiplier": 1,
+      "stamina_cost": 9,
+      "horizontal_knockback": 0.5,
+      "blade_trail": false,
+      "hit_reaction": true,
+      "hit_reaction_animation": "smash_hit",
+      "hit_reaction_interrupts_attack": true,
+      "hit_reaction_movement_lock_ticks": 15,
+      "weapon_clash_tick": 0,
+      "weapon_clash_sound": "",
+      "suction": false,
+      "lunge": true,
+      "use_real_hitbox": true,
+      "injury_type": "head",
+      "injury_level": 2
+    },
+    "pommel_strike": {
+      "display_name": "剑柄打击",
+      "level": 1,
+      "sequence": "下下右",
+      "animation": "attack_smash",
+      "required_weapon_tag": "longswords",
+      "damage_modifiers": {
+        "thrust": 0.2,
+        "strike": 2.6,
+        "slash": 0.0
+      },
+      "hit_zones": [
+        {
+          "hit": "legs",
+          "parts": ["thigh"]
+        },
+        {
+          "hit": "any",
+          "parts": ["face"]
+        }
+      ],
+      "impact_multiplier": 1.7,
+      "stamina_cost": 8.0,
+      "horizontal_knockback": 0.8,
+      "blade_trail": false,
+      "hit_reaction": true,
+      "hit_reaction_animation": "smash_hit",
+      "hit_reaction_interrupts_attack": true,
+      "hit_reaction_movement_lock_ticks": 15,
+      "weapon_clash_tick": 0,
+      "weapon_clash_sound": "",
+      "suction": false,
+      "lunge": true,
+      "use_real_hitbox": false,
+      "injury_type": "head",
+      "injury_level": 3
+    },
+    "knee_break": {
+      "display_name": "破膝打击",
+      "level": 3,
+      "sequence": "左上左",
+      "animation": "combo_knee_strike",
+      "victim_animation": "combo_knee_strike_hit",
+      "required_weapon_tag": "short_swords",
+      "damage_modifiers": {
+        "thrust": 0.0,
+        "strike": 1.0,
+        "slash": 0.4
+      },
+      "hit_zones": [
+        {
+          "hit": "legs",
+          "parts": ["knee"]
+        }
+      ],
+      "impact_multiplier": 1.5,
+      "stamina_cost": 9.0,
+      "horizontal_knockback": 0.0,
+      "blade_trail": false,
+      "hit_reaction": true,
+      "hit_reaction_interrupts_attack": true,
+      "hit_reaction_movement_lock_ticks": 18,
+      "suction": true,
+      "suction_distance": 2.6,
+      "suction_fixed_distance": 1.15,
+      "lunge": false,
+      "use_real_hitbox": false,
+      "injury_type": "legs",
+      "injury_level": 4,
+      "attack_chain": [
+        {
+          "tick": 4,
+          "damage_modifiers": {
+            "thrust": 1.0,
+            "strike": 0.0,
+            "slash": 0.0
+          },
+          "hit_zones": [
+            {
+              "hit": "legs",
+              "parts": ["knee"]
+            }
+          ]
+        },
+        {
+          "tick": 19,
+          "damage_modifiers": {
+            "thrust": 0.0,
+            "strike": 3,
+            "slash": 0.0
+          },
+          "hit_zones": [
+            {
+              "hit": "head",
+              "parts": ["face"]
+            }
+          ]
+        }
+      ]
+    },
+    "knee_break_heavy": {
+      "display_name": "碎膝重击",
+      "level": 3,
+      "sequence": "上左左右",
+      "animation": "combo_knee_break_heavy",
+      "victim_animation": "combo_knee_break_heavy_hit",
+      "required_weapon_tag": "heavy_weapons",
+      "damage_modifiers": {
+        "thrust": 1.0,
+        "strike": 1.0,
+        "slash": 1.0
+      },
+      "hit_zones": [
+        {
+          "hit": "legs",
+          "parts": ["knee"]
+        }
+      ],
+      "impact_multiplier": 1.5,
+      "stamina_cost": 25,
+      "horizontal_knockback": 0.0,
+      "blade_trail": true,
+      "hit_reaction": true,
+      "hit_reaction_interrupts_attack": true,
+      "hit_reaction_movement_lock_ticks": 30,
+      "suction": true,
+      "suction_distance": 1.8,
+      "suction_fixed_distance": 1.15,
+      "lunge": false,
+      "use_real_hitbox": false,
+      "injury_type": "legs",
+      "injury_level": 7,
+      "attack_chain": [
+        {
+          "tick": 3,
+          "damage_modifiers": {
+            "thrust": 0.7,
+            "strike": 0.7,
+            "slash": 0.7
+          },
+          "hit_zones": [
+            {
+              "hit": "head",
+              "parts": ["face"]
+            }
+          ]
+        },
+        {
+          "tick": 11,
+          "damage_modifiers": {
+            "thrust": 1.0,
+            "strike": 1.0,
+            "slash": 1.0
+          },
+          "hit_zones": [
+            {
+              "hit": "head",
+              "parts": ["side_head"]
+            }
+          ]
+        },
+        {
+          "tick": 19,
+          "damage_modifiers": {
+            "thrust": 1.2,
+            "strike": 1.2,
+            "slash": 1.2
+          },
+          "hit_zones": [
+            {
+              "hit": "legs",
+              "parts": ["knee"]
+            }
+          ]
+        }
+      ]
+    },
+    "knee_break_longsword": {
+      "display_name": "长剑破膝打击",
+      "level": 4,
+      "sequence": "左上左右",
+      "animation": "combo_kneestrike_longsword",
+      "victim_animation": "combo_knee_strike_hit",
+      "required_weapon_tag": "longswords",
+      "damage_modifiers": {
+        "thrust": 0.0,
+        "strike": 1.0,
+        "slash": 0.4
+      },
+      "hit_zones": [
+        {
+          "hit": "legs",
+          "parts": ["knee"]
+        }
+      ],
+      "impact_multiplier": 1.5,
+      "stamina_cost": 9.0,
+      "horizontal_knockback": 0.0,
+      "blade_trail": false,
+      "hit_reaction": true,
+      "hit_reaction_interrupts_attack": true,
+      "hit_reaction_movement_lock_ticks": 18,
+      "suction": true,
+      "suction_distance": 2.6,
+      "suction_fixed_distance": 1.15,
+      "lunge": false,
+      "use_real_hitbox": false,
+      "injury_type": "legs",
+      "injury_level": 4,
+      "attack_chain": [
+        {
+          "tick": 4,
+          "damage_modifiers": {
+            "thrust": 1.0,
+            "strike": 0.0,
+            "slash": 0.0
+          },
+          "hit_zones": [
+            {
+              "hit": "legs",
+              "parts": ["knee"]
+            }
+          ]
+        },
+        {
+          "tick": 20,
+          "damage_modifiers": {
+            "thrust": 0.0,
+            "strike": 0.7,
+            "slash": 1.0
+          },
+          "hit_zones": [
+            {
+              "hit": "head",
+              "parts": ["side_head"]
+            }
+          ]
+        }
+      ]
+    },
+    "fiore_half_sword": {
+      "display_name": "费奥雷半剑式",
+      "level": 4,
+      "sequence": "上左右",
+      "animation": "combo_halfsword",
+      "victim_animation": "combo_halfsword_hit",
+      "required_weapon_tag": "longswords",
+      "damage_modifiers": {
+        "thrust": 2.0,
+        "strike": 0.0,
+        "slash": 0.0
+      },
+      "hit_zones": [
+        {
+          "hit": "body",
+          "parts": ["chest"]
+        }
+      ],
+      "impact_multiplier": 1.5,
+      "stamina_cost": 10.0,
+      "horizontal_knockback": 0.4,
+      "blade_trail": false,
+      "hit_reaction": true,
+      "hit_reaction_interrupts_attack": true,
+      "hit_reaction_movement_lock_ticks": 35,
+      "suction": true,
+      "suction_distance": 2.6,
+      "suction_fixed_distance": 1.2,
+      "lunge": false,
+      "use_real_hitbox": false,
+      "injury_type": "torso",
+      "injury_level": 3,
+      "attack_chain": [
+        {
+          "tick": 3,
+          "hit_weapon": true,
+          "weapon_clash_sound": "sword_hit_sword"
+        },
+        {
+          "tick": 13,
+          "damage_modifiers": {
+            "thrust": 2.2,
+            "strike": 0.0,
+            "slash": 0.0
+          },
+          "hit_zones": [
+            {
+              "hit": "body",
+              "parts": ["chest"]
+            }
+          ]
+        }
+      ]
+    },
+    "horizontal_strike": {
+      "display_name": "横批",
+      "level": 3,
+      "sequence": "上右左",
+      "animation": "combo_horiztanl_strike_heavy",
+      "required_weapon_tag": "swords",
+      "damage_modifiers": {
+        "thrust": 0.0,
+        "strike": 0.6,
+        "slash": 1.1
+      },
+      "hit_zones": [
+        {
+          "hit": "head",
+          "parts": ["face"]
+        },
+        {
+          "hit": "any",
+          "parts": ["abdomen"]
+        }
+      ],
+      "impact_multiplier": 1.2,
+      "stamina_cost": 9.0,
+      "horizontal_knockback": 0.4,
+      "blade_trail": true,
+      "hit_reaction": true,
+      "suction": false,
+      "lunge": false,
+      "use_real_hitbox": true,
+      "injury_type": "torso",
+      "injury_level": 2
+    },
+    "horizontal_strike_heavy": {
+      "display_name": "重武器横批",
+      "level": 3,
+      "sequence": "上右左",
+      "animation": "combo_horiztanl_strike_heavy",
+      "required_weapon_tag": "heavy_weapons",
+      "damage_modifiers": {
+        "thrust": 1.1,
+        "strike": 1.1,
+        "slash": 1.1
+      },
+      "hit_zones": [
+        {
+          "hit": "head",
+          "parts": ["face"]
+        },
+        {
+          "hit": "any",
+          "parts": ["abdomen"]
+        }
+      ],
+      "impact_multiplier": 1.4,
+      "stamina_cost": 12.0,
+      "horizontal_knockback": 0.5,
+      "blade_trail": true,
+      "hit_reaction": true,
+      "suction": false,
+      "lunge": false,
+      "use_real_hitbox": true,
+      "injury_type": "torso",
+      "injury_level": 3
+    },
+    "brutal_up_strike": {
+      "display_name": "残暴上击",
+      "level": 4,
+      "sequence": "左右上左",
+      "animation": "combo_brutal_up_strike",
+      "required_weapon_tag": "heavy_weapons",
+      "damage_modifiers": {
+        "thrust": 1.1,
+        "strike": 1.1,
+        "slash": 1.1
+      },
+      "hit_zones": [
+        {
+          "hit": "legs",
+          "parts": ["knee"]
+        },
+        {
+          "hit": "any",
+          "parts": ["face"]
+        }
+      ],
+      "impact_multiplier": 1.7,
+      "stamina_cost": 14.0,
+      "horizontal_knockback": 0.6,
+      "blade_trail": true,
+      "hit_reaction": true,
+      "hit_reaction_animation": "smash_hit",
+      "hit_reaction_interrupts_attack": true,
+      "hit_reaction_movement_lock_ticks": 15,
+      "suction": false,
+      "lunge": true,
+      "use_real_hitbox": false,
+      "injury_type": "head",
+      "injury_level": 4
+    },
+    "comboleft": {
+      "display_name": "左上挑斩",
+      "level": 0,
+      "sequence": "左右左",
+      "animation": "combo_left",
+      "damage_modifiers": {
+        "thrust": 0.0,
+        "strike": 0.5,
+        "slash": 1.4
+      },
+      "hit_zones": [
+        {
+          "hit": "any",
+          "parts": ["abdomen"]
+        }
+      ],
+      "impact_multiplier": 1.2,
+      "stamina_cost": 8.0,
+      "horizontal_knockback": 0.4,
+      "blade_trail": true,
+      "hit_reaction": true,
+      "weapon_clash_tick": 0,
+      "weapon_clash_sound": "sword_hit_sword",
+      "suction": false,
+      "lunge": false,
+      "use_real_hitbox": true,
+      "injury_type": "torso",
+      "injury_level": 2
+    },
+    "short_strike": {
+      "display_name": "短击",
+      "level": 3,
+      "sequence": "上上左",
+      "animation": "combo_shortstrike_longsword",
+      "required_weapon_tag": "longswords",
+      "damage_modifiers": {
+        "thrust": 1.5,
+        "strike": 0.2,
+        "slash": 0.0
+      },
+      "hit_zones": [
+        {
+          "hit": "legs",
+          "parts": ["thigh"]
+        },
+        {
+          "hit": "any",
+          "parts": ["crown"]
+        }
+      ],
+      "impact_multiplier": 1.2,
+      "stamina_cost": 8.0,
+      "horizontal_knockback": 0.25,
+      "blade_trail": false,
+      "hit_reaction": true,
+      "hit_reaction_animation": "smash_hit",
+      "hit_reaction_interrupts_attack": true,
+      "hit_reaction_movement_lock_ticks": 15,
+      "weapon_clash_tick": 0,
+      "weapon_clash_sound": "sword_hit_sword",
+      "suction": false,
+      "lunge": false,
+      "use_real_hitbox": false,
+      "injury_type": "head",
+      "injury_level": 2
+    },
+    "wrath_strike": {
+      "display_name": "怒击",
+      "level": 4,
+      "sequence": "右右右左",
+      "animation": "combo_warth_strike",
+      "required_weapon_tag": "longswords",
+      "damage_modifiers": {
+        "thrust": 0.0,
+        "strike": 0.6,
+        "slash": 1.5
+      },
+      "hit_zones": [
+        {
+          "hit": "legs",
+          "parts": ["thigh"]
+        },
+        {
+          "hit": "any",
+          "parts": ["chest"]
+        }
+      ],
+      "impact_multiplier": 3.5,
+      "stamina_cost": 18,
+      "horizontal_knockback": 1,
+      "blade_trail": true,
+      "hit_reaction": true,
+      "hit_reaction_animation": "neck_hit",
+      "hit_reaction_interrupts_attack": true,
+      "hit_reaction_movement_lock_ticks": 15,
+      "weapon_clash_tick": 0,
+      "weapon_clash_sound": "sword_hit_sword",
+      "suction": false,
+      "lunge": false,
+      "use_real_hitbox": true,
+      "injury_type": "torso",
+      "injury_level": 3
+    },
+    "cleave_strike": {
+      "display_name": "顺劈斩",
+      "level": 3,
+      "sequence": "左下右",
+      "animation": "combo_cleave_longsword",
+      "required_weapon_tag": "longswords",
+      "damage_modifiers": {
+        "thrust": 0.0,
+        "strike": 0.25,
+        "slash": 1.6
+      },
+      "hit_zones": [
+        {
+          "hit": "legs",
+          "parts": ["thigh"]
+        },
+        {
+          "hit": "any",
+          "parts": ["side_head"]
+        }
+      ],
+      "impact_multiplier": 1.4,
+      "stamina_cost": 9.0,
+      "horizontal_knockback": 0.45,
+      "blade_trail": true,
+      "hit_reaction": true,
+      "hit_reaction_interrupts_attack": true,
+      "hit_reaction_movement_lock_ticks": 14,
+      "weapon_clash_tick": 0,
+      "weapon_clash_sound": "sword_hit_sword",
+      "suction": false,
+      "lunge": false,
+      "use_real_hitbox": false,
+      "injury_type": "head",
+      "injury_level": 2
+    },
+    "comboright": {
+      "display_name": "右上挑斩",
+      "level": 0,
+      "sequence": "右左右",
+      "animation": "combo_right",
+      "damage_modifiers": {
+        "thrust": 0.0,
+        "strike": 0.5,
+        "slash": 1.4
+      },
+      "hit_zones": [
+        {
+          "hit": "any",
+          "parts": ["abdomen"]
+        }
+      ],
+      "impact_multiplier": 1.2,
+      "stamina_cost": 8.0,
+      "horizontal_knockback": 0.4,
+      "blade_trail": true,
+      "hit_reaction": true,
+      "weapon_clash_tick": 0,
+      "weapon_clash_sound": "sword_hit_sword",
+      "suction": false,
+      "lunge": false,
+      "use_real_hitbox": true,
+      "injury_type": "torso",
+      "injury_level": 2
+    }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "background": "modonomicon:textures/gui/dark_slate_seamless.png",
+  "description": "book.kingdom_come_combat.combat_manual.combat.description",
+  "display_mode": "node",
+  "icon": {
+    "id": "kingdom_come_combat:iron_longsword"
+  },
+  "max_scroll_x": 256,
+  "max_scroll_y": 256,
+  "name": "book.kingdom_come_combat.combat_manual.combat.name",
+  "show_category_button": true,
+  "sort_number": 0
+}

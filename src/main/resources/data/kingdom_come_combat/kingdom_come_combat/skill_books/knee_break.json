@@ -1,0 +1,9 @@
+{
+  "id": "knee_break",
+  "title": "破膝打击",
+  "author": "Kingdom Come Combat",
+  "illustration": "knee_break",
+  "first_page": "输入：左、上、左。左击、上段斩后，从左侧以刺击攻击对手膝部。",
+  "second_page": "盔甲会保护胸腹，却难完全照顾关节。一可以轻松的击伤敌人的膝盖，削减移动能力。然后猛击敌人的面部。翻到这里，你已经开始练习破膝打击。",
+  "translations": {"en_us": {"title": "Knee Strike", "first_page": "Input: Left, Up, Left. Follow a left and overhead strike with a thrust from the left into the opponent's knee.", "second_page": "Armor protects the torso more easily than the joints. Injure the knee to impair movement, then smash the opponent in the face."}}
+}

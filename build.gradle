@@ -69,10 +69,11 @@ loom {
 				vmArg "-XstartOnFirstThread"
 			}
 		}
-		client {
-			runDir "run"
-		}
+	client {
+		// Keep incompatible development mods/configs from leaking between targets.
+		runDir targetMinecraft == minecraft_version ? "run" : "run-${targetMinecraft}"
 	}
+}
 }
 
 def minecraftVersionOrder = compatibilityMatrix.keySet().toList()
@@ -265,6 +266,63 @@ String kingdomComeCombatTransformLegacy121(String line, boolean needsPre1215Apis
 }
 
 void patchLegacy1211Sources(File generatedMain) {
+	File instantHealth = new File(generatedMain, "com/kingdomcomecombat/mixin/InstantHealthClearsInjuryMixin.java")
+	if (instantHealth.exists()) {
+		instantHealth.setText(instantHealth.getText("UTF-8").replace(
+				"            ServerWorld world,\n            Entity source,",
+				"            Entity source,"
+		), "UTF-8")
+	}
+
+	File bloodSplash = new File(generatedMain, "com/kingdomcomecombat/mixin/LivingEntityBloodSplashMixin.java")
+	if (bloodSplash.exists()) {
+		String text = bloodSplash.getText("UTF-8")
+				.replace("            ServerWorld world,\n            DamageSource source,", "            DamageSource source,")
+				.replace("        if (cir.getReturnValue()) {\n            BloodiedEquipment.splashBlood(\n                    world,",
+						"        if (cir.getReturnValue() && ((LivingEntity) (Object) this).getWorld() instanceof ServerWorld world) {\n            BloodiedEquipment.splashBlood(\n                    world,")
+		bloodSplash.setText(text, "UTF-8")
+	}
+
+	File projectileArmor = new File(generatedMain, "com/kingdomcomecombat/mixin/LivingEntityProjectileArmorMixin.java")
+	if (projectileArmor.exists()) {
+		String text = projectileArmor.getText("UTF-8")
+				.replace(
+						"    private void kingdomcomecombat\$applyProjectileArmor(\n            ServerWorld world,\n            DamageSource source,",
+						"    private void kingdomcomecombat\$applyProjectileArmor(\n            DamageSource source,"
+				)
+				.replace(
+						"    private void kingdomcomecombat\$applyEnvironmentalInjury(\n            ServerWorld world,\n            DamageSource source,",
+						"    private void kingdomcomecombat\$applyEnvironmentalInjury(\n            DamageSource source,"
+				)
+				.replace(
+						"    private void kingdomcomecombat\$applyProjectileArmor(\n            DamageSource source,\n            float amount,\n            CallbackInfoReturnable<Boolean> cir\n    ) {\n        LivingEntity target = (LivingEntity) (Object) this;",
+						"    private void kingdomcomecombat\$applyProjectileArmor(\n            DamageSource source,\n            float amount,\n            CallbackInfoReturnable<Boolean> cir\n    ) {\n        LivingEntity target = (LivingEntity) (Object) this;\n        if (!(target.getWorld() instanceof ServerWorld world)) return;"
+				)
+				.replace(
+						"    private void kingdomcomecombat\$applyEnvironmentalInjury(\n            DamageSource source,\n            float amount,\n            CallbackInfoReturnable<Boolean> cir\n    ) {\n        LivingEntity target = (LivingEntity) (Object) this;",
+						"    private void kingdomcomecombat\$applyEnvironmentalInjury(\n            DamageSource source,\n            float amount,\n            CallbackInfoReturnable<Boolean> cir\n    ) {\n        LivingEntity target = (LivingEntity) (Object) this;\n        if (!(target.getWorld() instanceof ServerWorld world)) return;"
+				)
+		projectileArmor.setText(text, "UTF-8")
+	}
+
+	File mobAttack = new File(generatedMain, "com/kingdomcomecombat/mixin/MobEntityVanillaAttackMixin.java")
+	if (mobAttack.exists()) {
+		mobAttack.setText(mobAttack.getText("UTF-8").replace(
+				"            ServerWorld world,\n            Entity target,",
+				"            Entity target,"
+		), "UTF-8")
+	}
+
+	File bowRapidFire = new File(generatedMain, "com/kingdomcomecombat/mixin/BowRapidFireMixin.java")
+	if (bowRapidFire.exists()) {
+		String text = bowRapidFire.getText("UTF-8")
+				.replace("import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;",
+						"import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;")
+				.replace("            CallbackInfoReturnable<Boolean> cir\n    ) {", "            CallbackInfo ci\n    ) {")
+				.replace("        if (!cir.getReturnValueZ() && !clientShot) {", "        if (!clientShot && world.isClient()) {")
+		bowRapidFire.setText(text, "UTF-8")
+	}
+
 	File handCannon = new File(generatedMain, "com/kingdomcomecombat/item/HandCannonItem.java")
 	if (handCannon.exists()) {
 		String text = handCannon.getText("UTF-8")
@@ -399,6 +457,30 @@ String legacyClientMixinJsonLine(String line) {
 	if (line.contains('"PlayerEntityRendererBodyYawMixin"')) {
 		return line.replace('"PlayerEntityRendererBodyYawMixin"', '"LegacyPlayerEntityRendererBodyYawMixin"')
 	}
+	if (line.contains('"LivingEntityRendererBloodiedTextureMixin"')) {
+		return line.replace('"LivingEntityRendererBloodiedTextureMixin"', '"LegacyLivingEntityRendererBloodiedTextureMixin"')
+	}
+	if (line.contains('"EquipmentRendererBloodiedTextureMixin"')) {
+		return line.replace('"EquipmentRendererBloodiedTextureMixin"', '"LegacyArmorFeatureRendererBloodiedTextureMixin"')
+	}
+	if (line.contains('"LivingEntityRendererFirstPersonBodyMixin"')) {
+		return line.replace('"LivingEntityRendererFirstPersonBodyMixin"', '"LegacyLivingEntityRendererFirstPersonMixin"')
+	}
+	if (line.contains('"LivingEntityRendererFirstPersonBridgeMixin"')) {
+		return null
+	}
+	if (line.contains('"SkeletonEntityModelAnimationMixin"')) {
+		return line.replace('"SkeletonEntityModelAnimationMixin"', '"LegacySkeletonEntityModelAnimationMixin"')
+	}
+	if (line.contains('"ZombieEntityModelAnimationMixin"')) {
+		return line.replace('"ZombieEntityModelAnimationMixin",', '"LegacyZombieEntityModelAnimationMixin"')
+	}
+	if (line.contains('"PiglinEntityModelAnimationMixin"')) {
+		return line.replace('"PiglinEntityModelAnimationMixin"', '"LegacyPiglinEntityModelAnimationMixin"')
+	}
+	if (line.contains('"IllagerEntityModelAnimationMixin"')) {
+		return line.replace('"IllagerEntityModelAnimationMixin"', '"LegacyIllagerEntityModelAnimationMixin"')
+	}
 	def unsupported = [
 			"ArmorFeatureRendererEquipmentOverlayMixin", "ArmorFeatureRendererFirstPersonBodyMixin",
 			"ArmedEntityRenderStateHandCannonMixin", "BowUseDurationPropertyMixin",
@@ -419,7 +501,7 @@ String legacyClientMixinJsonLine(String line) {
 	if (unsupported.any { line.contains('"' + it + '"') }) {
 		return null
 	}
-	return line.replace('"ItemStackPotionCoatingClientMixin",', '"ItemStackPotionCoatingClientMixin"')
+	return line
 }
 
 tasks.register("printCompatibilityTarget") {

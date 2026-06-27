@@ -396,6 +396,9 @@ tasks.named("processClientResources").configure {
 }
 
 String legacyClientMixinJsonLine(String line) {
+	if (line.contains('"PlayerEntityRendererBodyYawMixin"')) {
+		return line.replace('"PlayerEntityRendererBodyYawMixin"', '"LegacyPlayerEntityRendererBodyYawMixin"')
+	}
 	def unsupported = [
 			"ArmorFeatureRendererEquipmentOverlayMixin", "ArmorFeatureRendererFirstPersonBodyMixin",
 			"ArmedEntityRenderStateHandCannonMixin", "BowUseDurationPropertyMixin",
@@ -403,7 +406,7 @@ String legacyClientMixinJsonLine(String line) {
 			"EquipmentRendererBloodiedTextureMixin", "EntityRenderDispatcherPalCompatMixin",
 			"LivingEntityRendererBandageHeadMixin", "LivingEntityRendererBloodiedTextureMixin",
 			"LivingEntityRendererFirstPersonBridgeMixin", "LivingEntityRendererStateMixin",
-			"LivingEntityRendererGenericFeedbackMixin", "PlayerEntityRendererBodyYawMixin",
+			"LivingEntityRendererGenericFeedbackMixin",
 			"LivingEntityRendererFirstPersonBodyMixin", "PiglinEntityModelAnimationMixin",
 			"PlayerInventoryAttackLockMixin",
 			"HeldItemRendererItemBoneMixin", "HeldItemFeatureRendererItemBoneMixin",

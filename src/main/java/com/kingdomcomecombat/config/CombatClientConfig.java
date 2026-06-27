@@ -6,7 +6,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.kingdomcomecombat.KingdomComeCombat;
-import net.fabricmc.loader.api.FabricLoader;
+import com.kingdomcomecombat.platform.PlatformServices;
 import net.minecraft.item.ItemStack;
 import net.minecraft.registry.Registries;
 import net.minecraft.util.Identifier;
@@ -565,7 +565,7 @@ public final class CombatClientConfig {
     }
 
     private static Path configPath() {
-        return FabricLoader.getInstance().getConfigDir().resolve(FILE_NAME);
+        return PlatformServices.loader().configDirectory().resolve(FILE_NAME);
     }
 
     private static void write(Path path) {

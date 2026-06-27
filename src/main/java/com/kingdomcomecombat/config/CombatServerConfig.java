@@ -8,7 +8,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.kingdomcomecombat.KingdomComeCombat;
 import com.kingdomcomecombat.combat.CombatMovementConfig;
-import net.fabricmc.loader.api.FabricLoader;
+import com.kingdomcomecombat.platform.PlatformServices;
 import net.minecraft.util.Identifier;
 
 import java.io.IOException;
@@ -184,7 +184,7 @@ public final class CombatServerConfig {
     }
 
     private static Path configPath() {
-        return FabricLoader.getInstance().getConfigDir().resolve(FILE_NAME);
+        return PlatformServices.loader().configDirectory().resolve(FILE_NAME);
     }
 
     private static int clamp(int value, int min, int max) {

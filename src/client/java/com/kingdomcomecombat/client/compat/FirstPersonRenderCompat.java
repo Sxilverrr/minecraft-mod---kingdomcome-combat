@@ -1,6 +1,6 @@
 package com.kingdomcomecombat.client.compat;
 
-import net.fabricmc.loader.api.FabricLoader;
+import com.kingdomcomecombat.platform.PlatformServices;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -83,7 +83,7 @@ public final class FirstPersonRenderCompat {
     }
 
     private static Method findApiMethod(String name) {
-        if (!FabricLoader.getInstance().isModLoaded(FIRST_PERSON_MOD_ID)) {
+        if (!PlatformServices.loader().isModLoaded(FIRST_PERSON_MOD_ID)) {
             return null;
         }
         try {

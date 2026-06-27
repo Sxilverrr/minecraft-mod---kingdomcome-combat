@@ -435,6 +435,14 @@ processResources {
 	filesMatching("fabric.mod.json") {
 		expand "version": version, "minecraft_dependency": minecraftDependency, "cloth_dependency": targetClothConfig
 	}
+	if (needsPre1215Apis) {
+		filesMatching("data/kingdom_come_combat/enchantment/cushioning.json") {
+			filter { String line -> line.replace(
+					'"minecraft:armor_toughness"',
+					'"minecraft:generic.armor_toughness"'
+			) }
+		}
+	}
 	if (needsLegacyRenderStates) {
 		filesMatching("kingdom_come_combat.mixins.json") {
 			filter { String line -> line.contains('"AbstractHorseEntityRidingMixin"') ? null : line }

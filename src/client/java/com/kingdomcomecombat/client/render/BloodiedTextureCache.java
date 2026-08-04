@@ -130,12 +130,71 @@ public final class BloodiedTextureCache {
         }
     }
 
+    public static Identifier getDragonCrackedTexture(Identifier sourceTexture) {
+        Key key = new Key(sourceTexture, 1, 0, CombatClientConfig.signature(), "dragon_cracks");
+        Identifier cached = CACHE.get(key);
+        if (cached != null) return cached;
+        if (!canCreateBloodiedTexture(sourceTexture)) return sourceTexture;
+
+        try (NativeImage source = loadSourceImage(sourceTexture)) {
+            if (source == null) return sourceTexture;
+            NativeImage image = source.applyToCopy(color -> color);
+            applyDragonCracks(image, stableSeed(sourceTexture));
+            Identifier dynamicId = Identifier.of(
+                    KingdomComeCombat.MOD_ID,
+                    "dynamic/dragon_cracks/" + sanitize(sourceTexture)
+            );
+            MinecraftClient.getInstance().getTextureManager().registerTexture(
+                    dynamicId,
+                    new NativeImageBackedTexture(() -> KingdomComeCombat.MOD_ID + "/dragon_cracks", image)
+            );
+            CACHE.put(key, dynamicId);
+            return dynamicId;
+        } catch (IOException exception) {
+            return sourceTexture;
+        }
+    }
+
+    private static void applyDragonCracks(NativeImage image, int seed) {
+        int width = image.getWidth();
+        int height = image.getHeight();
+        double phase = (seed & 255) / 37.0;
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                int color = image.getColorArgb(x, y);
+                int alpha = (color >>> 24) & 255;
+                if (alpha == 0) continue;
+                double branchA = Math.abs(Math.sin(x * 0.43 + Math.sin(y * 0.21 + phase) * 2.8));
+                double branchB = Math.abs(Math.sin(y * 0.51 - Math.sin(x * 0.17 + phase) * 3.2));
+                double branchMask = Math.min(branchA, branchB);
+                if (branchMask > 0.075) continue;
+                double strength = branchMask < 0.025 ? 0.90 : 0.62;
+                int red = (color >>> 16) & 255;
+                int green = (color >>> 8) & 255;
+                int blue = color & 255;
+                int nextRed = blend(red, 190, strength);
+                int nextGreen = blend(green, 35, strength);
+                int nextBlue = blend(blue, 255, strength);
+                image.setColorArgb(x, y, (alpha << 24) | (nextRed << 16) | (nextGreen << 8) | nextBlue);
+            }
+        }
+    }
+
     public static boolean shouldUseEquipmentTexture(ItemStack stack) {
         if (stack == null || stack.isEmpty()) {
             return false;
         }
         return CombatClientConfig.renderBlood() && BloodiedEquipment.getBloodPercent(stack) > 0.0
                 || shouldRenderArmorHoles(stack)
+                || weaponEdgeWearPercent(stack) > 0.0;
+    }
+
+    /** Item-atlas rendering cannot safely use the worn-armor hole texture path. */
+    public static boolean shouldUseItemTexture(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) {
+            return false;
+        }
+        return CombatClientConfig.renderBlood() && BloodiedEquipment.getBloodPercent(stack) > 0.0
                 || weaponEdgeWearPercent(stack) > 0.0;
     }
 

@@ -167,6 +167,11 @@ public class AnimatedAttackHitboxLibrary {
         return realHitboxRotationDegrees;
     }
 
+    public static void clearCache() {
+        CACHE.clear();
+        NAMED_CACHE.clear();
+    }
+
     private static AttackHitboxAnimation load(CombatDirection direction) {
         String animationName = getAnimationName(direction);
         return loadByName(animationName);

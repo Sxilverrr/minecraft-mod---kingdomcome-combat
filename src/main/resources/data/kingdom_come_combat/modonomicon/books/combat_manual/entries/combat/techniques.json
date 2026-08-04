@@ -10,6 +10,11 @@
       "type": "modonomicon:text",
       "text": "book.kingdom_come_combat.combat_manual.techniques.intro.text",
       "title": "book.kingdom_come_combat.combat_manual.techniques.intro.title"
+    },
+    {
+      "type": "modonomicon:text",
+      "text": "book.kingdom_come_combat.combat_manual.techniques.medium_shield.text",
+      "title": "book.kingdom_come_combat.combat_manual.techniques.medium_shield.title"
     }
   ],
   "parents": [{"entry": "kingdom_come_combat:combat/basics"}],

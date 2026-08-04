@@ -1,0 +1,56 @@
+{
+  "_comment": "重武器处决：右/上与左/下目前共用 execution_heavy_weapon_1。主要命中对齐动画约 0.83 秒处。",
+  "executions": {
+    "right": {
+      "set": "heavy_weapon",
+      "id": "execution_heavy_weapon_right_or_up",
+      "display_name": "重武器处决",
+      "animation": "execution_heavy_weapon_1",
+      "victim_animation": "execution_heavy_weapon_hit_1",
+      "damage_modifiers": {"thrust": 0.2, "strike": 2.0, "slash": 1.0},
+      "hit_zones": [{"zone": "any", "parts": ["crown", "face", "shoulder", "chest"]}],
+      "impact": 55.0,
+      "stamina_cost": 0.0,
+      "suction_distance": 3.0,
+      "suction_fixed_distance": 1.8,
+      "blade_trail": true,
+      "use_real_hitbox": true,
+      "required_weapon_tag": "heavy_weapons",
+      "attack_chain": [
+        {
+          "tick": 17,
+          "hit_zones": [{"zone": "any", "parts": ["crown", "face", "shoulder", "chest"]}],
+          "damage_modifiers": {"thrust": 0.2, "strike": 2.0, "slash": 1.0}
+        }
+      ]
+    },
+    "left": {
+      "set": "heavy_weapon",
+      "id": "execution_heavy_weapon_left_or_down",
+      "display_name": "重武器处决",
+      "animation": "execution_heavy_weapon_1",
+      "victim_animation": "execution_heavy_weapon_hit_1",
+      "damage_modifiers": {"thrust": 0.2, "strike": 2.0, "slash": 1.0},
+      "hit_zones": [{"zone": "any", "parts": ["crown", "face", "shoulder", "chest"]}],
+      "impact": 55.0,
+      "stamina_cost": 0.0,
+      "suction_distance": 3.0,
+      "suction_fixed_distance": 1.8,
+      "blade_trail": true,
+      "use_real_hitbox": true,
+      "required_weapon_tag": "heavy_weapons",
+      "attack_chain": [
+        {
+          "tick": 5,
+          "hit_zones": [{"zone": "head", "parts": ["face"]}],
+          "damage_modifiers": {"thrust": 0.2, "strike": 2.0, "slash": 1.0}
+        },
+        {
+          "tick": 16,
+          "hit_zones": [{"zone": "head", "parts": ["face"]}],
+          "damage_modifiers": {"thrust": 0.2, "strike": 2.0, "slash": 1.0}
+        }
+      ]
+    }
+  }
+}

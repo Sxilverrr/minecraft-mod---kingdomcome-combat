@@ -1,6 +1,7 @@
 package com.kingdomcomecombat.mixin.client;
 
 import com.kingdomcomecombat.client.animation.VanillaSkeletonGeckoAnimationApplier;
+import com.kingdomcomecombat.client.animation.ClientDodgeAnimationState;
 import com.kingdomcomecombat.client.animation.MobStanceHeadTargeting;
 import com.kingdomcomecombat.client.collision.ClientModelHurtboxCache;
 import com.kingdomcomecombat.client.animation.ClientEntityGeckoAnimationState;
@@ -30,7 +31,8 @@ public class IllagerEntityModelAnimationMixin implements IllagerModelPartsAccess
             CallbackInfo ci
     ) {
         int entityId = ((EntityRenderStateKccAccess) state).kingdomcomecombat$getEntityId();
-        boolean inCombatPose = !ClientEntityGeckoAnimationState.getLayers(entityId).isEmpty();
+        boolean inCombatPose = ClientEntityGeckoAnimationState.shouldRenderCombatAnimation(entityId)
+                && !ClientEntityGeckoAnimationState.getLayers(entityId).isEmpty();
         if (inCombatPose) {
             arms.visible = false;
             rightArm.visible = true;
@@ -51,9 +53,13 @@ public class IllagerEntityModelAnimationMixin implements IllagerModelPartsAccess
             ModelPart root = ((IllagerEntityModel<?>) (Object) this).getRootPart();
             MobStanceHeadTargeting.apply(entityId, state, head, root, true);
         }
+        ModelPart root = ((IllagerEntityModel<?>) (Object) this).getRootPart();
+        ModelPart body = root.hasChild("body") ? root.getChild("body") : root;
+        ClientDodgeAnimationState.applyBiped(entityId, body, head, rightArm, leftArm, rightLeg, leftLeg);
         ClientModelHurtboxCache.updateIllager(
                 entityId,
                 head,
+                body,
                 rightArm,
                 leftArm,
                 rightLeg,

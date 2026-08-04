@@ -1,8 +1,10 @@
 package com.kingdomcomecombat.mixin.client;
 
-import com.kingdomcomecombat.client.animation.CombatAnimationClient;
 import com.kingdomcomecombat.client.compat.PalAnimationStateCompat;
 import com.kingdomcomecombat.client.mixin.EntityRenderStateKccAccess;
+import com.kingdomcomecombat.client.render.ArmorEntityRenderContext;
+import com.kingdomcomecombat.client.render.CollisionOnlyRenderContext;
+import com.kingdomcomecombat.config.CombatClientConfig;
 import com.zigythebird.playeranim.accessors.IPlayerAnimationState;
 import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.MinecraftClient;
@@ -36,9 +38,11 @@ public abstract class ArmorFeatureRendererFirstPersonBodyMixin {
             float limbDistance,
             CallbackInfo ci
     ) {
+        if (state instanceof EntityRenderStateKccAccess access) {
+            ArmorEntityRenderContext.begin(access.kingdomcomecombat$getEntityId());
+        }
         if (state instanceof IPlayerAnimationState animationState
-                && kingdomcomecombat$isFirstPersonPass(state, animationState)
-                && CombatAnimationClient.isKccSpecialFirstPersonActive()) {
+                && kingdomcomecombat$isFirstPersonPass(state, animationState)) {
             kingdomcomecombat$firstPersonState = animationState;
             PalAnimationStateCompat.setFirstPersonPass(animationState, false);
         }
@@ -70,7 +74,19 @@ public abstract class ArmorFeatureRendererFirstPersonBodyMixin {
             BipedEntityModel<?> model,
             CallbackInfo ci
     ) {
-        if (kingdomcomecombat$firstPersonState != null && slot == EquipmentSlot.HEAD) {
+        if (CollisionOnlyRenderContext.isActive()) {
+            ci.cancel();
+            return;
+        }
+        MinecraftClient client = MinecraftClient.getInstance();
+        boolean localFirstPersonArmor = client.player != null
+                && client.options.getPerspective().isFirstPerson()
+                && ArmorEntityRenderContext.isRendering(client.player.getId());
+        if (localFirstPersonArmor
+                && (slot == EquipmentSlot.HEAD || CombatClientConfig.firstPersonWeaponOnly())
+                && !com.kingdomcomecombat.client.compat.FirstPersonRenderCompat.isRenderingShadowPass()
+                && !(client.currentScreen
+                instanceof net.minecraft.client.gui.screen.ingame.InventoryScreen)) {
             ci.cancel();
         }
     }
@@ -92,5 +108,6 @@ public abstract class ArmorFeatureRendererFirstPersonBodyMixin {
             PalAnimationStateCompat.setFirstPersonPass(kingdomcomecombat$firstPersonState, true);
             kingdomcomecombat$firstPersonState = null;
         }
+        ArmorEntityRenderContext.end();
     }
 }

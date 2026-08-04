@@ -1,5 +1,6 @@
 package com.kingdomcomecombat.equipment;
 
+import com.kingdomcomecombat.combat.CombatItemUtil;
 import com.kingdomcomecombat.config.CombatClientConfig;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.NbtComponent;
@@ -98,14 +99,20 @@ public final class BloodiedEquipment {
     }
 
     public static boolean isArmor(ItemStack stack) {
-        return stack.isIn(ItemTags.HEAD_ARMOR)
+        var equippable = stack.get(DataComponentTypes.EQUIPPABLE);
+        return equippable != null && equippable.slot().isArmorSlot()
+                || stack.isIn(ItemTags.HEAD_ARMOR)
                 || stack.isIn(ItemTags.CHEST_ARMOR)
                 || stack.isIn(ItemTags.LEG_ARMOR)
                 || stack.isIn(ItemTags.FOOT_ARMOR);
     }
 
     public static boolean isWeaponLike(ItemStack stack) {
-        return stack.isOf(Items.WOODEN_SWORD)
+        return EquipmentCombatAttributesRegistry.getConfiguredWeapon(stack).isPresent()
+                || CombatItemUtil.isPolearm(stack)
+                || CombatItemUtil.isLongsword(stack)
+                || CombatItemUtil.isFightingMace(stack)
+                || stack.isOf(Items.WOODEN_SWORD)
                 || stack.isOf(Items.STONE_SWORD)
                 || stack.isOf(Items.IRON_SWORD)
                 || stack.isOf(Items.GOLDEN_SWORD)

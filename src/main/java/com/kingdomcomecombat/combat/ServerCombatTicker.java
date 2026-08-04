@@ -4,24 +4,29 @@ import com.kingdomcomecombat.ai.HumanoidCombatAiTicker;
 import com.kingdomcomecombat.collision.AnimatedAttackHitboxLibrary;
 import com.kingdomcomecombat.collision.ServerHitDetectionSystem;
 import com.kingdomcomecombat.equipment.EquipmentCombatAttributesRegistry;
-import com.kingdomcomecombat.equipment.MobCombatAttributesRegistry;
 import com.kingdomcomecombat.stamina.ServerStaminaState;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.attribute.EntityAttributes;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.util.math.Vec3d;
 
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 import net.minecraft.entity.Entity;
 import net.minecraft.server.world.ServerWorld;
 
 public class ServerCombatTicker {
+    private static final int MOB_LUNGE_EXTRA_TICKS = 3;
     private static final double MOB_ATTACK_TRACKING_TURN_DEGREES = 180.0;
     private static final double PLAYER_ATTACK_TRACKING_TURN_DEGREES = 24.0;
     private static final double LOCKED_ATTACK_STOP_BUFFER = 0.12;
-    private static final double MOB_LOCKED_ATTACK_STOP_DISTANCE = 1.72;
+    private static final double MOB_LOCKED_ATTACK_STOP_BUFFER = 0.0;
     private static final double DIRECT_ACTION_INTERRUPT_VELOCITY = 0.42;
+    private static final double MOB_LUNGE_MOVEMENT_ACCELERATION_SCALE = 0.08;
+    private static final double MOB_ATTACK_MAX_FINAL_LUNGE_DISTANCE = 5.0;
 
     public static void register() {
         ServerTickEvents.END_SERVER_TICK.register(server -> {
@@ -29,6 +34,7 @@ public class ServerCombatTicker {
             ServerBlockState.tick();
             ServerCombatStanceState.tick();
             ServerCombatControlState.tick();
+            ServerExecutionState.tick(server.getOverworld().getTime());
 
             var entries = new ArrayList<>(ServerCombatState.activeAttacks().entrySet());
 
@@ -102,29 +108,24 @@ public class ServerCombatTicker {
                 }
             }
 
-            for (ServerWorld world : server.getWorlds()) {
-                for (Entity entity : world.iterateEntities()) {
-                    if (entity instanceof LivingEntity livingEntity
-                            && !(entity instanceof net.minecraft.entity.player.PlayerEntity)) {
-                        MobCombatAttributesRegistry.applyConfiguredAttributes(livingEntity);
-                    }
-
-                    if (entity instanceof LivingEntity livingEntity
-                            && ServerCombatControlState.isMovementDisabled(livingEntity.getUuid())) {
-                        applyBlockMovementLock(livingEntity);
-                        continue;
-                    }
-
-                    if (entity instanceof LivingEntity livingEntity
-                            && ServerBlockState.isMovementLocked(livingEntity.getUuid())) {
-                        applyBlockMovementLock(livingEntity);
-                    }
-
-                    if (entity instanceof LivingEntity livingEntity
-                            && ServerCombatControlState.isDodging(livingEntity)) {
-                        applyDodgeMovement(livingEntity);
-                    }
-
+            Set<UUID> movementControlled = new HashSet<>();
+            ServerCombatControlState.collectMovementControlledUuids(movementControlled);
+            ServerBlockState.collectMovementLockedUuids(movementControlled);
+            ServerBlockState.collectHeldUuids(movementControlled);
+            for (UUID uuid : movementControlled) {
+                LivingEntity livingEntity = findLivingEntity(server, uuid);
+                if (livingEntity == null || livingEntity.isRemoved() || !livingEntity.isAlive()) continue;
+                if (ServerCombatControlState.isMovementDisabled(uuid)) {
+                    applyBlockMovementLock(livingEntity);
+                    continue;
+                }
+                if (ServerBlockState.isMovementLocked(uuid)) {
+                    applyBlockMovementLock(livingEntity);
+                } else if (ServerBlockState.isHeld(uuid)) {
+                    applyHeldBlockSlowdown(livingEntity);
+                }
+                if (ServerCombatControlState.isDodging(livingEntity)) {
+                    applyDodgeMovement(livingEntity);
                 }
             }
         });
@@ -133,6 +134,17 @@ public class ServerCombatTicker {
     private static void applyBlockMovementLock(LivingEntity entity) {
         Vec3d currentVelocity = entity.getVelocity();
         entity.setVelocity(0.0, currentVelocity.y, 0.0);
+        entity.velocityModified = true;
+    }
+
+    private static void applyHeldBlockSlowdown(LivingEntity entity) {
+        Vec3d currentVelocity = entity.getVelocity();
+        double multiplier = CombatMovementConfig.BLOCK_HOLD_MOVEMENT_MULTIPLIER;
+        entity.setVelocity(
+                currentVelocity.x * multiplier,
+                currentVelocity.y,
+                currentVelocity.z * multiplier
+        );
         entity.velocityModified = true;
     }
 
@@ -298,7 +310,7 @@ public class ServerCombatTicker {
             speed = 0.0;
         }
         if (EquipmentCombatAttributesRegistry.isLargeShield(attacker.getOffHandStack())) {
-            speed *= CombatControlConfig.LARGE_SHIELD_ATTACK_LUNGE_MULTIPLIER;
+            speed *= EquipmentCombatAttributesRegistry.getShield(attacker.getOffHandStack()).attackLungeMultiplier();
         }
 
         if (attack.lockedLunge && attacker instanceof MobEntity) {
@@ -315,6 +327,12 @@ public class ServerCombatTicker {
                 && (attack.moveConfig().directHitTick() < 0 || attacker instanceof MobEntity)) {
             boolean targetDodging = lockedTarget instanceof LivingEntity livingTarget
                     && ServerCombatControlState.isDodging(livingTarget);
+            if (targetDodging && attacker instanceof MobEntity) {
+                // Do not let an attack lunge track or carry a mob into a
+                // dodging player. The attack animation may continue in place.
+                speed = 0.0;
+                attack.accumulatedLungeSpeed = 0.0;
+            }
             float yaw = targetDodging
                     ? attacker.getYaw()
                     : turnYawTowardTarget(attacker, lockedTarget);
@@ -324,9 +342,13 @@ public class ServerCombatTicker {
                 attacker.setBodyYaw(yaw);
             }
             forward = getHorizontalForwardFromYaw(yaw);
-            if (!inputDirectedLunge) {
+            if (!inputDirectedLunge && !targetDodging) {
                 lungeDirection = attackLungeDirection(forward, attack);
                 speed = getLockedAttackLungeSpeed(attacker, lockedTarget, forward, attack, movementScale);
+                if (attacker instanceof MobEntity && speed > 0.000001) {
+                    attack.accumulatedLungeSpeed = Math.max(attack.accumulatedLungeSpeed, speed);
+                    speed = attack.accumulatedLungeSpeed;
+                }
             } else {
                 lungeDirection = attackLungeDirection(forward, attack);
                 speed = getInputDirectedLockedAttackLungeSpeed(attacker, attack, movementScale);
@@ -334,6 +356,26 @@ public class ServerCombatTicker {
         }
 
         Vec3d desiredHorizontalVelocity = lungeDirection.multiply(speed);
+        if (attacker instanceof MobEntity && speed > 0.000001) {
+            desiredHorizontalVelocity = clampMobFinalLungeDisplacement(attacker, attack, desiredHorizontalVelocity);
+            speed = Math.sqrt(
+                    desiredHorizontalVelocity.x * desiredHorizontalVelocity.x
+                            + desiredHorizontalVelocity.z * desiredHorizontalVelocity.z
+            );
+        }
+        double desiredVerticalVelocity = currentVelocity.y;
+        if (attacker.isSubmergedInWater() && lockedTarget instanceof LivingEntity livingTarget && speed > 0.0) {
+            Vec3d towardTarget = livingTarget.getBoundingBox().getCenter()
+                    .subtract(attacker.getBoundingBox().getCenter());
+            if (towardTarget.lengthSquared() > 0.0001) {
+                Vec3d swimLunge = towardTarget.normalize().multiply(speed);
+                desiredHorizontalVelocity = new Vec3d(swimLunge.x, 0.0, swimLunge.z);
+                desiredVerticalVelocity = swimLunge.y;
+            }
+        }
+        if (attacker instanceof MobEntity && speed > 0.000001) {
+            attack.lungeProgressTicks++;
+        }
 
         /*
          * 关键：
@@ -342,11 +384,46 @@ public class ServerCombatTicker {
          */
         attacker.setVelocity(
                 desiredHorizontalVelocity.x,
-                currentVelocity.y,
+                desiredVerticalVelocity,
                 desiredHorizontalVelocity.z
         );
 
         attacker.velocityModified = true;
+    }
+
+    private static Vec3d clampMobFinalLungeDisplacement(
+            LivingEntity attacker,
+            ActiveServerAttack attack,
+            Vec3d desiredHorizontalVelocity
+    ) {
+        if (Double.isNaN(attack.mobLungeStartX) || Double.isNaN(attack.mobLungeStartZ)) {
+            attack.mobLungeStartX = attacker.getX();
+            attack.mobLungeStartZ = attacker.getZ();
+        }
+
+        double currentDx = attacker.getX() - attack.mobLungeStartX;
+        double currentDz = attacker.getZ() - attack.mobLungeStartZ;
+        double currentDistance = Math.sqrt(currentDx * currentDx + currentDz * currentDz);
+        if (currentDistance >= MOB_ATTACK_MAX_FINAL_LUNGE_DISTANCE) {
+            return Vec3d.ZERO;
+        }
+
+        double nextDx = currentDx + desiredHorizontalVelocity.x;
+        double nextDz = currentDz + desiredHorizontalVelocity.z;
+        double nextDistance = Math.sqrt(nextDx * nextDx + nextDz * nextDz);
+        if (nextDistance <= MOB_ATTACK_MAX_FINAL_LUNGE_DISTANCE) {
+            return desiredHorizontalVelocity;
+        }
+
+        double remaining = MOB_ATTACK_MAX_FINAL_LUNGE_DISTANCE - currentDistance;
+        double speed = Math.sqrt(
+                desiredHorizontalVelocity.x * desiredHorizontalVelocity.x
+                        + desiredHorizontalVelocity.z * desiredHorizontalVelocity.z
+        );
+        if (remaining <= 0.0 || speed <= 0.000001) {
+            return Vec3d.ZERO;
+        }
+        return desiredHorizontalVelocity.normalize().multiply(Math.min(remaining, speed));
     }
 
     private static void tryTriggerDirectConfiguredHit(LivingEntity attacker, ActiveServerAttack attack) {
@@ -484,6 +561,7 @@ public class ServerCombatTicker {
                         attack.getAnimationElapsedSeconds(),
                         useRealHitbox,
                         EquipmentCombatAttributesRegistry.realHitboxSizeUnits(
+                                attacker,
                                 attacker.getMainHandStack(),
                                 AnimatedAttackHitboxLibrary.getRealHitboxSizeUnits()
                         ),
@@ -561,7 +639,10 @@ public class ServerCombatTicker {
             return 0.0;
         }
 
-        double allowedApproach = Math.max(0.0, distance - stopDistance - LOCKED_ATTACK_STOP_BUFFER);
+        double stopBuffer = attacker instanceof MobEntity
+                ? MOB_LOCKED_ATTACK_STOP_BUFFER
+                : LOCKED_ATTACK_STOP_BUFFER;
+        double allowedApproach = Math.max(0.0, distance - stopDistance - stopBuffer);
         double lungeDistance = attacker instanceof MobEntity
                 ? CombatMovementConfig.MOB_ATTACK_LUNGE_DISTANCE
                 : CombatMovementConfig.PLAYER_ATTACK_LUNGE_DISTANCE;
@@ -569,8 +650,9 @@ public class ServerCombatTicker {
                 ? CombatMovementConfig.MOB_ATTACK_LUNGE_MAX_SPEED
                 : CombatMovementConfig.PLAYER_ATTACK_LUNGE_MAX_SPEED;
         if (EquipmentCombatAttributesRegistry.isLargeShield(attacker.getOffHandStack())) {
-            lungeDistance *= CombatControlConfig.LARGE_SHIELD_ATTACK_LUNGE_MULTIPLIER;
-            maxLungeSpeed *= CombatControlConfig.LARGE_SHIELD_ATTACK_LUNGE_MULTIPLIER;
+            double multiplier = EquipmentCombatAttributesRegistry.getShield(attacker.getOffHandStack()).attackLungeMultiplier();
+            lungeDistance *= multiplier;
+            maxLungeSpeed *= multiplier;
         }
         if (attack.lockedLunge && attacker instanceof MobEntity) {
             lungeDistance *= CombatMovementConfig.LOCKED_ATTACK_LUNGE_MULTIPLIER;
@@ -578,36 +660,41 @@ public class ServerCombatTicker {
         }
         double maxSafeSpeed = allowedApproach / Math.max(0.001, forwardDot);
 
-        int lungeTicks = CombatTiming.getLockedAttackLungeDurationTicks();
-        if (attack.ageTicks < lungeTicks) {
+        int lungeAge = attacker instanceof MobEntity ? attack.lungeProgressTicks : attack.ageTicks;
+        int lungeTicks = CombatTiming.getLockedAttackLungeDurationTicks()
+                + (attacker instanceof MobEntity ? MOB_LUNGE_EXTRA_TICKS : 0);
+        if (lungeAge < lungeTicks) {
             double fixedLungeSpeed = lungeDistance / lungeTicks;
+            double acceleratedSpeed = applyMobMovementAcceleration(
+                    attacker,
+                    Math.min(fixedLungeSpeed, maxLungeSpeed),
+                    maxLungeSpeed
+            );
             return limitMobLungeSpeed(
                     attacker,
-                    Math.min(Math.min(fixedLungeSpeed, maxLungeSpeed), maxSafeSpeed)
+                    Math.min(acceleratedSpeed, maxSafeSpeed)
             );
         }
 
-        int lockedMoveTicks = Math.max(1, CombatTiming.getAttackCanMoveFromTick(attack.attackTotalTicks));
+        int lockedMoveTicks = Math.max(1, CombatTiming.getAttackCanMoveFromTick(attack.attackTotalTicks)
+                + (attacker instanceof MobEntity ? MOB_LUNGE_EXTRA_TICKS : 0));
         double baseSpeed = lungeDistance / lockedMoveTicks;
-        double progress = Math.max(0.0, Math.min(1.0, attack.ageTicks / (double) lockedMoveTicks));
+        double progress = Math.max(0.0, Math.min(1.0, lungeAge / (double) lockedMoveTicks));
         double lungeCurve = lockedAttackLungeCurve(progress);
         double trackingFloor = 0.08;
         double desiredSpeed = Math.max(trackingFloor, baseSpeed * lungeCurve) * movementScale;
         double retreatFollowSpeed = getRetreatFollowSpeed(attacker, target, toTargetDir, maxLungeSpeed, movementScale);
 
-        return limitMobLungeSpeed(
+        double acceleratedSpeed = applyMobMovementAcceleration(
                 attacker,
-                Math.min(Math.max(desiredSpeed, retreatFollowSpeed), Math.min(maxLungeSpeed, maxSafeSpeed))
+                Math.max(desiredSpeed, retreatFollowSpeed),
+                maxLungeSpeed
         );
+        return limitMobLungeSpeed(attacker, Math.min(acceleratedSpeed, maxSafeSpeed));
     }
 
     private static double getLockedAttackStopDistance(LivingEntity attacker, Entity target) {
-        double stopDistance = CombatMovementConfig.LOCKED_STOP_FORWARD_DISTANCE;
-        if (!(attacker instanceof MobEntity)) {
-            return stopDistance;
-        }
-
-        return stopDistance;
+        return CombatMovementConfig.LOCKED_STOP_FORWARD_DISTANCE;
     }
 
     private static double getInputDirectedLockedAttackLungeSpeed(
@@ -622,25 +709,61 @@ public class ServerCombatTicker {
                 ? CombatMovementConfig.MOB_ATTACK_LUNGE_MAX_SPEED
                 : CombatMovementConfig.PLAYER_ATTACK_LUNGE_MAX_SPEED;
         if (EquipmentCombatAttributesRegistry.isLargeShield(attacker.getOffHandStack())) {
-            lungeDistance *= CombatControlConfig.LARGE_SHIELD_ATTACK_LUNGE_MULTIPLIER;
-            maxLungeSpeed *= CombatControlConfig.LARGE_SHIELD_ATTACK_LUNGE_MULTIPLIER;
+            double multiplier = EquipmentCombatAttributesRegistry.getShield(attacker.getOffHandStack()).attackLungeMultiplier();
+            lungeDistance *= multiplier;
+            maxLungeSpeed *= multiplier;
         }
         if (attack.lockedLunge && attacker instanceof MobEntity) {
             lungeDistance *= CombatMovementConfig.LOCKED_ATTACK_LUNGE_MULTIPLIER;
             maxLungeSpeed *= CombatMovementConfig.LOCKED_ATTACK_LUNGE_MULTIPLIER;
         }
 
-        int lungeTicks = CombatTiming.getLockedAttackLungeDurationTicks();
-        if (attack.ageTicks < lungeTicks) {
+        int lungeAge = attacker instanceof MobEntity ? attack.lungeProgressTicks : attack.ageTicks;
+        int lungeTicks = CombatTiming.getLockedAttackLungeDurationTicks()
+                + (attacker instanceof MobEntity ? MOB_LUNGE_EXTRA_TICKS : 0);
+        if (lungeAge < lungeTicks) {
             double fixedLungeSpeed = lungeDistance / lungeTicks;
-            return limitMobLungeSpeed(attacker, Math.min(fixedLungeSpeed, maxLungeSpeed));
+            return limitMobLungeSpeed(attacker, applyMobMovementAcceleration(
+                    attacker,
+                    Math.min(fixedLungeSpeed, maxLungeSpeed),
+                    maxLungeSpeed
+            ));
         }
 
-        int lockedMoveTicks = Math.max(1, CombatTiming.getAttackCanMoveFromTick(attack.attackTotalTicks));
+        int lockedMoveTicks = Math.max(1, CombatTiming.getAttackCanMoveFromTick(attack.attackTotalTicks)
+                + (attacker instanceof MobEntity ? MOB_LUNGE_EXTRA_TICKS : 0));
         double baseSpeed = lungeDistance / lockedMoveTicks;
-        double progress = Math.max(0.0, Math.min(1.0, attack.ageTicks / (double) lockedMoveTicks));
+        double progress = Math.max(0.0, Math.min(1.0, lungeAge / (double) lockedMoveTicks));
         double desiredSpeed = Math.max(0.08, baseSpeed * lockedAttackLungeCurve(progress)) * movementScale;
-        return limitMobLungeSpeed(attacker, Math.min(desiredSpeed, maxLungeSpeed));
+        return limitMobLungeSpeed(attacker, applyMobMovementAcceleration(
+                attacker,
+                desiredSpeed,
+                maxLungeSpeed
+        ));
+    }
+
+    private static double applyMobMovementAcceleration(
+            LivingEntity attacker,
+            double desiredSpeed,
+            double maxLungeSpeed
+    ) {
+        if (!(attacker instanceof MobEntity mob) || desiredSpeed <= 0.0) {
+            return Math.min(desiredSpeed, maxLungeSpeed);
+        }
+
+        Vec3d velocity = mob.getVelocity();
+        double currentHorizontalSpeed = Math.sqrt(
+                velocity.x * velocity.x + velocity.z * velocity.z
+        );
+        double ownMovementAcceleration = Math.max(
+                0.0,
+                mob.getAttributeValue(EntityAttributes.MOVEMENT_SPEED)
+                        * MOB_LUNGE_MOVEMENT_ACCELERATION_SCALE
+        );
+        return Math.min(
+                maxLungeSpeed,
+                Math.max(desiredSpeed, currentHorizontalSpeed + ownMovementAcceleration)
+        );
     }
 
     private static double limitMobLungeSpeed(LivingEntity attacker, double speed) {
@@ -664,7 +787,14 @@ public class ServerCombatTicker {
         }
 
         double followBonus = 0.04;
-        return Math.min(maxLungeSpeed, (targetRetreatSpeed + followBonus) * movementScale);
+        // Retreat compensation is a world-space speed and must not be reduced by
+        // attack startup slowdown. Only the extra catch-up acceleration follows
+        // the attack movement scale; otherwise a retreating target can become
+        // faster than a nominally quicker mob during the startup phase.
+        return Math.min(
+                maxLungeSpeed,
+                targetRetreatSpeed + followBonus * movementScale
+        );
     }
 
     private static Vec3d getForwardToTarget(LivingEntity attacker, Entity target) {

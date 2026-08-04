@@ -4,11 +4,15 @@ import com.kingdomcomecombat.KingdomComeCombat;
 import com.kingdomcomecombat.ai.HumanoidCombatAiProfile;
 import com.kingdomcomecombat.ai.HumanoidCombatAiProfiles;
 import com.kingdomcomecombat.combat.ServerCombatControlState;
+import com.kingdomcomecombat.config.CombatServerConfig;
+import com.kingdomcomecombat.compat.FirstAidCompat;
 import com.kingdomcomecombat.collision.ServerHitDetectionSystem;
 import com.kingdomcomecombat.equipment.EquipmentCombatAttributesRegistry;
 import com.kingdomcomecombat.injury.ModStatusEffects;
 import com.kingdomcomecombat.projectile.ProjectileImpactHandler;
+import com.kingdomcomecombat.projectile.ProjectileGlanceState;
 import com.kingdomcomecombat.passive.PassiveSkillPerks;
+import com.kingdomcomecombat.potion.PotionCoatingHandler;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.AttributeModifiersComponent;
 import net.minecraft.entity.Entity;
@@ -79,6 +83,9 @@ public class LivingEntityProjectileArmorMixin {
             float amount,
             CallbackInfoReturnable<Float> cir
     ) {
+        if (CombatServerConfig.lightweightDamageModeEnabled()) {
+            return;
+        }
         if (source.isIn(DamageTypeTags.BYPASSES_ARMOR)
                 || source.isOf(KCC_CUSTOM_COMBAT_DAMAGE)
                 || source.isOf(KCC_BLEEDING_DAMAGE)) {
@@ -108,6 +115,11 @@ public class LivingEntityProjectileArmorMixin {
         LivingEntity target = (LivingEntity) (Object) this;
         if (source.isOf(KCC_BLEEDING_DAMAGE)) {
             kingdomcomecombat$velocityBeforeBleedingDamage = target.getVelocity();
+        }
+
+        if (CombatServerConfig.lightweightDamageModeEnabled()
+                && source.getSource() instanceof ProjectileEntity) {
+            return;
         }
 
         if (!source.isOf(KCC_CUSTOM_COMBAT_DAMAGE)
@@ -145,6 +157,10 @@ public class LivingEntityProjectileArmorMixin {
         if (projectile instanceof WitherSkullEntity) {
             return;
         }
+        if (ProjectileGlanceState.hasHit(projectile, target)) {
+            cir.setReturnValue(false);
+            return;
+        }
 
         if (ServerHitDetectionSystem.tryHandleProjectileShieldDefense(world, target, projectile, amount)) {
             cir.setReturnValue(false);
@@ -157,8 +173,17 @@ public class LivingEntityProjectileArmorMixin {
                 amount
         );
         ServerHitDetectionSystem.spawnProjectileImpactParticles(world, target, projectile, projectileArmorResult);
-        ProjectileImpactHandler.stickArrowInTarget(projectile, target);
+        if (projectileArmorResult.penetrated()) {
+            ProjectileImpactHandler.stickArrowInTarget(projectile, target);
+        } else {
+            ProjectileGlanceState.mark(projectile, target);
+        }
         float resolvedDamage = projectileArmorResult.damage();
+        float firstAidDamage = projectileArmorResult.damageWithoutPartMultiplier();
+        if (PotionCoatingHandler.isDragonBreathArrow(projectile)) {
+            resolvedDamage += 2.0F;
+            firstAidDamage += 2.0F;
+        }
         if (resolvedDamage <= 0.0F) {
             cir.setReturnValue(false);
             return;
@@ -173,7 +198,17 @@ public class LivingEntityProjectileArmorMixin {
         Vec3d velocityBeforeDamage = target.getVelocity();
         target.timeUntilRegen = 0;
         target.hurtTime = 0;
-        boolean damaged = target.damage(world, customSource, resolvedDamage);
+        float firstAidDamageScale = resolvedDamage <= 0.000001F
+                ? 1.0F : firstAidDamage / resolvedDamage;
+        boolean damaged;
+        try (FirstAidCompat.Scope ignored = FirstAidCompat.target(
+                target,
+                projectileArmorResult.part(),
+                projectileArmorResult.detailedPart(),
+                firstAidDamageScale
+        )) {
+            damaged = target.damage(world, customSource, resolvedDamage);
+        }
         if (damaged) {
             target.timeUntilRegen = 0;
             ProjectileImpactHandler.removeProjectileKnockback(
@@ -188,7 +223,20 @@ public class LivingEntityProjectileArmorMixin {
                 PassiveSkillPerks.afterKill(livingOwner);
             }
         }
-        cir.setReturnValue(damaged);
+        cir.setReturnValue(projectileArmorResult.penetrated() && damaged);
+    }
+
+    @Inject(method = "damage", at = @At("RETURN"))
+    private void kingdomcomecombat$lightweightDamageInterruptsEveryAttack(
+            ServerWorld world,
+            DamageSource source,
+            float amount,
+            CallbackInfoReturnable<Boolean> cir
+    ) {
+        if (CombatServerConfig.lightweightDamageModeEnabled() && cir.getReturnValue()) {
+            ServerHitDetectionSystem.interruptAttackUnconditionally(
+                    world, (LivingEntity) (Object) this);
+        }
     }
 
     @Inject(method = "damage", at = @At("RETURN"))

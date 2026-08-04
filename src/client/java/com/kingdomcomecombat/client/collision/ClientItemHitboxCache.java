@@ -1,11 +1,14 @@
 package com.kingdomcomecombat.client.collision;
 
 import com.kingdomcomecombat.collision.AnimatedAttackHitboxLibrary;
+import com.kingdomcomecombat.client.compat.FirstPersonRenderCompat;
 import com.kingdomcomecombat.equipment.EquipmentCombatAttributesRegistry;
 import com.kingdomcomecombat.client.render.FirstPersonBodyRenderOffsetContext;
+import com.kingdomcomecombat.client.render.CollisionOnlyRenderContext;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.LivingEntity;
+import net.minecraft.item.Items;
 import net.minecraft.util.math.Vec3d;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
@@ -17,8 +20,6 @@ import java.util.function.Supplier;
 
 public class ClientItemHitboxCache {
     private static final double MODEL_UNIT_TO_BLOCK = 1.0 / 16.0;
-    private static final double TRACK_DISTANCE = 80.0;
-    private static final double TRACK_DISTANCE_SQUARED = TRACK_DISTANCE * TRACK_DISTANCE;
     private static final Map<Integer, Entry> CACHE = new HashMap<>();
     private static final ThreadLocal<Integer> CAPTURE_ENTITY_ID = new ThreadLocal<>();
 
@@ -26,13 +27,32 @@ public class ClientItemHitboxCache {
     }
 
     public static void beginCapture(int entityId) {
-        if (entityId >= 0 && shouldTrack(entityId)) {
+        // First Person Model renders the local player a second time with a
+        // camera-relative matrix.  That pass is visual only: letting it update
+        // this cache makes combat collision disagree with third person.
+        MinecraftClient client = MinecraftClient.getInstance();
+        boolean localFirstPerson = client.player != null
+                && entityId == client.player.getId()
+                && client.options.getPerspective().isFirstPerson();
+        if (!FirstPersonRenderCompat.isExternalBodyRenderOrPreparing()
+                && (!localFirstPerson || CollisionOnlyRenderContext.isActive())
+                && entityId >= 0 && shouldTrack(entityId)) {
             CAPTURE_ENTITY_ID.set(entityId);
         }
     }
 
     public static void endCapture() {
         CAPTURE_ENTITY_ID.remove();
+    }
+
+    public static boolean isHiddenLocalFirstPersonCapture() {
+        Integer entityId = CAPTURE_ENTITY_ID.get();
+        MinecraftClient client = MinecraftClient.getInstance();
+        return entityId != null
+                && client.player != null
+                && entityId == client.player.getId()
+                && client.options.getPerspective().isFirstPerson()
+                && CollisionOnlyRenderContext.isActive();
     }
 
     public static void captureItemModel(MatrixStack matrices) {
@@ -48,7 +68,8 @@ public class ClientItemHitboxCache {
         Vec3d sizeUnits = getEntityRealHitboxSizeUnits(entityId);
         Vec3d offsetUnits = getEntityRealHitboxOffsetUnits(entityId);
         Vec3d rotationDegrees = getEntityRealHitboxRotationDegrees(entityId);
-        Vector3f center = getModelCenter(verticesSupplier).orElseGet(Vector3f::new);
+        Vector3f center = getModelCenter(verticesSupplier)
+                .orElseGet(() -> getSpecialModelCenter(entityId));
         center.add(
                 (float) (offsetUnits.x * MODEL_UNIT_TO_BLOCK),
                 (float) (offsetUnits.y * MODEL_UNIT_TO_BLOCK),
@@ -127,6 +148,7 @@ public class ClientItemHitboxCache {
 
         if (client.world.getEntityById(entityId) instanceof LivingEntity livingEntity) {
             return EquipmentCombatAttributesRegistry.realHitboxSizeUnits(
+                    livingEntity,
                     livingEntity.getMainHandStack(),
                     fallback
             );
@@ -187,6 +209,11 @@ public class ClientItemHitboxCache {
         CACHE.remove(entityId);
     }
 
+    public static void clear() {
+        CACHE.clear();
+        CAPTURE_ENTITY_ID.remove();
+    }
+
     public static void cleanup() {
         MinecraftClient client = MinecraftClient.getInstance();
         if (client.world == null) {
@@ -207,14 +234,11 @@ public class ClientItemHitboxCache {
         if (client.world == null || entityId < 0) {
             return false;
         }
-        if (client.player != null && client.player.getId() == entityId) {
-            return true;
-        }
         if (!(client.world.getEntityById(entityId) instanceof LivingEntity entity)
                 || client.player == null) {
             return false;
         }
-        return entity.squaredDistanceTo(client.player) <= TRACK_DISTANCE_SQUARED;
+        return ClientCollisionTrackingPolicy.shouldCaptureItemHitbox(entity);
     }
 
     private static Vec3d transformPosition(Matrix4f matrix, Vector3f position) {
@@ -262,7 +286,6 @@ public class ClientItemHitboxCache {
         if (verticesSupplier == null) {
             return Optional.empty();
         }
-
         Vector3f[] vertices = verticesSupplier.get();
         if (vertices == null || vertices.length == 0) {
             return Optional.empty();
@@ -285,16 +308,27 @@ public class ClientItemHitboxCache {
             maxY = Math.max(maxY, vertex.y);
             maxZ = Math.max(maxZ, vertex.z);
         }
-
         if (!Float.isFinite(minX) || !Float.isFinite(minY) || !Float.isFinite(minZ)) {
             return Optional.empty();
         }
-
         return Optional.of(new Vector3f(
                 (minX + maxX) * 0.5F,
                 (minY + maxY) * 0.5F,
                 (minZ + maxZ) * 0.5F
         ));
+    }
+
+    private static Vector3f getSpecialModelCenter(int entityId) {
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (client.world != null
+                && client.world.getEntityById(entityId) instanceof LivingEntity livingEntity
+                && livingEntity.getMainHandStack().isOf(Items.TRIDENT)) {
+            // The trident is rendered through SpecialModelRenderer, so the layer's
+            // regular vertex supplier is empty. Its model spans Y=-4..27 and the
+            // renderer flips Y, placing the visual center at -11.5 model units.
+            return new Vector3f(0.0F, (float) (-11.5 * MODEL_UNIT_TO_BLOCK), 0.0F);
+        }
+        return new Vector3f();
     }
 
     private record Entry(

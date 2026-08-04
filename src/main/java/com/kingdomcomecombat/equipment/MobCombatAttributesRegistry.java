@@ -17,6 +17,8 @@ public class MobCombatAttributesRegistry {
     private static final Map<EntityType<?>, MobCombatAttributes> ATTRIBUTES = new HashMap<>();
     private static final Map<UUID, ArmorDamage> ARMOR_DAMAGE = new HashMap<>();
     private static final Map<UUID, Double> APPLIED_MAX_HEALTH = new HashMap<>();
+    private static final Map<UUID, AppliedStamina> APPLIED_STAMINA = new HashMap<>();
+    private static final Map<UUID, Float> LAST_HEALTH = new HashMap<>();
 
     private MobCombatAttributesRegistry() {
     }
@@ -25,13 +27,16 @@ public class MobCombatAttributesRegistry {
         ATTRIBUTES.clear();
         ARMOR_DAMAGE.clear();
         APPLIED_MAX_HEALTH.clear();
+        APPLIED_STAMINA.clear();
+        LAST_HEALTH.clear();
     }
 
     public static void register(Identifier entityId, MobCombatAttributes attributes) {
-        EntityType<?> entityType = Registries.ENTITY_TYPE.get(entityId);
-        if (entityType != null) {
-            ATTRIBUTES.put(entityType, attributes);
+        if (!Registries.ENTITY_TYPE.containsId(entityId)) {
+            return;
         }
+        EntityType<?> entityType = Registries.ENTITY_TYPE.get(entityId);
+        ATTRIBUTES.put(entityType, attributes);
     }
 
     public static Optional<MobCombatAttributes> get(LivingEntity entity) {
@@ -49,11 +54,19 @@ public class MobCombatAttributesRegistry {
         }
 
         MobCombatAttributes configured = attributes.get();
-        if (configured.maxStamina() > 0.0) {
-            ServerStaminaState.setEntityMaxStamina(entity.getUuid(), configured.maxStamina());
-        }
-        if (configured.staminaRegenPerTick() > 0.0) {
-            ServerStaminaState.setEntityRegenPerTick(entity.getUuid(), configured.staminaRegenPerTick());
+        recoverNaturalArmorWithHealth(entity, configured);
+        UUID uuid = entity.getUuid();
+        AppliedStamina appliedStamina = new AppliedStamina(
+                configured.maxStamina(), configured.staminaRegenPerTick()
+        );
+        if (!appliedStamina.equals(APPLIED_STAMINA.get(uuid))) {
+            if (configured.maxStamina() > 0.0) {
+                ServerStaminaState.setEntityMaxStamina(uuid, configured.maxStamina());
+            }
+            if (configured.staminaRegenPerTick() > 0.0) {
+                ServerStaminaState.setEntityRegenPerTick(uuid, configured.staminaRegenPerTick());
+            }
+            APPLIED_STAMINA.put(uuid, appliedStamina);
         }
 
         if (configured.maxHealth() <= 0.0) {
@@ -66,7 +79,6 @@ public class MobCombatAttributesRegistry {
         }
 
         double configuredMaxHealth = configured.maxHealth();
-        UUID uuid = entity.getUuid();
         double currentMaxHealth = Math.max(1.0, maxHealth.getBaseValue());
         Double previousApplied = APPLIED_MAX_HEALTH.get(uuid);
         if (previousApplied != null && Math.abs(previousApplied - configuredMaxHealth) <= 0.0001) {
@@ -77,6 +89,25 @@ public class MobCombatAttributesRegistry {
         maxHealth.setBaseValue(configuredMaxHealth);
         entity.setHealth(Math.max(1.0F, (float) (configuredMaxHealth * ratio)));
         APPLIED_MAX_HEALTH.put(uuid, configuredMaxHealth);
+    }
+
+    private static void recoverNaturalArmorWithHealth(LivingEntity entity, MobCombatAttributes attributes) {
+        UUID uuid = entity.getUuid();
+        ArmorDamage damage = ARMOR_DAMAGE.get(uuid);
+        if (damage == null) return;
+        float health = entity.getHealth();
+        Float previous = LAST_HEALTH.put(uuid, health);
+        if (previous == null || health <= previous || entity.getMaxHealth() <= 0.0F) return;
+        double healedFraction = (health - previous) / entity.getMaxHealth();
+        int headRepair = (int) Math.ceil(attributes.headArmor().durability() * healedFraction);
+        int bodyRepair = (int) Math.ceil(attributes.bodyArmor().durability() * healedFraction);
+        int head = Math.max(0, damage.head() - headRepair);
+        int body = Math.max(0, damage.body() - bodyRepair);
+        if (head == 0 && body == 0) {
+            ARMOR_DAMAGE.remove(uuid);
+            LAST_HEALTH.remove(uuid);
+        }
+        else ARMOR_DAMAGE.put(uuid, new ArmorDamage(head, body));
     }
 
     public static int armorDamage(LivingEntity entity, ArmorSection section) {
@@ -112,6 +143,7 @@ public class MobCombatAttributesRegistry {
             body = Math.min(maxDurability, body + amount);
         }
         ARMOR_DAMAGE.put(uuid, new ArmorDamage(head, body));
+        LAST_HEALTH.putIfAbsent(uuid, entity.getHealth());
     }
 
     public enum ArmorSection {
@@ -121,5 +153,8 @@ public class MobCombatAttributesRegistry {
 
     private record ArmorDamage(int head, int body) {
         private static final ArmorDamage EMPTY = new ArmorDamage(0, 0);
+    }
+
+    private record AppliedStamina(double max, double regenPerTick) {
     }
 }

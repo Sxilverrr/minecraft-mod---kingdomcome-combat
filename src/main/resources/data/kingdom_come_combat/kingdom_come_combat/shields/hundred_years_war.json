@@ -1,0 +1,18 @@
+{
+  "_comment": "Built-in shield compatibility for Hundred Years War 0.7.x.",
+  "items": {
+    "hundred_years_war:desert_round_shield": {
+      "type": "medium",
+      "block_impact_mitigation": 0.91,
+      "attack_stamina_cost_multiplier": 1.35,
+      "dodge_stamina_cost_multiplier": 1.55,
+      "locked_movement_speed_multiplier": 0.82,
+      "attack_speed_multiplier": 0.92,
+      "attack_lunge_multiplier": 0.78,
+      "exhausted_disable_ticks": 45,
+      "blocking_angle_multiplier": 1.0,
+      "perfect_window_multiplier": 1.5,
+      "perfect_attacker_disable_bonus_ticks": 0
+    }
+  }
+}

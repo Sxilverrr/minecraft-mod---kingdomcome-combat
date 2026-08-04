@@ -1,6 +1,7 @@
 package com.kingdomcomecombat.client.stamina;
 
 import com.kingdomcomecombat.client.lockon.LockOnState;
+import com.kingdomcomecombat.client.game.ClientGameRuleState;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
@@ -26,7 +27,7 @@ public class StaminaExperienceBarDisplay {
             return;
         }
 
-        if (!LockOnState.locked) {
+        if (client.options.hudHidden || !LockOnState.locked || ClientGameRuleState.hardcoreMode()) {
             restoreExperience(player);
             return;
         }
@@ -51,6 +52,10 @@ public class StaminaExperienceBarDisplay {
         player.experienceLevel = savedExperienceLevel;
         player.totalExperience = savedTotalExperience;
         player.experienceProgress = savedExperienceProgress;
+        overridingExperience = false;
+    }
+
+    public static void reset() {
         overridingExperience = false;
     }
 }

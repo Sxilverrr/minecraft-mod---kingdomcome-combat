@@ -1,14 +1,17 @@
 package com.kingdomcomecombat.client.input;
 
 import com.kingdomcomecombat.client.animation.CombatAnimationClient;
+import com.kingdomcomecombat.client.animation.ClientDodgeAnimationState;
 import com.kingdomcomecombat.client.combat.CombatClientState;
+import com.kingdomcomecombat.client.combat.ClientExecutionState;
+import com.kingdomcomecombat.client.config.ClientServerConfigState;
 import com.kingdomcomecombat.client.feedback.CombatHitFeedbackClient;
 import com.kingdomcomecombat.client.lockon.LockOnCameraController;
 import com.kingdomcomecombat.client.lockon.LockOnState;
 import com.kingdomcomecombat.client.lockon.LockOnTargetSelector;
 import com.kingdomcomecombat.client.lockon.LockOnTargetSwitcher;
 import com.kingdomcomecombat.client.stamina.ClientStaminaState;
-import com.kingdomcomecombat.client.passive.ClientPassiveSkillUnlockState;
+import com.kingdomcomecombat.client.compat.YesSteveModelCompat;
 import com.kingdomcomecombat.client.ui.ComboKnowledgeScreen;
 import com.kingdomcomecombat.config.CombatClientConfig;
 import com.kingdomcomecombat.combat.AttackMoveConfigs;
@@ -29,29 +32,37 @@ import com.kingdomcomecombat.riding.KccHorseRidingData;
 import com.kingdomcomecombat.network.StartAttackPayload;
 import com.kingdomcomecombat.network.StartBlockPayload;
 import com.kingdomcomecombat.network.StartDodgePayload;
+import com.kingdomcomecombat.network.StartExecutionPayload;
 import com.kingdomcomecombat.network.UpdateCombatStancePayload;
+import com.kingdomcomecombat.network.WarCryPayload;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.passive.AbstractHorseEntity;
+import net.minecraft.item.BowItem;
+import net.minecraft.item.CrossbowItem;
+import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.hit.EntityHitResult;
-import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayDeque;
 
 public class CombatInputClient {
     private static boolean lastLeftPressed = false;
     private static boolean lastRightPressed = false;
+    private static int blockHoldHeartbeatTicks = 0;
     private static int leftPressTicks = 0;
     private static boolean leftPressStartedOnCombatItem = false;
+    private static boolean executionSentForLeftPress = false;
     private static CombatDirection leftPressDirection = CombatDirection.RIGHT;
     private static int localAttackDisabledTicks = 0;
     private static int localBlockDisabledTicks = 0;
     private static int localDodgeTicks = 0;
+    private static int localDodgeCooldownTicks = 0;
     private static DodgeDirection localDodgeDirection = DodgeDirection.BACK;
     private static boolean lastLockPressed = false;
     private static boolean lastSoftLockPressed = false;
@@ -115,6 +126,11 @@ public class CombatInputClient {
         if (!LockOnState.locked) {
             lastLockedSneakDodgePressed = false;
             lockedSneakDodgePressedThisTick = false;
+            return;
+        }
+        if (localAttackDisabledTicks > 0 && kingdomcomecombat$isAttackPressed(client)) {
+            gestureBuffer.clear();
+            updateMousePositionOnly(client);
             return;
         }
 
@@ -341,9 +357,11 @@ public class CombatInputClient {
         }
 
         syncHorseControl(client);
+        enforceRangedLockRestrictions(client);
         handleLockOnKey(client);
         handleSoftLockKey(client);
         handleKnowledgeScreen(client);
+        handleWarCry(client);
         handleMouseGesture(client);
         tickLocalControlTimers();
         CombatClientState.tickPerfectCounterWindow();
@@ -387,10 +405,54 @@ public class CombatInputClient {
         }
     }
 
+    private static void handleWarCry(MinecraftClient client) {
+        while (CombatKeyBindings.WAR_CRY_KEY.wasPressed()) {
+            if (client.currentScreen == null) {
+                ClientPlayNetworking.send(new WarCryPayload());
+            }
+        }
+    }
+
     private static void handleRightClickBlock(MinecraftClient client) {
         boolean rightPressed = client.options.useKey.isPressed();
         boolean justPressed = rightPressed && !lastRightPressed;
+        boolean justReleased = !rightPressed && lastRightPressed;
         lastRightPressed = rightPressed;
+
+        if (justReleased) {
+            blockHoldHeartbeatTicks = 0;
+            ClientPlayNetworking.send(new StartBlockPayload(
+                    CombatClientState.currentDirection.ordinal(), false
+            ));
+            return;
+        }
+
+        // Modded melee weapons may own right click for an ability (dash, cast,
+        // transform, etc.). Do not layer KCC blocking on top of that action.
+        if (!LockOnState.locked
+                && CombatClientConfig.thirdPartyRightClickOutsideLockEnabled()
+                && CombatItemUtil.hasCustomRightClickUse(client.player.getMainHandStack())) {
+            blockHoldHeartbeatTicks = 0;
+            return;
+        }
+
+        if (client.player.getMainHandStack().isOf(Items.TRIDENT) && !LockOnState.locked) {
+            return;
+        }
+
+        if (rightPressed && !justPressed) {
+            if (blockHoldHeartbeatTicks > 0) {
+                blockHoldHeartbeatTicks--;
+                return;
+            }
+            blockHoldHeartbeatTicks = 5;
+            if (client.currentScreen == null && CombatItemUtil.canUseCustomCombat(client.player)) {
+                ClientPlayNetworking.send(new StartBlockPayload(
+                        CombatClientState.currentDirection.ordinal(), true
+                ));
+            }
+            return;
+        }
 
         if (!justPressed
                 || client.currentScreen != null
@@ -403,11 +465,16 @@ public class CombatInputClient {
             return;
         }
 
-        localBlockDisabledTicks = Math.max(
-                localBlockDisabledTicks,
-                CombatControlConfig.BLOCK_INPUT_COOLDOWN_TICKS
-        );
-        ClientPlayNetworking.send(new StartBlockPayload(CombatClientState.currentDirection.ordinal()));
+        int perfectTicks = ClientServerConfigState.blockWindowTicks();
+        if (EquipmentCombatAttributesRegistry.isShield(client.player.getOffHandStack())) {
+            perfectTicks += CombatControlConfig.SHIELD_PERFECT_BLOCK_BONUS_TICKS;
+        }
+        localBlockDisabledTicks = Math.max(1,
+                perfectTicks + ClientServerConfigState.unperfectBlockWindowTicks());
+        blockHoldHeartbeatTicks = 5;
+        ClientPlayNetworking.send(new StartBlockPayload(
+                CombatClientState.currentDirection.ordinal(), true
+        ));
     }
 
     private static void handleShiftDodge(MinecraftClient client) {
@@ -426,10 +493,6 @@ public class CombatInputClient {
             return;
         }
 
-        if (!ClientPassiveSkillUnlockState.isUnlocked("dodge")) {
-            return;
-        }
-
         if (!client.player.isOnGround() && !client.player.isTouchingWater()) {
             return;
         }
@@ -438,7 +501,11 @@ public class CombatInputClient {
             return;
         }
 
-        if (ModStatusEffects.effectiveLevel(client.player, ModStatusEffects.LEG_INJURY) > 0) {
+        if (localDodgeCooldownTicks > 0) {
+            return;
+        }
+
+        if (ModStatusEffects.effectiveLevel(client.player, ModStatusEffects.LEG_INJURY) > 2) {
             return;
         }
 
@@ -447,13 +514,14 @@ public class CombatInputClient {
                 ? CombatControlConfig.FORWARD_STEP_STAMINA_COST
                 : CombatControlConfig.DODGE_STAMINA_COST;
         if (hasLockedLargeShield(client)) {
-            staminaCost *= CombatControlConfig.LARGE_SHIELD_DODGE_STAMINA_COST_MULTIPLIER;
+            staminaCost *= EquipmentCombatAttributesRegistry.getShield(client.player.getOffHandStack()).dodgeStaminaCostMultiplier();
         }
         if (ClientStaminaState.current() < staminaCost) {
             return;
         }
 
         applyLocalDodgeVelocity(client, direction);
+        ClientDodgeAnimationState.start(client.player.getId(), direction);
         CombatHitFeedbackClient.startDodgeFeedback(direction);
         localAttackDisabledTicks = Math.max(
                 localAttackDisabledTicks,
@@ -464,6 +532,7 @@ public class CombatInputClient {
                 CombatControlConfig.DODGE_BLOCK_DISABLE_TICKS
         );
         localDodgeTicks = CombatControlConfig.DODGE_TOTAL_TICKS;
+        localDodgeCooldownTicks = CombatControlConfig.DODGE_TOTAL_TICKS + CombatControlConfig.DODGE_COOLDOWN_TICKS;
         localDodgeDirection = direction;
 
         ClientPlayNetworking.send(new StartDodgePayload(direction.ordinal()));
@@ -506,14 +575,16 @@ public class CombatInputClient {
             return;
         }
 
-        if (!client.player.isOnGround() && !client.player.isTouchingWater()) {
+        if (!client.player.isOnGround()
+                && !client.player.isTouchingWater()
+                && !CombatItemUtil.canUseMountedKccCombat(client.player.getVehicle())) {
             return;
         }
 
         var moveConfig = CombatWeaponUtil.resolveAttackMove(client.player, attackDirection);
         double staminaCost = moveConfig.staminaCost();
         if (hasLockedLargeShield(client)) {
-            staminaCost *= CombatControlConfig.LARGE_SHIELD_ATTACK_STAMINA_COST_MULTIPLIER;
+            staminaCost *= EquipmentCombatAttributesRegistry.getShield(client.player.getOffHandStack()).attackStaminaCostMultiplier();
         }
         if (ClientStaminaState.current() < staminaCost) {
             return;
@@ -528,7 +599,7 @@ public class CombatInputClient {
         );
         attackAnimationSpeed *= BeowulfArmState.attackSpeedMultiplier(client.player);
         if (hasLargeShield(client)) {
-            attackAnimationSpeed *= CombatControlConfig.LARGE_SHIELD_ATTACK_SPEED_MULTIPLIER;
+            attackAnimationSpeed *= EquipmentCombatAttributesRegistry.getShield(client.player.getOffHandStack()).attackSpeedMultiplier();
         }
         int attackTotalTicks = CombatAttackTiming.getAttackTotalTicks(attackDirection, moveConfig);
         attackTotalTicks = Math.max(1, (int) Math.ceil(attackTotalTicks / attackAnimationSpeed));
@@ -564,6 +635,7 @@ public class CombatInputClient {
             CombatAnimationClient.playAttack(attackDirection, chained);
         }
         CombatAnimationClient.setCombatAnimationSpeed((float) attackAnimationSpeed);
+        YesSteveModelCompat.triggerAttack(client.player);
 
         int targetEntityId = LockOnState.isHardLocked() ? LockOnState.targetEntityId : -1;
         boolean lockedLunge = LockOnState.locked;
@@ -600,6 +672,12 @@ public class CombatInputClient {
         boolean justPressed = pressed && !lastLockPressed;
         boolean justReleased = !pressed && lastLockPressed;
         lastLockPressed = pressed;
+
+        if (isRangedLockRestricted(client)) {
+            lockPressTicks = 0;
+            temporaryUnlockActive = false;
+            return;
+        }
 
         if (justPressed) {
             lockPressTicks = 0;
@@ -648,6 +726,10 @@ public class CombatInputClient {
         boolean justPressed = pressed && !lastSoftLockPressed;
         lastSoftLockPressed = pressed;
 
+        if (isRangedLockRestricted(client)) {
+            return;
+        }
+
         if (!justPressed) {
             return;
         }
@@ -668,6 +750,9 @@ public class CombatInputClient {
     }
 
     private static boolean lockBestTarget(MinecraftClient client, boolean softLock) {
+        if (isRangedLockRestricted(client)) {
+            return false;
+        }
         var target = LockOnTargetSelector.findBestTarget(client);
 
         if (target != null) {
@@ -681,6 +766,35 @@ public class CombatInputClient {
             return true;
         }
         return false;
+    }
+
+    private static void enforceRangedLockRestrictions(MinecraftClient client) {
+        if (!LockOnState.locked || !isRangedLockRestricted(client)) {
+            return;
+        }
+        LockOnState.clear();
+        LockOnCameraController.clearShoulderCameraOffset();
+        syncCombatState();
+    }
+
+    private static boolean isRangedLockRestricted(MinecraftClient client) {
+        if (client.player == null) {
+            return false;
+        }
+
+        if (client.player.isUsingItem()) {
+            ItemStack active = client.player.getActiveItem();
+            if (active.getItem() instanceof BowItem || active.getItem() instanceof CrossbowItem) {
+                return true;
+            }
+        }
+
+        return isChargedCrossbow(client.player.getMainHandStack())
+                || isChargedCrossbow(client.player.getOffHandStack());
+    }
+
+    private static boolean isChargedCrossbow(ItemStack stack) {
+        return stack.getItem() instanceof CrossbowItem && CrossbowItem.isCharged(stack);
     }
 
     public static void autoLockHitTarget(LivingEntity target) {
@@ -699,9 +813,16 @@ public class CombatInputClient {
     }
 
     private static void handleMouseGesture(MinecraftClient client) {
+        if (CombatClientState.isPerfectCounterWindowActive()) {
+            gestureBuffer.clear();
+            updateMousePositionOnly(client);
+            return;
+        }
         if (!LockOnState.locked) {
             CombatClientState.setDirection(CombatDirection.RIGHT);
-            CombatAnimationClient.clearCurrentAnimation();
+            if (!CombatAnimationClient.isCinematicVictimAnimationPlaying()) {
+                CombatAnimationClient.clearCurrentAnimation();
+            }
             updateMousePositionOnly(client);
             return;
         }
@@ -726,9 +847,13 @@ public class CombatInputClient {
 
         CombatDirection direction = gestureBuffer.consumeDirectionIfReady();
 
+        if (direction == CombatDirection.UP
+                && com.kingdomcomecombat.combat.CombatItemUtil.isPolearm(client.player.getMainHandStack())) {
+            direction = null;
+        }
         if (direction != null) {
             CombatClientState.setDirection(direction);
-            syncCombatState();
+            syncCombatStateIfChanged();
 
             debugMessage(client, "架势：" + direction.name());
 
@@ -739,7 +864,8 @@ public class CombatInputClient {
              * 如果玩家攻击中短按攻击，
              * 预输入会记录当前 direction。
              */
-            if (!CombatClientState.isBusyWithAttackOrPostWindow()) {
+            if (!CombatClientState.isBusyWithAttackOrPostWindow()
+                    && !CombatAnimationClient.isLocalMovementLockedByAnimation()) {
                 CombatAnimationClient.playStance(direction);
             }
         }
@@ -823,6 +949,13 @@ public class CombatInputClient {
     }
 
     private static void syncCombatStateIfChanged() {
+        // The server rebroadcasts stance changes to observers. Sending one while an
+        // attack is playing would arrive after the attack packet and immediately
+        // replace the remote player's attack animation on the same animation layer.
+        // Keep it pending; the first post-attack tick will send the final stance.
+        if (CombatClientState.attacking) {
+            return;
+        }
         if (lastSyncedLocked != LockOnState.locked
                 || lastSyncedDirection != CombatClientState.currentDirection) {
             syncCombatState();
@@ -839,7 +972,11 @@ public class CombatInputClient {
             return;
         }
 
-        if (!LockOnState.locked && !hasLargeShield(client)) {
+        boolean holdingBlock = isHoldingBlock(client);
+        if (!LockOnState.locked
+                && !hasLargeShield(client)
+                && !holdingBlock
+                && heldWeaponMovementMultiplier(client) >= 0.9999) {
             return;
         }
 
@@ -860,7 +997,13 @@ public class CombatInputClient {
 
         if (CombatClientState.attacking) {
             Vec3d velocity = client.player.getVelocity();
-            client.player.setVelocity(removeVelocityTowardsLockedTarget(client, velocity));
+            velocity = removeVelocityTowardsLockedTarget(client, velocity);
+            double heldMultiplier = heldWeaponMovementMultiplier(client);
+            client.player.setVelocity(
+                    velocity.x * heldMultiplier,
+                    velocity.y,
+                    velocity.z * heldMultiplier
+            );
             return;
         }
 
@@ -872,6 +1015,9 @@ public class CombatInputClient {
          * 推荐 0.88 到 0.94。
          */
         double movementMultiplier = movementMultiplier(client);
+        if (holdingBlock && ClientServerConfigState.blockingMovementSlowdownEnabled()) {
+            movementMultiplier *= CombatMovementConfig.BLOCK_HOLD_MOVEMENT_MULTIPLIER;
+        }
         velocity = new Vec3d(
                 velocity.x * movementMultiplier,
                 velocity.y,
@@ -893,10 +1039,42 @@ public class CombatInputClient {
     private static double movementMultiplier(MinecraftClient client) {
         double multiplier = LockOnState.locked ? CombatMovementConfig.LOCKED_MOVEMENT_MULTIPLIER : 1.0;
         if (hasLargeShield(client)) {
-            multiplier *= CombatControlConfig.LARGE_SHIELD_LOCKED_MOVEMENT_SPEED_MULTIPLIER;
+            multiplier *= EquipmentCombatAttributesRegistry.getShield(client.player.getOffHandStack()).lockedMovementSpeedMultiplier();
         }
+        multiplier *= heldWeaponMovementMultiplier(client);
         multiplier *= CombatHitFeedbackClient.getCustomHitMovementMultiplier();
         return multiplier;
+    }
+
+    private static double heldWeaponMovementMultiplier(MinecraftClient client) {
+        if (client.player == null || client.player.getMainHandStack().isEmpty()) {
+            return 1.0;
+        }
+        return EquipmentCombatAttributesRegistry.getWeapon(
+                client.player.getMainHandStack()
+        ).heldMovementSpeedMultiplier();
+    }
+
+    private static boolean isHoldingBlock(MinecraftClient client) {
+        if (client.player == null
+                || client.currentScreen != null
+                || !client.options.useKey.isPressed()
+                || !CombatItemUtil.canUseCustomCombat(client.player)) {
+            return false;
+        }
+        if (!LockOnState.locked
+                && CombatClientConfig.thirdPartyRightClickOutsideLockEnabled()
+                && CombatItemUtil.hasCustomRightClickUse(client.player.getMainHandStack())) {
+            return false;
+        }
+        if (!LockOnState.locked && client.player.getMainHandStack().isOf(Items.TRIDENT)) {
+            return false;
+        }
+        boolean canBlockWithShield = EquipmentCombatAttributesRegistry.isShield(client.player.getOffHandStack())
+                && (!EquipmentCombatAttributesRegistry.isLargeShield(client.player.getOffHandStack())
+                || LockOnState.locked);
+        return EquipmentCombatAttributesRegistry.canBlockWithHeldItem(client.player.getMainHandStack())
+                || canBlockWithShield;
     }
 
     private static boolean hasLockedLargeShield(MinecraftClient client) {
@@ -922,9 +1100,17 @@ public class CombatInputClient {
         if (localDodgeTicks > 0) {
             localDodgeTicks--;
         }
+
+        if (localDodgeCooldownTicks > 0) {
+            localDodgeCooldownTicks--;
+        }
     }
 
     private static void updateAttackAnimationSpeed() {
+        if (CombatClientState.attacking && CombatClientState.isInHitStop()) {
+            CombatAnimationClient.setCombatAnimationSpeed(0.01F);
+            return;
+        }
         if (!CombatClientState.attacking) {
             if (CombatClientState.isInPostAttackWindow() && CombatClientState.hasBufferedAttack()) {
                 return;
@@ -1082,7 +1268,8 @@ public class CombatInputClient {
             return velocity;
         }
 
-        Vec3d reducedHorizontal = horizontalVelocity.subtract(awayDir.multiply(awaySpeed * 0.55));
+        // Locked retreat is reduced by 25%, retaining 75% of the outward component.
+        Vec3d reducedHorizontal = horizontalVelocity.subtract(awayDir.multiply(awaySpeed * 0.25));
         return new Vec3d(reducedHorizontal.x, velocity.y, reducedHorizontal.z);
     }
 
@@ -1098,24 +1285,27 @@ public class CombatInputClient {
         if (client.currentScreen != null) {
             leftPressTicks = 0;
             leftPressStartedOnCombatItem = false;
+            executionSentForLeftPress = false;
             leftPressDirection = CombatClientState.currentDirection;
             lastLeftPressed = false;
             return;
         }
 
-        long handle = client.getWindow().getHandle();
-
-        boolean pressed = GLFW.glfwGetMouseButton(
-                handle,
-                GLFW.GLFW_MOUSE_BUTTON_LEFT
-        ) == GLFW.GLFW_PRESS;
+        // Read Minecraft's attack key instead of the physical left mouse
+        // button. Mouse input still reaches this binding, while controller
+        // mods can now drive the same short-press/hold/release state machine
+        // by mapping a button or trigger to vanilla "Attack/Destroy".
+        boolean pressed = kingdomcomecombat$isAttackPressed(client);
 
         /*
          * 左键刚按下。
          */
         if (pressed && !lastLeftPressed) {
             leftPressTicks = 0;
-            leftPressDirection = CombatClientState.currentDirection;
+            leftPressDirection = !LockOnState.locked
+                    && CombatItemUtil.isPolearm(client.player.getMainHandStack())
+                    ? CombatDirection.DOWN
+                    : CombatClientState.currentDirection;
 
             /*
              * 只有空手 / 剑 / 斧 / 镐 / 锄 / 铲，
@@ -1129,6 +1319,7 @@ public class CombatInputClient {
                                             ? entityHit.getEntity()
                                             : null
                             );
+            executionSentForLeftPress = false;
         }
 
         /*
@@ -1136,6 +1327,17 @@ public class CombatInputClient {
          */
         if (pressed) {
             leftPressTicks++;
+            if (!executionSentForLeftPress
+                    && leftPressStartedOnCombatItem
+                    && leftPressTicks > SHORT_ATTACK_MAX_TICKS
+                    && LockOnState.locked
+                    && ClientExecutionState.canExecuteTarget(LockOnState.targetEntityId)
+                    && !CombatClientState.attacking
+                    && !CombatClientState.isInPostAttackWindow()) {
+                ClientPlayNetworking.send(new StartExecutionPayload(LockOnState.targetEntityId));
+                ClientExecutionState.startLocalExecution();
+                executionSentForLeftPress = true;
+            }
         }
 
         /*
@@ -1144,7 +1346,7 @@ public class CombatInputClient {
         if (!pressed && lastLeftPressed) {
             boolean isShortPress = leftPressTicks <= SHORT_ATTACK_MAX_TICKS;
 
-            if (isShortPress && leftPressStartedOnCombatItem) {
+            if (isShortPress && leftPressStartedOnCombatItem && !executionSentForLeftPress) {
                 CombatDirection pressedDirection = leftPressDirection;
 
                 if (CombatClientState.attacking) {
@@ -1177,6 +1379,7 @@ public class CombatInputClient {
 
             leftPressTicks = 0;
             leftPressStartedOnCombatItem = false;
+            executionSentForLeftPress = false;
             leftPressDirection = CombatClientState.currentDirection;
         }
 
@@ -1252,5 +1455,50 @@ public class CombatInputClient {
     }
 
     private static void debugMessage(MinecraftClient client, String message) {
+    }
+
+    private static boolean controlifyResolved;
+    private static boolean controlifyAvailable;
+    private static java.lang.reflect.Method controlifyInstance;
+    private static java.lang.reflect.Method controlifyCurrentController;
+    private static Object controlifyAttackSupplier;
+    private static java.lang.reflect.Method controlifyBindingOn;
+    private static java.lang.reflect.Method controlifyDigitalNow;
+
+    /** Reads Controlify's real binding state because its attack bind need not emulate KeyBinding#isPressed. */
+    private static boolean kingdomcomecombat$isAttackPressed(MinecraftClient client) {
+        if (client.options.attackKey.isPressed()) return true;
+        kingdomcomecombat$resolveControlify();
+        if (!controlifyAvailable) return false;
+        try {
+            Object api = controlifyInstance.invoke(null);
+            Object result = controlifyCurrentController.invoke(api);
+            if (!(result instanceof java.util.Optional<?> controller) || controller.isEmpty()) return false;
+            Object binding = controlifyBindingOn.invoke(controlifyAttackSupplier, controller.get());
+            return binding != null && Boolean.TRUE.equals(controlifyDigitalNow.invoke(binding));
+        } catch (ReflectiveOperationException | LinkageError ignored) {
+            controlifyAvailable = false;
+            return false;
+        }
+    }
+
+    private static synchronized void kingdomcomecombat$resolveControlify() {
+        if (controlifyResolved) return;
+        controlifyResolved = true;
+        try {
+            Class<?> api = Class.forName("dev.isxander.controlify.Controlify");
+            Class<?> bindings = Class.forName("dev.isxander.controlify.bindings.ControlifyBindings");
+            Class<?> supplier = Class.forName("dev.isxander.controlify.api.bind.InputBindingSupplier");
+            Class<?> binding = Class.forName("dev.isxander.controlify.api.bind.InputBinding");
+            Class<?> controller = Class.forName("dev.isxander.controlify.controller.ControllerEntity");
+            controlifyInstance = api.getMethod("instance");
+            controlifyCurrentController = api.getMethod("getCurrentController");
+            controlifyAttackSupplier = bindings.getField("ATTACK").get(null);
+            controlifyBindingOn = supplier.getMethod("on", controller);
+            controlifyDigitalNow = binding.getMethod("digitalNow");
+            controlifyAvailable = true;
+        } catch (ReflectiveOperationException | LinkageError ignored) {
+            controlifyAvailable = false;
+        }
     }
 }

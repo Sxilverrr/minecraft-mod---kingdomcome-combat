@@ -55,7 +55,8 @@ public class LockOnState {
         delayedClearTicks = 0;
         delayedClearStancePlayed = false;
 
-        delayedClearStancePlayed = !CombatClientState.attacking;
+        delayedClearStancePlayed = !CombatClientState.attacking
+                && !CombatAnimationClient.isLocalMovementLockedByAnimation();
         if (delayedClearStancePlayed) {
             CombatAnimationClient.playStance(CombatClientState.currentDirection);
         }
@@ -69,7 +70,8 @@ public class LockOnState {
         delayedClearTicks = Math.max(1, ticks);
         blockedTicks = 0;
 
-        if (!CombatClientState.attacking) {
+        if (!CombatClientState.attacking
+                && !CombatAnimationClient.isLocalMovementLockedByAnimation()) {
             CombatAnimationClient.playStance(CombatClientState.currentDirection);
         }
 
@@ -85,11 +87,13 @@ public class LockOnState {
             return;
         }
 
-        if (CombatClientState.attacking) {
+        if (CombatClientState.attacking
+                || CombatAnimationClient.isLocalMovementLockedByAnimation()) {
             return;
         }
 
-        if (!delayedClearStancePlayed) {
+        if (!delayedClearStancePlayed
+                && !CombatAnimationClient.isLocalMovementLockedByAnimation()) {
             CombatAnimationClient.playStance(CombatClientState.currentDirection);
             delayedClearStancePlayed = true;
         }

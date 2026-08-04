@@ -1,0 +1,9 @@
+{
+  "replace": false,
+  "values": [
+    {"id": "#simplyswords:implicit/spear", "required": false},
+    {"id": "#simplyswords:implicit/glaive", "required": false},
+    {"id": "#simplyswords:implicit/halberd", "required": false},
+    {"id": "#simplyswords:implicit/scythe", "required": false}
+  ]
+}

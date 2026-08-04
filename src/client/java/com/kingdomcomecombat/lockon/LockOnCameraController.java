@@ -64,6 +64,11 @@ public class LockOnCameraController {
 
         LivingEntity target = getLockedTarget(client);
 
+        if (target != null && !LockOnTargetSelector.isLockableTarget(client, target)) {
+            LockOnState.clear();
+            return;
+        }
+
         if (target == null || !target.isAlive()) {
             if (tryLockNextTarget(client)) {
                 return;

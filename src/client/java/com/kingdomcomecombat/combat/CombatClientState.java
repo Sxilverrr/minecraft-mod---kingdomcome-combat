@@ -28,6 +28,7 @@ public class CombatClientState {
     private static double attackAnimationSpeedMultiplier = 1.0;
     private static boolean perfectCounterSlow = false;
     private static int perfectCounterWindowTicks = 0;
+    private static int perfectCounterIndicatorTicks = 0;
     public static boolean recoveryBlendStarted = false;
     public static CombatDirection lastAttackDirection = null;
     public static String currentAttackAnimationName = null;
@@ -189,10 +190,22 @@ public class CombatClientState {
         if (perfectCounterWindowTicks > 0) {
             perfectCounterWindowTicks--;
         }
+        if (perfectCounterIndicatorTicks > 0) {
+            perfectCounterIndicatorTicks--;
+        }
     }
 
     public static void startPerfectCounterWindow() {
         perfectCounterWindowTicks = CombatControlConfig.PERFECT_COUNTER_WINDOW_TICKS;
+        perfectCounterIndicatorTicks = 0;
+    }
+
+    public static boolean isPerfectCounterIndicatorActive() {
+        return perfectCounterIndicatorTicks > 0;
+    }
+
+    public static boolean isPerfectCounterWindowActive() {
+        return perfectCounterWindowTicks > 0;
     }
 
     public static boolean consumePerfectCounterAttackSlow() {
@@ -201,6 +214,7 @@ public class CombatClientState {
         }
 
         perfectCounterWindowTicks = 0;
+        perfectCounterIndicatorTicks = 10;
         return true;
     }
 
@@ -433,6 +447,9 @@ public class CombatClientState {
     }
 
     public static double currentAttackTickScale() {
+        if (hitStopTicks > 0) {
+            return 0.0;
+        }
         if (perfectCounterSlow && realAttackTicks < CombatControlConfig.PERFECT_COUNTER_SLOW_TICKS) {
             return CombatControlConfig.PERFECT_COUNTER_ATTACK_SPEED_SCALE;
         }

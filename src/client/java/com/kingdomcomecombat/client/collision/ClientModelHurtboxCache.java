@@ -5,11 +5,14 @@ import com.kingdomcomecombat.collision.HumanoidHurtboxLibrary;
 import com.kingdomcomecombat.client.animation.CombatAnimationClient;
 import com.kingdomcomecombat.client.animation.GeckoLikeAnimationLibrary;
 import com.kingdomcomecombat.client.combat.CombatClientState;
+import com.kingdomcomecombat.client.compat.FirstPersonRenderCompat;
+import com.kingdomcomecombat.client.render.CollisionOnlyRenderContext;
 import com.kingdomcomecombat.combat.CombatDirection;
 import com.kingdomcomecombat.combat.CombatWeaponUtil;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.model.ModelPart;
 import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.EntityPose;
 import net.minecraft.util.math.Vec3d;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
@@ -23,12 +26,24 @@ public class ClientModelHurtboxCache {
     private static final double MODEL_UNIT_TO_BLOCK = 1.0 / 16.0;
     private static final double CLASSIC_MODEL_HEIGHT_BLOCKS = 32.0 * MODEL_UNIT_TO_BLOCK;
     private static final double MODEL_ORIGIN_Y = 24.0;
-    private static final double TRACK_DISTANCE = 16.0;
-    private static final double TRACK_DISTANCE_SQUARED = TRACK_DISTANCE * TRACK_DISTANCE;
     private static final float DEG_TO_RAD = (float) (Math.PI / 180.0);
     private static final Map<Integer, Entry> CACHE = new HashMap<>();
 
     private ClientModelHurtboxCache() {
+    }
+
+    /**
+     * Uses the same first-person capture policy as the rendered weapon hitbox.
+     * Camera-relative body renders are visual only; the hidden world-space pass
+     * is the sole source of the local player's first-person hurtboxes.
+     */
+    public static boolean shouldCaptureRenderedPose(int entityId) {
+        MinecraftClient client = MinecraftClient.getInstance();
+        boolean localFirstPerson = client.player != null
+                && entityId == client.player.getId()
+                && client.options.getPerspective().isFirstPerson();
+        return !FirstPersonRenderCompat.isExternalBodyRenderOrPreparing()
+                && (!localFirstPerson || CollisionOnlyRenderContext.isActive());
     }
 
     public static void update(
@@ -40,6 +55,20 @@ public class ClientModelHurtboxCache {
             ModelPart rightLeg,
             ModelPart leftLeg
     ) {
+        update(entityId, head, body, rightArm, leftArm, rightLeg, leftLeg, Float.NaN);
+    }
+
+    /** Captures model parts using the yaw actually consumed by the current render state. */
+    public static void update(
+            int entityId,
+            ModelPart head,
+            ModelPart body,
+            ModelPart rightArm,
+            ModelPart leftArm,
+            ModelPart rightLeg,
+            ModelPart leftLeg,
+            float renderedBodyYaw
+    ) {
         MinecraftClient client = MinecraftClient.getInstance();
         if (client.world == null) {
             return;
@@ -49,17 +78,17 @@ public class ClientModelHurtboxCache {
             return;
         }
 
-        if (!HumanoidHurtboxLibrary.isHumanoidTarget(entity)) {
-            return;
-        }
         if (!shouldTrack(entity)) {
             CACHE.remove(entityId);
             return;
         }
+        if (!HumanoidHurtboxLibrary.isHumanoidTarget(entity)) {
+            return;
+        }
 
         long worldTime = client.world.getTime();
-        float yaw = entity.getBodyYaw();
-        double heightScale = Math.max(0.5, entity.getHeight() / CLASSIC_MODEL_HEIGHT_BLOCKS);
+        float yaw = Float.isNaN(renderedBodyYaw) ? entity.getBodyYaw() : renderedBodyYaw;
+        double heightScale = modelHeightScale(entity);
         CACHE.put(entityId, new Entry(
                 worldTime,
                 List.of(
@@ -86,6 +115,7 @@ public class ClientModelHurtboxCache {
     public static void updateIllager(
             int entityId,
             ModelPart head,
+            ModelPart body,
             ModelPart rightArm,
             ModelPart leftArm,
             ModelPart rightLeg,
@@ -100,18 +130,17 @@ public class ClientModelHurtboxCache {
             return;
         }
 
-        if (!HumanoidHurtboxLibrary.isHumanoidTarget(entity)) {
-            return;
-        }
         if (!shouldTrack(entity)) {
             CACHE.remove(entityId);
+            return;
+        }
+        if (!HumanoidHurtboxLibrary.isHumanoidTarget(entity)) {
             return;
         }
 
         long worldTime = client.world.getTime();
         float yaw = entity.getBodyYaw();
-        double heightScale = Math.max(0.5, entity.getHeight() / CLASSIC_MODEL_HEIGHT_BLOCKS);
-        SimulatedPart body = SimulatedPart.defaults(0.0F, 0.0F, 0.0F);
+        double heightScale = modelHeightScale(entity);
         CACHE.put(entityId, new Entry(
                 worldTime,
                 List.of(
@@ -145,6 +174,26 @@ public class ClientModelHurtboxCache {
             return Optional.empty();
         }
 
+        EntityPose pose = entity.getPose();
+        if (pose == EntityPose.SLEEPING
+                || pose == EntityPose.SWIMMING
+                || pose == EntityPose.GLIDING
+                || pose == EntityPose.SPIN_ATTACK) {
+            return Optional.of(HumanoidHurtboxLibrary.getHurtboxes(entity));
+        }
+
+        return getCachedModelPartHurtboxes(entity);
+    }
+
+    /** Returns the last boxes captured from the actual model render, including the local player. */
+    public static Optional<List<HumanoidHurtboxLibrary.PartBox>> getRenderedPlayer(LivingEntity entity) {
+        EntityPose pose = entity.getPose();
+        if (pose == EntityPose.SLEEPING
+                || pose == EntityPose.SWIMMING
+                || pose == EntityPose.GLIDING
+                || pose == EntityPose.SPIN_ATTACK) {
+            return Optional.empty();
+        }
         return getCachedModelPartHurtboxes(entity);
     }
 
@@ -177,7 +226,25 @@ public class ClientModelHurtboxCache {
         CACHE.put(entityId, new Entry(client.world.getTime(), List.copyOf(boxes)));
     }
 
+    public static void updateRendered(int entityId, List<HumanoidHurtboxLibrary.PartBox> boxes) {
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (client.world == null || boxes.isEmpty()
+                || !(client.world.getEntityById(entityId) instanceof LivingEntity entity)
+                || !shouldTrack(entity)) {
+            CACHE.remove(entityId);
+            return;
+        }
+        CACHE.put(entityId, new Entry(client.world.getTime(), List.copyOf(boxes)));
+    }
+
     public static List<HumanoidHurtboxLibrary.PartBox> simulateLocalPlayer(LivingEntity entity) {
+        EntityPose pose = entity.getPose();
+        if (pose == EntityPose.SLEEPING
+                || pose == EntityPose.SWIMMING
+                || pose == EntityPose.GLIDING
+                || pose == EntityPose.SPIN_ATTACK) {
+            return HumanoidHurtboxLibrary.getHurtboxes(entity);
+        }
         if (!CombatAnimationClient.hasLocalPlayerCombatAnimation()) {
             return getCachedModelPartHurtboxes(entity)
                     .orElseGet(() -> HumanoidHurtboxLibrary.getHurtboxes(entity));
@@ -200,7 +267,7 @@ public class ClientModelHurtboxCache {
         applyChild(leftLeg, sampleBone(animation, "leftLeg"), animation.weight(), bodyTransform);
 
         float yaw = entity.getBodyYaw();
-        double heightScale = Math.max(0.5, entity.getHeight() / CLASSIC_MODEL_HEIGHT_BLOCKS);
+        double heightScale = modelHeightScale(entity);
         return List.of(
                 partBox(entity, HumanoidHurtboxLibrary.Part.HEAD, yaw, heightScale, head,
                         new Vec3d(0.0, -4.0, 0.0), 8.0, 8.0, 8.0),
@@ -253,12 +320,14 @@ public class ClientModelHurtboxCache {
     }
 
     private static boolean shouldTrack(LivingEntity entity) {
-        MinecraftClient client = MinecraftClient.getInstance();
-        if (client.player == null || entity == client.player) {
-            return true;
-        }
+        return ClientCollisionTrackingPolicy.shouldCaptureHurtbox(entity);
+    }
 
-        return entity.squaredDistanceTo(client.player) <= TRACK_DISTANCE_SQUARED;
+    private static double modelHeightScale(LivingEntity entity) {
+        if (entity.getPose() == EntityPose.CROUCHING) {
+            return 0.9;
+        }
+        return Math.max(0.5, entity.getHeight() / CLASSIC_MODEL_HEIGHT_BLOCKS);
     }
 
     private static HumanoidHurtboxLibrary.PartBox partBox(
@@ -284,7 +353,7 @@ public class ClientModelHurtboxCache {
         ));
         centerModel.add(modelPart.originX, modelPart.originY, modelPart.originZ);
 
-        Vec3d center = entity.getPos().add(modelPointToWorldOffset(centerModel, yaw, heightScale));
+        Vec3d center = renderPosition(entity).add(modelPointToWorldOffset(centerModel, yaw, heightScale));
         Vec3d axisX = modelVectorToWorld(rotation.transform(new Vector3f(1.0F, 0.0F, 0.0F)), yaw, heightScale)
                 .normalize();
         Vec3d axisY = modelVectorToWorld(rotation.transform(new Vector3f(0.0F, 1.0F, 0.0F)), yaw, heightScale)
@@ -331,7 +400,7 @@ public class ClientModelHurtboxCache {
         ));
         centerModel.add(modelPart.positionX, modelPart.positionY, modelPart.positionZ);
 
-        Vec3d center = entity.getPos().add(modelPointToWorldOffset(centerModel, yaw, heightScale));
+        Vec3d center = renderPosition(entity).add(modelPointToWorldOffset(centerModel, yaw, heightScale));
         Vec3d axisX = modelVectorToWorld(rotation.transform(new Vector3f(1.0F, 0.0F, 0.0F)), yaw, heightScale)
                 .normalize();
         Vec3d axisY = modelVectorToWorld(rotation.transform(new Vector3f(0.0F, 1.0F, 0.0F)), yaw, heightScale)
@@ -353,6 +422,12 @@ public class ClientModelHurtboxCache {
                         axisZ
                 )
         );
+    }
+
+    private static Vec3d renderPosition(LivingEntity entity) {
+        MinecraftClient client = MinecraftClient.getInstance();
+        float tickProgress = client.getRenderTickCounter().getTickProgress(true);
+        return entity.getLerpedPos(tickProgress);
     }
 
     private static LocalAnimation currentLocalAnimation() {

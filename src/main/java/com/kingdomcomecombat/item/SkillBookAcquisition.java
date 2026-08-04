@@ -20,6 +20,7 @@ import net.minecraft.registry.RegistryKey;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.random.Random;
 import net.minecraft.village.TradeOffer;
 import net.minecraft.village.TradedItem;
@@ -44,11 +45,13 @@ public final class SkillBookAcquisition {
                     .map(Identifier::getPath)
                     .orElse("");
             ServerPlayerEntity player = contextPlayer(context);
-            if (!isRuinsChest(path) || player == null || context.getRandom().nextFloat() > lootChance(path)) {
+            if (!isSkillBookChest(path) || context.getRandom().nextFloat() > lootChance(path)) {
                 return;
             }
 
-            ItemStack book = randomUnknownSkillBook(context.getRandom(), player);
+            ItemStack book = player == null
+                    ? randomSkillBook(context.getRandom())
+                    : randomUnknownSkillBook(context.getRandom(), player);
             if (!book.isEmpty()) {
                 drops.add(book);
             }
@@ -76,26 +79,57 @@ public final class SkillBookAcquisition {
         }
     }
 
-    private static boolean isRuinsChest(String path) {
+    private static boolean isSkillBookChest(String path) {
         return path.equals("chests/ancient_city")
                 || path.equals("chests/ancient_city_ice_box")
+                || path.equals("chests/buried_treasure")
                 || path.equals("chests/desert_pyramid")
+                || path.equals("chests/end_city_treasure")
                 || path.equals("chests/jungle_temple")
+                || path.equals("chests/nether_bridge")
+                || path.equals("chests/pillager_outpost")
+                || path.equals("chests/ruined_portal")
+                || path.equals("chests/shipwreck_map")
+                || path.equals("chests/shipwreck_supply")
+                || path.equals("chests/shipwreck_treasure")
+                || path.equals("chests/simple_dungeon")
+                || path.equals("chests/stronghold_corridor")
+                || path.equals("chests/stronghold_crossing")
                 || path.equals("chests/stronghold_library")
+                || path.equals("chests/underwater_ruin_big")
+                || path.equals("chests/underwater_ruin_small")
                 || path.equals("chests/woodland_mansion")
                 || path.equals("chests/trial_chambers/reward")
+                || path.equals("chests/trial_chambers/reward_common")
+                || path.equals("chests/trial_chambers/reward_rare")
+                || path.equals("chests/trial_chambers/reward_unique")
+                || path.equals("chests/trial_chambers/reward_ominous")
+                || path.equals("chests/trial_chambers/reward_ominous_common")
+                || path.equals("chests/trial_chambers/reward_ominous_rare")
+                || path.equals("chests/trial_chambers/reward_ominous_unique")
+                || path.startsWith("chests/bastion_")
                 || path.contains("ruin")
                 || path.contains("ruins");
     }
 
     private static float lootChance(String path) {
-        if (path.equals("chests/ancient_city") || path.equals("chests/desert_pyramid")) {
+        if (path.equals("chests/ancient_city")
+                || path.equals("chests/end_city_treasure")
+                || path.equals("chests/stronghold_library")
+                || path.equals("chests/woodland_mansion")
+                || path.contains("reward_ominous")
+                || path.contains("reward_unique")) {
+            return 0.85F;
+        }
+        if (path.equals("chests/desert_pyramid")
+                || path.equals("chests/jungle_temple")
+                || path.equals("chests/shipwreck_treasure")
+                || path.equals("chests/buried_treasure")
+                || path.startsWith("chests/bastion_")
+                || path.contains("reward_rare")) {
             return 0.70F;
         }
-        if (path.equals("chests/ancient_city_ice_box")) {
-            return 0.50F;
-        }
-        return 0.42F;
+        return 0.45F;
     }
 
     public static ItemStack randomSkillBook(Random random) {
@@ -105,9 +139,9 @@ public final class SkillBookAcquisition {
     public static ItemStack randomSkillBook(Random random, ServerPlayerEntity player) {
         if (player != null) {
             List<ItemStack> unknown = unknownSkillBooks(player);
-            if (!unknown.isEmpty()) {
-                return unknown.get(random.nextInt(unknown.size())).copy();
-            }
+            return unknown.isEmpty()
+                    ? ItemStack.EMPTY
+                    : unknown.get(random.nextInt(unknown.size())).copy();
         }
         List<ItemStack> books = allSkillBooks();
         if (books.isEmpty()) {
@@ -135,7 +169,19 @@ public final class SkillBookAcquisition {
         Entity entity = context.hasParameter(LootContextParameters.THIS_ENTITY)
                 ? context.get(LootContextParameters.THIS_ENTITY)
                 : null;
-        return entity instanceof ServerPlayerEntity serverPlayer ? serverPlayer : null;
+        if (entity instanceof ServerPlayerEntity serverPlayer) {
+            return serverPlayer;
+        }
+
+        Vec3d origin = context.hasParameter(LootContextParameters.ORIGIN)
+                ? context.get(LootContextParameters.ORIGIN)
+                : null;
+        if (origin == null) {
+            return null;
+        }
+        PlayerEntity nearbyPlayer = context.getWorld().getClosestPlayer(
+                origin.x, origin.y, origin.z, 8.0, false);
+        return nearbyPlayer instanceof ServerPlayerEntity serverPlayer ? serverPlayer : null;
     }
 
     private static List<ItemStack> unknownSkillBooks(ServerPlayerEntity player) {
@@ -171,7 +217,7 @@ public final class SkillBookAcquisition {
         if (name == null || name.isBlank()) {
             name = "技能书";
         }
-        stack.set(DataComponentTypes.ITEM_NAME, Text.literal(name));
+        stack.set(DataComponentTypes.ITEM_NAME, Text.literal(name).formatted(net.minecraft.util.Formatting.WHITE));
         return stack;
     }
 }

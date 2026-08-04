@@ -79,10 +79,7 @@ public class ServerComboState {
     }
 
     public static void clear(UUID attackerUuid) {
-        Deque<FinishedAttack> history = HISTORY.get(attackerUuid);
-        if (history != null) {
-            history.clear();
-        }
+        HISTORY.remove(attackerUuid);
     }
 
     public static void recordFinishedAttack(

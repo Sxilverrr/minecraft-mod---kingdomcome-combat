@@ -219,12 +219,37 @@ public class GeckoLikeAnimationLibrary {
         List<Keyframe> keyframes = new ArrayList<>();
         for (Map.Entry<String, JsonElement> entry : channel.entrySet()) {
             float time = Float.parseFloat(entry.getKey());
+            JsonElement value = entry.getValue();
+            if (value.isJsonObject()
+                    && !value.getAsJsonObject().has("vector")
+                    && (value.getAsJsonObject().has("pre") || value.getAsJsonObject().has("post"))) {
+                JsonObject bedrockFrame = value.getAsJsonObject();
+                if (bedrockFrame.has("pre")) {
+                    // PAL inserts Bedrock's pre value immediately before the
+                    // timestamp, then applies the post value at the timestamp.
+                    keyframes.add(Keyframe.linear(
+                            time == 0.0F ? 0.0F : time - 0.001F,
+                            readBedrockVector(bedrockFrame.get("pre"))
+                    ));
+                }
+                if (bedrockFrame.has("post")) {
+                    keyframes.add(new Keyframe(
+                            time,
+                            readBedrockVector(bedrockFrame.get("post")),
+                            KeyframeInterpolation.modeFrom(value),
+                            KeyframeInterpolation.bezierFrom(value),
+                            KeyframeInterpolation.handlesFrom(value)
+                    ));
+                }
+                continue;
+            }
+
             keyframes.add(new Keyframe(
                     time,
-                    readVector(entry.getValue()),
-                    KeyframeInterpolation.modeFrom(entry.getValue()),
-                    KeyframeInterpolation.bezierFrom(entry.getValue()),
-                    KeyframeInterpolation.handlesFrom(entry.getValue())
+                    readVector(value),
+                    KeyframeInterpolation.modeFrom(value),
+                    KeyframeInterpolation.bezierFrom(value),
+                    KeyframeInterpolation.handlesFrom(value)
             ));
         }
 
@@ -248,6 +273,16 @@ public class GeckoLikeAnimationLibrary {
             );
         }
 
+        return BonePose.ZERO;
+    }
+
+    private static BonePose readBedrockVector(JsonElement element) {
+        if (element.isJsonArray()) {
+            return BonePose.fromJsonArray(element.getAsJsonArray());
+        }
+        if (element.isJsonObject() && element.getAsJsonObject().has("vector")) {
+            return BonePose.fromJsonArray(element.getAsJsonObject().getAsJsonArray("vector"));
+        }
         return BonePose.ZERO;
     }
 
@@ -368,7 +403,7 @@ public class GeckoLikeAnimationLibrary {
         }
 
         private BonePose sample(List<Keyframe> keyframes, float elapsedSeconds) {
-            if (elapsedSeconds <= keyframes.getFirst().time()) {
+            if (elapsedSeconds < keyframes.getFirst().time()) {
                 return keyframes.getFirst().pose();
             }
 
@@ -376,21 +411,23 @@ public class GeckoLikeAnimationLibrary {
                 Keyframe previous = keyframes.get(i - 1);
                 Keyframe next = keyframes.get(i);
 
-                if (elapsedSeconds <= next.time()) {
+                if (elapsedSeconds < next.time()) {
                     float span = Math.max(0.0001F, next.time() - previous.time());
                     float progress = (elapsedSeconds - previous.time()) / span;
-                    if (previous.interpolation() == KeyframeInterpolation.Mode.SMOOTH) {
+                    // PAL stores the easing on the keyframe whose value ends the
+                    // current segment (AnimationLoader builds previous -> current).
+                    if (next.interpolation() == KeyframeInterpolation.Mode.SMOOTH) {
                         BonePose before = keyframes.get(Math.max(0, i - 2)).pose();
                         BonePose after = keyframes.get(Math.min(keyframes.size() - 1, i + 1)).pose();
                         return BonePose.catmullRom(before, previous.pose(), next.pose(), after, progress);
                     }
-                    if (previous.interpolation() == KeyframeInterpolation.Mode.BEZIER) {
+                    if (next.interpolation() == KeyframeInterpolation.Mode.BEZIER) {
                         return BonePose.bezier(previous, next, progress);
                     }
 
                     return previous.pose().lerp(
                             next.pose(),
-                            KeyframeInterpolation.progress(previous.interpolation(), progress, previous.bezier())
+                            KeyframeInterpolation.progress(next.interpolation(), progress, next.bezier())
                     );
                 }
             }

@@ -1,5 +1,6 @@
 package com.kingdomcomecombat.client.input;
 
+import com.kingdomcomecombat.config.CombatClientConfig;
 import com.kingdomcomecombat.combat.CombatDirection;
 
 public class MouseGestureBuffer {
@@ -28,7 +29,8 @@ public class MouseGestureBuffer {
         double absX = Math.abs(accumulatedX);
         double absY = Math.abs(accumulatedY);
 
-        if (absX < STANCE_THRESHOLD && absY < STANCE_THRESHOLD) {
+        double threshold = STANCE_THRESHOLD / CombatClientConfig.stanceGestureSensitivity();
+        if (absX < threshold && absY < threshold) {
             return null;
         }
 
@@ -53,5 +55,10 @@ public class MouseGestureBuffer {
     private void reset() {
         accumulatedX = 0.0;
         accumulatedY = 0.0;
+    }
+
+    public void clear() {
+        reset();
+        cooldownTicks = 0;
     }
 }

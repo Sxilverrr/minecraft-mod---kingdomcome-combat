@@ -44,7 +44,9 @@
 		"firstperson": "*",
 		"geckolib": "*",
 		"modonomicon": "*",
-		"guardvillagers": "*"
+		"guardvillagers": "*",
+		"firstaid": "*",
+		"hundred_years_war": "*"
 	}
 
 }

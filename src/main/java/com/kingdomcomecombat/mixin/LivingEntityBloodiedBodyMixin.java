@@ -107,6 +107,11 @@ public class LivingEntityBloodiedBodyMixin implements BloodiedEntityAccess {
         ));
     }
 
+    @Override
+    public void kingdomcomecombat$clearBodyBlood() {
+        kingdomcomecombat$setBodyBloodPercent(0.0);
+    }
+
     @Unique
     private void kingdomcomecombat$setBodyBloodPercent(double percent) {
         LivingEntity self = (LivingEntity) (Object) this;

@@ -1,6 +1,7 @@
 package com.kingdomcomecombat.equipment;
 
 import com.kingdomcomecombat.stamina.ServerStaminaState;
+import com.kingdomcomecombat.config.CombatServerConfig;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.item.ItemStack;
 
@@ -17,7 +18,8 @@ public final class RangedWeaponUsage {
         }
         RangedWeaponAttributes attributes = RangedWeaponAttributesRegistry.get(stack);
         double costPerTick = attributes.hardness() / 20.0;
-        if (costPerTick > 0.0 && !ServerStaminaState.consume(user, costPerTick)) {
+        if (!CombatServerConfig.attacksDoNotConsumeStamina()
+                && costPerTick > 0.0 && !ServerStaminaState.consume(user, costPerTick)) {
             STOPPING_USE.set(true);
             try {
                 user.stopUsingItem();

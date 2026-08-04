@@ -39,6 +39,11 @@ public class StaminaState {
         regenDelayTicks = StaminaConfig.DEFAULT_REGEN_DELAY_TICKS;
     }
 
+    public void damage(double amount, int regenDelayTicks) {
+        current = clamp(current - Math.max(0.0, amount), 0.0, max);
+        this.regenDelayTicks = Math.max(this.regenDelayTicks, Math.max(0, regenDelayTicks));
+    }
+
     public void restore(double amount) {
         current = clamp(current + Math.max(0.0, amount), 0.0, max);
     }
@@ -57,6 +62,13 @@ public class StaminaState {
         }
 
         restore(regenPerTick);
+    }
+
+    public boolean isIdleAtMaximum(double resolvedMax) {
+        double sanitized = sanitizeMax(resolvedMax);
+        return regenDelayTicks <= 0
+                && Math.abs(max - sanitized) <= 0.0001
+                && current >= sanitized - 0.0001;
     }
 
     private static double sanitizeMax(double value) {

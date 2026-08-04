@@ -5,16 +5,6 @@
       "values": ["modonomicon"]
     }
   ],
-  "type": "minecraft:crafting_shapeless",
-  "ingredients": [
-    "minecraft:book",
-    "minecraft:iron_sword"
-  ],
-  "result": {
-    "id": "modonomicon:modonomicon_red",
-    "count": 1,
-    "components": {
-      "modonomicon:book_id": "kingdom_come_combat:combat_manual"
-    }
-  }
+  "type": "kingdom_come_combat:combat_manual",
+  "category": "equipment"
 }

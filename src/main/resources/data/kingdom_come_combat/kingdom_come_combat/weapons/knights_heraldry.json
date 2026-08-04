@@ -1,0 +1,8 @@
+{
+  "_comment": "Knights & Heraldry 1.1.0 weapon families.",
+  "items": {
+    "#kingdom_come_combat:knights_heraldry_swords": {"damage_panel": {"thrust": 0.85, "strike": 0.35, "slash": 1.1}, "attack_speed_multiplier": 0.96},
+    "#kingdom_come_combat:knights_heraldry_polearms": {"damage_panel": {"thrust": 1.2, "strike": 0.55, "slash": 0.8}, "attack_speed_multiplier": 0.88, "real_hitbox_size_units": {"x": 4.0, "y": 4.0, "z": 36.0}},
+    "#kingdom_come_combat:knights_heraldry_heavy_weapons": {"damage_panel": {"thrust": 0.1, "strike": 1.5, "slash": 0.8}, "attack_speed_multiplier": 0.8, "armor_break_multiplier": 0.85}
+  }
+}

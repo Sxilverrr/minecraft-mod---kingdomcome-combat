@@ -2,6 +2,7 @@ package com.kingdomcomecombat.mixin.client;
 
 import com.kingdomcomecombat.client.animation.CombatAnimationClient;
 import com.kingdomcomecombat.client.compat.FirstPersonRenderCompat;
+import com.kingdomcomecombat.client.render.FirstPersonBodyRenderOffsetContext;
 import com.kingdomcomecombat.config.CombatClientConfig;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.VertexConsumerProvider;
@@ -39,17 +40,25 @@ public abstract class LegacyLivingEntityRendererFirstPersonMixin {
             int light,
             CallbackInfo ci
     ) {
-        kingdomcomecombat$externalBody = FirstPersonRenderCompat.beginLivingEntityRender();
+        kingdomcomecombat$externalBody = CombatClientConfig.firstPersonRenderingEnabled()
+                && FirstPersonRenderCompat.beginLivingEntityRender();
         MinecraftClient client = MinecraftClient.getInstance();
         kingdomcomecombat$firstPersonBody = entity == client.player
+                && client.currentScreen == null
                 && client.options.getPerspective().isFirstPerson()
                 && CombatAnimationClient.isKccSpecialFirstPersonActive();
+        if (kingdomcomecombat$firstPersonBody) {
+            FirstPersonBodyRenderOffsetContext.begin(entity.getId(), Vec3d.ZERO);
+        }
         if (!kingdomcomecombat$firstPersonBody || !(model instanceof PlayerEntityModel<?> playerModel)) {
             return;
         }
         kingdomcomecombat$oldHeadVisible = playerModel.head.visible;
         kingdomcomecombat$oldHatVisible = playerModel.hat.visible;
         boolean showHead = FirstPersonRenderCompat.isRenderingShadowPass();
+        if (CombatClientConfig.firstPersonWeaponOnly() && !showHead) {
+            playerModel.setVisible(false);
+        }
         playerModel.head.visible = showHead;
         playerModel.hat.visible = showHead;
     }
@@ -67,7 +76,7 @@ public abstract class LegacyLivingEntityRendererFirstPersonMixin {
             int light,
             CallbackInfo ci
     ) {
-        if (!kingdomcomecombat$firstPersonBody) {
+        if (!kingdomcomecombat$firstPersonBody || !kingdomcomecombat$externalBody) {
             return;
         }
         double offset = CombatClientConfig.firstPersonBodyForwardOffset();
@@ -87,10 +96,16 @@ public abstract class LegacyLivingEntityRendererFirstPersonMixin {
             CallbackInfo ci
     ) {
         if (kingdomcomecombat$firstPersonBody && model instanceof PlayerEntityModel<?> playerModel) {
+            if (CombatClientConfig.firstPersonWeaponOnly()) {
+                playerModel.setVisible(true);
+            }
             playerModel.head.visible = kingdomcomecombat$oldHeadVisible;
             playerModel.hat.visible = kingdomcomecombat$oldHatVisible;
         }
         FirstPersonRenderCompat.endLivingEntityRender(kingdomcomecombat$externalBody);
+        if (kingdomcomecombat$firstPersonBody) {
+            FirstPersonBodyRenderOffsetContext.end();
+        }
         kingdomcomecombat$firstPersonBody = false;
         kingdomcomecombat$externalBody = false;
     }

@@ -1,6 +1,8 @@
 package com.kingdomcomecombat.mixin;
 
 import com.kingdomcomecombat.combat.CombatItemUtil;
+import com.kingdomcomecombat.stamina.ServerStaminaState;
+import com.kingdomcomecombat.config.CombatServerConfig;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.minecraft.entity.Entity;
@@ -17,6 +19,7 @@ import java.util.WeakHashMap;
 @Mixin(PlayerEntity.class)
 public class PlayerEntityVanillaAttackMixin {
     private static final int MOUNTED_ATTACK_COOLDOWN_TICKS = 16;
+    private static final double VANILLA_ATTACK_STAMINA_COST = 5.0;
     private static final Map<PlayerEntity, Long> LAST_MOUNTED_ATTACK_TICKS = new WeakHashMap<>();
 
     @Inject(method = "attack", at = @At("HEAD"), cancellable = true)
@@ -36,9 +39,15 @@ public class PlayerEntityVanillaAttackMixin {
             LAST_MOUNTED_ATTACK_TICKS.put(player, now);
         }
 
-        if (player instanceof ServerPlayerEntity
-                && !CombatItemUtil.shouldUseVanillaEntityAttack(player, target)) {
-            ci.cancel();
+        if (player instanceof ServerPlayerEntity serverPlayer) {
+            if (!CombatItemUtil.shouldUseVanillaEntityAttack(player, target)) {
+                ci.cancel();
+                return;
+            }
+            if (!CombatServerConfig.attacksDoNotConsumeStamina()
+                    && !ServerStaminaState.consume(serverPlayer, VANILLA_ATTACK_STAMINA_COST)) {
+                ci.cancel();
+            }
         }
     }
 

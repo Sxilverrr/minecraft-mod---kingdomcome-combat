@@ -1,7 +1,6 @@
 package com.kingdomcomecombat.mixin;
 
-import com.kingdomcomecombat.ai.BeastCombatAiTicker;
-import com.kingdomcomecombat.ai.HumanoidCombatAiProfiles;
+import com.kingdomcomecombat.combat.VanillaMobAttackControl;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.server.world.ServerWorld;
@@ -19,8 +18,7 @@ public class MobEntityVanillaAttackMixin {
             CallbackInfoReturnable<Boolean> cir
     ) {
         MobEntity mob = (MobEntity) (Object) this;
-        if (HumanoidCombatAiProfiles.getProfile(mob) != null
-                || !BeastCombatAiTicker.shouldUseVanillaAttack(mob)) {
+        if (VanillaMobAttackControl.disablesVanillaAttack(mob)) {
             mob.setAttacking(false);
             cir.setReturnValue(false);
         }

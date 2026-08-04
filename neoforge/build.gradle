@@ -1,0 +1,609 @@
+plugins {
+    id 'dev.architectury.loom' version '1.13-SNAPSHOT'
+}
+
+import groovy.json.JsonOutput
+import groovy.json.JsonSlurper
+
+version = project.mod_version
+group = 'com.kingdomcomecombat'
+base.archivesName = 'kingdom_come_combat-neoforge'
+
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(21)
+}
+
+repositories {
+    mavenCentral()
+    maven { url = 'https://maven.neoforged.net/releases/' }
+    maven { url = 'https://maven.shedaniel.me/' }
+    maven { url = 'https://repo.redlance.org/public' }
+    maven { url = 'https://dl.cloudsmith.io/public/geckolib3/geckolib/maven/' }
+    maven { url = 'https://maven.sinytra.org/' }
+}
+
+loom {
+    silentMojangMappingsLicense()
+    runs {
+        client { client() }
+        server { server() }
+    }
+}
+
+sourceSets.main {
+    java.srcDirs = [
+            'build/generatedMojmap/main',
+            'build/generatedMojmap/client',
+            'build/generatedMojmap/legacy',
+            'src/main/java'
+    ]
+    resources.srcDirs = ['../src/main/resources', '../src/client/resources', 'src/main/resources']
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${minecraft_version}"
+    // NeoForge patches introduce methods whose official names collide with
+    // Yarn names. Compile the native module in Mojmap; prepareShared1211Sources
+    // will be followed by a generated Yarn -> Mojmap source migration step.
+    mappings loom.officialMojangMappings()
+    neoForge "net.neoforged:neoforge:${neoforge_version}"
+
+    modImplementation "org.sinytra.forgified-fabric-api:forgified-fabric-api:${forgified_fabric_api_version}"
+    // FFAPI supplies this at runtime; expose its entrypoint/loader API to the
+    // compiler without adding a second runtime module.
+    compileOnly("org.sinytra:forgified-fabric-loader:${forgified_fabric_loader_version}") {
+        transitive = false
+    }
+    modImplementation "me.shedaniel.cloth:cloth-config-neoforge:${cloth_config_version}"
+    // The 1.21.1 Neo jar already contains its Core classes; resolving the Core
+    // POM transitively gives Loom duplicate inputs for every PAL core class.
+    modImplementation("com.zigythebird.playeranim:PlayerAnimationLibNeo:${pal_version}") {
+        transitive = false
+    }
+    implementation('com.zigythebird:mochafloats:4.1.0') {
+        transitive = false
+    }
+    modCompileOnly "software.bernie.geckolib:geckolib-neoforge-${minecraft_version}:${geckolib_version}"
+
+    implementation 'org.javassist:javassist:3.30.2-GA'
+    forgeRuntimeLibrary 'org.javassist:javassist:3.30.2-GA'
+}
+
+tasks.register('prepareShared1211Sources', Exec) {
+    workingDir '..'
+    commandLine './gradlew', '-Ptarget_mc=1.21.1', 'generateVersionCompatSources', '--console=plain'
+}
+
+tasks.register('migrateSharedMainToMojmap', Exec) {
+    dependsOn 'prepareShared1211Sources'
+    workingDir '..'
+    commandLine './gradlew', '-Ptarget_mc=1.21.1', 'migrateMappings',
+            '--mappings', 'net.minecraft:mappings:1.21.1',
+            '--input', 'build/generated/versionCompat/main',
+            '--output', 'neoforge/build/generatedMojmap/main', '--console=plain'
+}
+
+tasks.register('migrateSharedClientToMojmap', Exec) {
+    dependsOn 'migrateSharedMainToMojmap'
+    workingDir '..'
+    commandLine './gradlew', '-Ptarget_mc=1.21.1', 'migrateMappings',
+            '--mappings', 'net.minecraft:mappings:1.21.1',
+            '--input', 'build/generated/versionCompat/client',
+            '--output', 'neoforge/build/generatedMojmap/client', '--console=plain'
+}
+
+tasks.register('migrateLegacyClientToMojmap', Exec) {
+    dependsOn 'migrateSharedClientToMojmap'
+    workingDir '..'
+    commandLine './gradlew', '-Ptarget_mc=1.21.1', 'migrateMappings',
+            '--mappings', 'net.minecraft:mappings:1.21.1',
+            '--input', 'src/compat/legacy/java',
+            '--output', 'neoforge/build/generatedMojmap/legacy', '--console=plain'
+}
+
+tasks.register('patchMigratedNeoSources') {
+    dependsOn 'migrateLegacyClientToMojmap'
+    doLast {
+        fileTree('build/generatedMojmap').matching { include '**/*.java' }.files.each { file ->
+            String text = file.getText('UTF-8')
+                    .replace('AbstractClientPlayerEntity', 'AbstractClientPlayer')
+                    .replace('MinecraftClient', 'Minecraft')
+                    .replace('Identifier', 'ResourceLocation')
+                    .replace('DataComponentTypes.', 'DataComponents.')
+                    .replace('context.client().world', 'context.client().level')
+                    .replace('stack.isOf(', 'stack.is(')
+                    .replace('Text.translatable(', 'Component.translatable(')
+                    .replace('Formatting.', 'ChatFormatting.')
+                    .replace('ChatChatFormatting', 'ChatFormatting')
+                    .replace('.formatted(', '.withStyle(')
+                    .replace('context.camera().getPos()', 'context.camera().getPosition()')
+                    .replace('getLanguageManager().getLanguage()', 'getLanguageManager().getSelected()')
+                    .replace('.getEntityById(', '.getEntity(')
+                    .replace('ResourceLocation.of(', 'ResourceLocation.fromNamespaceAndPath(')
+                    .replace('.scale(1.0, 0.0, 1.0)', '.multiply(1.0, 0.0, 1.0)')
+                    .replace('public class MinecraftAttackMixin', 'public class MinecraftClientAttackMixin')
+                    .replace('public class MinecraftTridentUseMixin', 'public class MinecraftClientTridentUseMixin')
+                    .replace('ResourceLocation getTexture(HandCannonBulletEntity entity)', 'ResourceLocation getTextureLocation(HandCannonBulletEntity entity)')
+                    .replace('SoundEvents.SHIELD_BLOCK.value()', 'SoundEvents.SHIELD_BLOCK')
+                    .replace('Optional.empty(), Optional.of(DRAGON_BREATH_ARROW_COLOR), List.of(),\n                Optional.of(DRAGON_BREATH_ARROW_NAME))',
+                            'Optional.empty(), Optional.of(DRAGON_BREATH_ARROW_COLOR), List.of())')
+                    .replace('new DynamicTexture(() -> KingdomComeCombat.MOD_ID + "/dragon_cracks", image)',
+                            'new DynamicTexture(image)')
+            file.setText(text, 'UTF-8')
+        }
+
+        [
+                'client/input/CombatInputClient.java',
+                'client/lockon/LockOnCameraController.java',
+                'client/collision/ClientAttackHitReporter.java',
+                'client/debug/CombatCollisionDebugRenderer.java'
+        ].each { suffix ->
+            File file = file("build/generatedMojmap/client/com/kingdomcomecombat/${suffix}")
+            if (file.exists()) {
+                file.setText(file.getText('UTF-8')
+                        .replace('.multiply(', '.scale(')
+                        .replace('.scale(1.0, 0.0, 1.0)', '.multiply(1.0, 0.0, 1.0)'), 'UTF-8')
+            }
+        }
+
+        File instantHealth = file('build/generatedMojmap/main/com/kingdomcomecombat/mixin/InstantHealthClearsInjuryMixin.java')
+        if (instantHealth.exists()) {
+            instantHealth.setText(instantHealth.getText('UTF-8').replace(
+                    '            ServerLevel world,\n            Entity source,',
+                    '            Entity source,'
+            ), 'UTF-8')
+        }
+        File manualRecipe = file('build/generatedMojmap/main/com/kingdomcomecombat/recipe/CombatManualRecipe.java')
+        if (manualRecipe.exists()) {
+            manualRecipe.setText(manualRecipe.getText('UTF-8').replace(
+                    'public ItemStack craft(CraftingInput input, HolderLookup.Provider registries)',
+                    'public ItemStack assemble(CraftingInput input, HolderLookup.Provider registries)'
+            ), 'UTF-8')
+        }
+        File tooltipClient = file('build/generatedMojmap/client/com/kingdomcomecombat/client/ui/CombatAttributeTooltipClient.java')
+        if (tooltipClient.exists()) {
+            tooltipClient.setText(tooltipClient.getText('UTF-8')
+                    .replace('import net.minecraft.core.component.DataComponents;',
+                            'import net.minecraft.core.component.DataComponents;\nimport net.minecraft.core.registries.BuiltInRegistries;')
+                    .replace('Registries.ITEM.getId(', 'BuiltInRegistries.ITEM.getKey('), 'UTF-8')
+        }
+        File hardshipClientInitializer = file('build/generatedMojmap/client/com/kingdomcomecombat/client/KingdomComeCombatClient.java')
+        if (hardshipClientInitializer.exists()) {
+            hardshipClientInitializer.setText(hardshipClientInitializer.getText('UTF-8')
+                    .replace('.currentScreen', '.screen')
+                    .replace('.getGamma().getValue()', '.gamma().get()')
+                    .replace('.getGamma().setValue(', '.gamma().set('), 'UTF-8')
+        }
+        File hardshipSelectionScreen = file('build/generatedMojmap/client/com/kingdomcomecombat/client/ui/HardshipSelectionScreen.java')
+        if (hardshipSelectionScreen.exists()) {
+            hardshipSelectionScreen.setText(hardshipSelectionScreen.getText('UTF-8')
+                    .replace('context.blit(icon, x, y, 0, 0,\n                        ICON_SIZE, ICON_SIZE, ICON_SIZE, ICON_SIZE, ICON_SIZE, ICON_SIZE);',
+                            'context.blit(icon, x, y, ICON_SIZE, ICON_SIZE, 0.0F, 0.0F,\n                        ICON_SIZE, ICON_SIZE, ICON_SIZE, ICON_SIZE);')
+                    .replace('context.blit(fallbackIconId(entry.index), x, y,\n                        0, 0, ICON_SIZE, ICON_SIZE, ICON_SIZE, ICON_SIZE, ICON_SIZE, ICON_SIZE);',
+                            'context.blit(fallbackIconId(entry.index), x, y, ICON_SIZE, ICON_SIZE,\n                        0.0F, 0.0F, ICON_SIZE, ICON_SIZE, ICON_SIZE, ICON_SIZE);'), 'UTF-8')
+        }
+        File clientHitReporter = file('build/generatedMojmap/client/com/kingdomcomecombat/client/collision/ClientAttackHitReporter.java')
+        if (clientHitReporter.exists()) {
+            clientHitReporter.setText(clientHitReporter.getText('UTF-8').replace(
+                    '.squaredDistanceTo(hitPosition)', '.distanceToSqr(hitPosition)'
+            ), 'UTF-8')
+        }
+        File legacyItemBone = file('build/generatedMojmap/legacy/com/kingdomcomecombat/client/animation/LegacyItemBoneTransformApplier.java')
+        if (legacyItemBone.exists()) {
+            legacyItemBone.setText(legacyItemBone.getText('UTF-8')
+                    .replace('import com.mojang.blaze3d.vertex.PoseStack;',
+                            'import com.mojang.blaze3d.vertex.PoseStack;\nimport com.mojang.math.Axis;')
+                    .replace('matrices.multiply(RotationAxis.POSITIVE_Z.rotationDegrees(',
+                            'matrices.mulPose(Axis.ZP.rotationDegrees(')
+                    .replace('matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(',
+                            'matrices.mulPose(Axis.YP.rotationDegrees(')
+                    .replace('matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees(',
+                            'matrices.mulPose(Axis.XP.rotationDegrees('), 'UTF-8')
+        }
+        File legacyHeldItemHitbox = file('build/generatedMojmap/legacy/com/kingdomcomecombat/mixin/client/LegacyHeldItemRendererHitboxMixin.java')
+        if (legacyHeldItemHitbox.exists()) {
+            legacyHeldItemHitbox.setText(legacyHeldItemHitbox.getText('UTF-8').replace(
+                    'target = "Lnet/minecraft/client/renderer/block/model/ItemTransform;apply(ZLcom/mojang/blaze3d/vertex/PoseStack;)V"',
+                    'target = "Lnet/neoforged/neoforge/client/ClientHooks;handleCameraTransforms(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/resources/model/BakedModel;Lnet/minecraft/world/item/ItemDisplayContext;Z)Lnet/minecraft/client/resources/model/BakedModel;"'
+            ), 'UTF-8')
+        }
+        File legacyArmorBlood = file('build/generatedMojmap/legacy/com/kingdomcomecombat/mixin/client/LegacyArmorFeatureRendererBloodiedTextureMixin.java')
+        if (legacyArmorBlood.exists()) {
+            legacyArmorBlood.setText(legacyArmorBlood.getText('UTF-8')
+                    .replace('import org.spongepowered.asm.mixin.injection.ModifyArg;',
+                            'import com.llamalad7.mixinextras.injector.ModifyExpressionValue;')
+                    .replace('@ModifyArg(', '@ModifyExpressionValue(')
+                    .replace('method = "renderModel",',
+                            'method = "renderArmorPiece(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;Lnet/minecraft/world/entity/LivingEntity;Lnet/minecraft/world/entity/EquipmentSlot;ILnet/minecraft/client/model/HumanoidModel;FFFFFF)V",')
+                    .replace(
+                            'target = "Lnet/minecraft/client/renderer/RenderType;armorCutoutNoCull(Lnet/minecraft/resources/ResourceLocation;)Lnet/minecraft/client/renderer/RenderType;"',
+                            'target = "Lnet/neoforged/neoforge/client/ClientHooks;getArmorTexture(Lnet/minecraft/world/entity/Entity;Lnet/minecraft/world/item/ItemStack;Lnet/minecraft/world/item/ArmorMaterial$Layer;ZLnet/minecraft/world/entity/EquipmentSlot;)Lnet/minecraft/resources/ResourceLocation;"'
+                    )
+                    .replace(
+                            'target = "Lnet/neoforged/neoforge/client/ClientHooks;getArmorTexture(Lnet/minecraft/world/entity/Entity;Lnet/minecraft/world/item/ItemStack;Lnet/minecraft/world/item/ArmorMaterial$Layer;ZLnet/minecraft/world/entity/EquipmentSlot;)Lnet/minecraft/resources/ResourceLocation;")',
+                            'target = "Lnet/neoforged/neoforge/client/ClientHooks;getArmorTexture(Lnet/minecraft/world/entity/Entity;Lnet/minecraft/world/item/ItemStack;Lnet/minecraft/world/item/ArmorMaterial$Layer;ZLnet/minecraft/world/entity/EquipmentSlot;)Lnet/minecraft/resources/ResourceLocation;", remap = false)'
+                    )
+                    .replace('@Inject(method = "renderArmorPiece", at = @At("HEAD"))',
+                            '@Inject(method = "renderArmorPiece(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;Lnet/minecraft/world/entity/LivingEntity;Lnet/minecraft/world/entity/EquipmentSlot;ILnet/minecraft/client/model/HumanoidModel;FFFFFF)V", at = @At("HEAD"))')
+                    .replace('@Inject(method = "renderArmorPiece", at = @At("RETURN"))',
+                            '@Inject(method = "renderArmorPiece(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;Lnet/minecraft/world/entity/LivingEntity;Lnet/minecraft/world/entity/EquipmentSlot;ILnet/minecraft/client/model/HumanoidModel;FFFFFF)V", at = @At("RETURN"))')
+                    .replace('            net.minecraft.client.model.HumanoidModel<?> model,\n            CallbackInfo ci',
+                            '            net.minecraft.client.model.HumanoidModel<?> model,\n            float limbSwing, float limbSwingAmount, float ageInTicks,\n            float netHeadYaw, float headPitch, float partialTick,\n            CallbackInfo ci'), 'UTF-8')
+        }
+        File bloodSplash = file('build/generatedMojmap/main/com/kingdomcomecombat/mixin/LivingEntityBloodSplashMixin.java')
+        if (bloodSplash.exists()) {
+            bloodSplash.setText(bloodSplash.getText('UTF-8')
+                    .replace('            ServerLevel world,\n            DamageSource source,',
+                            '            DamageSource source,')
+                    .replace('        if (cir.getReturnValue()) {\n            BloodiedEquipment.splashBlood(\n                    world,',
+                            '        if (cir.getReturnValue() && ((LivingEntity) (Object) this).level() instanceof ServerLevel world) {\n            BloodiedEquipment.splashBlood(\n                    world,'), 'UTF-8')
+        }
+        File projectileArmor = file('build/generatedMojmap/main/com/kingdomcomecombat/mixin/LivingEntityProjectileArmorMixin.java')
+        if (projectileArmor.exists()) {
+            projectileArmor.setText(projectileArmor.getText('UTF-8')
+                    .replace('    private void kingdomcomecombat$applyProjectileArmor(\n            ServerLevel world,\n            DamageSource source,',
+                            '    private void kingdomcomecombat$applyProjectileArmor(\n            DamageSource source,')
+                    .replace('    private void kingdomcomecombat$applyEnvironmentalInjury(\n            ServerLevel world,\n            DamageSource source,',
+                            '    private void kingdomcomecombat$applyEnvironmentalInjury(\n            DamageSource source,')
+                    .replace('    ) {\n        LivingEntity target = (LivingEntity) (Object) this;\n        if (source.is(KCC_BLEEDING_DAMAGE)) {',
+                            '    ) {\n        LivingEntity target = (LivingEntity) (Object) this;\n        if (!(target.level() instanceof ServerLevel world)) return;\n        if (source.is(KCC_BLEEDING_DAMAGE)) {'), 'UTF-8')
+        }
+        File witherBoss = file('build/generatedMojmap/main/com/kingdomcomecombat/boss/WitherBossHandler.java')
+        if (witherBoss.exists()) {
+            witherBoss.setText(witherBoss.getText('UTF-8').replace(
+                    'player.hurt(world, world.damageSources().mobAttack(wither), 18.0F)',
+                    'player.hurt(world.damageSources().mobAttack(wither), 18.0F)'), 'UTF-8')
+        }
+        File dragonBoss = file('build/generatedMojmap/main/com/kingdomcomecombat/boss/EnderDragonBossHandler.java')
+        if (dragonBoss.exists()) {
+            dragonBoss.setText(dragonBoss.getText('UTF-8')
+                    .replace('new DustParticleOptions(0xB82CFF, 1.6F)',
+                            'new DustParticleOptions(new org.joml.Vector3f(184.0F / 255.0F, 44.0F / 255.0F, 1.0F), 1.6F)')
+                    .replace('dragon.hurt(\n                world,\n                dragon.head,',
+                            'dragon.hurt(\n                dragon.head,'), 'UTF-8')
+        }
+        File dragonParry = file('build/generatedMojmap/main/com/kingdomcomecombat/mixin/DragonParryProtectionMixin.java')
+        if (dragonParry.exists()) {
+            dragonParry.setText(dragonParry.getText('UTF-8')
+                    .replace('            ServerLevel world, DamageSource source, float amount,',
+                            '            DamageSource source, float amount,')
+                    .replace('        if (EnderDragonBossHandler.tryLongHoldChargeCollisionBlock(\n                world, (LivingEntity) (Object) this, source.getEntity())) {',
+                            '        LivingEntity self = (LivingEntity) (Object) this;\n        if (self.level() instanceof ServerLevel world\n                && EnderDragonBossHandler.tryLongHoldChargeCollisionBlock(\n                world, self, source.getEntity())) {'), 'UTF-8')
+        }
+        File witherMixin = file('build/generatedMojmap/main/com/kingdomcomecombat/mixin/WitherBossMixin.java')
+        if (witherMixin.exists()) {
+            witherMixin.setText(witherMixin.getText('UTF-8').replace(
+                    '            ServerLevel world, DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir',
+                    '            DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir'), 'UTF-8')
+        }
+        File endermanBreath = file('build/generatedMojmap/main/com/kingdomcomecombat/mixin/EndermanDragonBreathArrowMixin.java')
+        if (endermanBreath.exists()) {
+            endermanBreath.setText(endermanBreath.getText('UTF-8')
+                    .replace('            DamageSource source, ServerLevel world\n    ) {',
+                            '            DamageSource source\n    ) {\n        if (!(((EnderMan) (Object) this).level() instanceof ServerLevel world)) return source;')
+                    .replace('            float amount, ServerLevel world, DamageSource source\n    ) {',
+                            '            float amount, DamageSource source\n    ) {')
+                    .replace('            ServerLevel world, DamageSource source, float amount,',
+                            '            DamageSource source, float amount,'), 'UTF-8')
+        }
+        File dragonMixin = file('build/generatedMojmap/main/com/kingdomcomecombat/mixin/EnderDragonBossMixin.java')
+        if (dragonMixin.exists()) {
+            dragonMixin.setText(dragonMixin.getText('UTF-8')
+                    .replace('            ServerLevel world, EnderDragonPart part, DamageSource source, float amount,',
+                            '            EnderDragonPart part, DamageSource source, float amount,')
+                    .replace('            float amount, ServerLevel world, EnderDragonPart part, DamageSource source\n    ) {\n        return EnderDragonBossHandler.modifyArrowDamage(',
+                            '            float amount, EnderDragonPart part, DamageSource source\n    ) {\n        if (!(((EnderDragon) (Object) this).level() instanceof ServerLevel world)) return amount;\n        return EnderDragonBossHandler.modifyArrowDamage('), 'UTF-8')
+        }
+        File potionCoating = file('build/generatedMojmap/main/com/kingdomcomecombat/potion/PotionCoatingHandler.java')
+        if (potionCoating.exists()) {
+            potionCoating.setText(potionCoating.getText('UTF-8')
+                    .replace('                    List.of(),\n                    Optional.of(DRAGON_BREATH_ARROW_NAME)\n',
+                            '                    List.of()\n')
+                    .replace('return contents != null && contents.customName()\n                .map(DRAGON_BREATH_ARROW_NAME::equals)\n                .orElse(false);',
+                            'return contents != null && contents.customColor()\n                .map(color -> color == DRAGON_BREATH_ARROW_COLOR)\n                .orElse(false);'), 'UTF-8')
+        }
+        File bloodiedEquipment = file('build/generatedMojmap/main/com/kingdomcomecombat/equipment/BloodiedEquipment.java')
+        if (bloodiedEquipment.exists()) {
+            bloodiedEquipment.setText(bloodiedEquipment.getText('UTF-8').replace(
+                    '''        var equippable = stack.get(DataComponents.EQUIPPABLE);
+        return equippable != null && equippable.slot().isArmorSlot()
+                || stack.is(ItemTags.HEAD_ARMOR)''',
+                    '''        return stack.is(ItemTags.HEAD_ARMOR)'''), 'UTF-8')
+        }
+        File equipmentAttributes = file('build/generatedMojmap/main/com/kingdomcomecombat/equipment/EquipmentCombatAttributesRegistry.java')
+        if (equipmentAttributes.exists()) {
+            equipmentAttributes.setText(equipmentAttributes.getText('UTF-8').replace(
+                    '''        var equippable = stack.get(DataComponents.EQUIPPABLE);
+        if (equippable != null && equippable.slot().isArmorSlot()) {
+            return equippable.slot();
+        }
+
+''', '').replace(
+                    '''        ItemAttributeModifiers modifiers = stack.get(DataComponents.ATTRIBUTE_MODIFIERS);
+        if (modifiers == null) {
+            return 0.0;
+        }
+
+        double[] value = {0.0};
+        modifiers.forEach(
+                slot,
+                (attribute, modifier) -> {''',
+                    '''        double[] value = {0.0};
+        // Use ItemStack's NeoForge-aware modifier enumeration so armor from
+        // mods that supply attributes dynamically also gets a fallback panel.
+        stack.forEachModifier(
+                slot,
+                (attribute, modifier) -> {'''), 'UTF-8')
+            equipmentAttributes.setText(equipmentAttributes.getText('UTF-8').replace(
+                    '''                }
+        );
+        return value[0];
+    }
+}''',
+                    '''                }
+        );
+        if (value[0] <= 0.0 && stack.getItem() instanceof net.minecraft.world.item.ArmorItem armor) {
+            return armor.getDefense();
+        }
+        return value[0];
+    }
+}'''), 'UTF-8')
+        }
+        File legacyBiped = file('build/generatedMojmap/legacy/com/kingdomcomecombat/client/animation/LegacyBipedAnimationApplier.java')
+        if (legacyBiped.exists()) {
+            legacyBiped.setText(legacyBiped.getText('UTF-8')
+                    .replace('part.pitch', 'part.xRot').replace('defaults.pitch', 'defaults.xRot')
+                    .replace('part.yaw', 'part.yRot').replace('defaults.yaw', 'defaults.yRot')
+                    .replace('part.roll', 'part.zRot').replace('defaults.roll', 'defaults.zRot')
+                    .replace('part.pivotX', 'part.x').replace('defaults.pivotX', 'defaults.x')
+                    .replace('part.pivotY', 'part.y').replace('defaults.pivotY', 'defaults.y')
+                    .replace('part.pivotZ', 'part.z').replace('defaults.pivotZ', 'defaults.z'), 'UTF-8')
+        }
+        File clientInitializer = file('build/generatedMojmap/client/com/kingdomcomecombat/client/KingdomComeCombatClient.java')
+        if (clientInitializer.exists()) {
+            clientInitializer.setText(clientInitializer.getText('UTF-8')
+                    .replace('\t\tCombatKeyBindings.register();\n', '')
+                    .replace('\t\tParticleFactoryRegistry.getInstance().register(ModParticles.COMBAT_SPARK, CombatSparkParticle.Factory::new);\n', '')
+                    .replace('\t\tParticleFactoryRegistry.getInstance().register(ModParticles.BLOOD_SPARK, BloodSparkParticle.Factory::new);\n', '')
+                    .replace('\t\tParticleFactoryRegistry.getInstance().register(ModParticles.BLOOD_DROP, BloodDropParticle.Factory::new);\n', '')
+                    .replace('\t\tParticleFactoryRegistry.getInstance().register(ModParticles.BLOOD_MIST, BloodMistParticle.Factory::new);\n', '')
+                    .replace('\t\tParticleFactoryRegistry.getInstance().register(ModParticles.BLOOD_TRACE, BloodTraceParticle.Factory::new);\n', '')
+                    .replace('\t\tEntityRendererRegistry.register(ModEntities.HAND_CANNON_BULLET, HandCannonBulletRenderer::new);\n', ''), 'UTF-8')
+        }
+        ['LegacyZombieEntityModelAnimationMixin.java',
+         'LegacySkeletonEntityModelAnimationMixin.java',
+         'LegacyPiglinEntityModelAnimationMixin.java'].each { name ->
+            File legacyModel = file("build/generatedMojmap/legacy/com/kingdomcomecombat/mixin/client/${name}")
+            if (legacyModel.exists()) {
+                legacyModel.setText(legacyModel.getText('UTF-8').replace(
+                        '        }\n    }\n}',
+                        '''        }
+        net.minecraft.client.model.HumanoidModel<?> model =
+                (net.minecraft.client.model.HumanoidModel<?>) (Object) this;
+        com.kingdomcomecombat.client.collision.ClientModelHurtboxCache.update(
+                entity.getId(), model.head, model.body, model.rightArm, model.leftArm,
+                model.rightLeg, model.leftLeg);
+    }
+}'''), 'UTF-8')
+            }
+        }
+        File mobAttack = file('build/generatedMojmap/main/com/kingdomcomecombat/mixin/MobEntityVanillaAttackMixin.java')
+        if (mobAttack.exists()) {
+            mobAttack.setText(mobAttack.getText('UTF-8').replace(
+                    '            ServerLevel world,\n            Entity target,',
+                    '            Entity target,'
+            ), 'UTF-8')
+        }
+        File ironGolemAttack = file('build/generatedMojmap/main/com/kingdomcomecombat/mixin/IronGolemEntityVanillaAttackMixin.java')
+        if (ironGolemAttack.exists()) {
+            ironGolemAttack.setText(ironGolemAttack.getText('UTF-8')
+                    .replaceAll('(?m)^\\s*ServerLevel world,\\s*', '')
+                    .replace('import net.minecraft.server.level.ServerLevel;\n', ''), 'UTF-8')
+        }
+        File bowRapidFire = file('build/generatedMojmap/main/com/kingdomcomecombat/mixin/BowRapidFireMixin.java')
+        if (bowRapidFire.exists()) {
+            bowRapidFire.setText(bowRapidFire.getText('UTF-8')
+                    .replace('import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;',
+                            'import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;')
+                    .replace('            CallbackInfoReturnable<Boolean> cir\n    ) {',
+                            '            CallbackInfo ci\n    ) {')
+                    .replace('        if (!cir.getReturnValueZ() && !clientShot) {',
+                            '        if (!clientShot && world.isClientSide()) {'), 'UTF-8')
+        }
+        File hungerManager = file('build/generatedMojmap/main/com/kingdomcomecombat/mixin/HungerManagerInjuryMixin.java')
+        if (hungerManager.exists()) {
+            hungerManager.setText(hungerManager.getText('UTF-8')
+                    .replace('import net.minecraft.server.level.ServerPlayer;',
+                            'import net.minecraft.world.entity.player.Player;')
+                    .replace('ServerPlayer', 'Player')
+                    .replace('net/minecraft/server/level/Player',
+                            'net/minecraft/world/entity/player/Player')
+                    .replace('''    @WrapOperation(
+            method = "tick",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/minecraft/world/entity/player/Player;canFoodHeal()Z"
+            )
+    )
+    private boolean kingdomComeCombat$bleedingPreventsNaturalHealing(
+            Player player,
+            Operation<Boolean> original
+    ) {
+        return !ModStatusEffects.hasBleeding(player) && original.call(player);
+    }
+
+''', '')
+                    .replace('''    ) {
+        float before = player.getHealth();
+        original.call(player, amount);
+''', '''    ) {
+        if (ModStatusEffects.hasBleeding(player)) return;
+        float before = player.getHealth();
+        original.call(player, amount);
+'''), 'UTF-8')
+        }
+    }
+}
+
+tasks.named('compileJava').configure {
+    dependsOn 'patchMigratedNeoSources'
+    exclude 'com/kingdomcomecombat/client/config/KccModMenuIntegration.java'
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = 21
+}
+
+processResources {
+    exclude 'assets/kingdom_come_combat/textures/item/老式全身板甲.png'
+    exclude 'assets/kingdom_come_combat/models/item/老式全身板甲.json'
+    exclude 'assets/kingdom_come_combat/models/item/十字军.geo.json'
+    exclude 'assets/kingdom_come_combat/player_animations/longsword.json'
+    inputs.property 'version', project.version
+    filesMatching('META-INF/neoforge.mods.toml') {
+        expand version: project.version,
+                minecraft_version: minecraft_version,
+                neoforge_version: neoforge_version,
+                cloth_config_version: cloth_config_version,
+                pal_version: pal_version
+    }
+    filesMatching('kingdom_come_combat.mixins.json') {
+        filter { String line -> (line.contains('"AbstractHorseEntityRidingMixin"')
+                || line.contains('"MilkBucketInjuryMixin"')) ? null : line }
+    }
+    filesMatching('kingdom_come_combat.client.mixins.json') {
+        def unsupported1211 = [
+                'ArmorFeatureRendererEquipmentOverlayMixin', 'ArmorFeatureRendererFirstPersonBodyMixin',
+                'ArmedEntityRenderStateHandCannonMixin', 'BowUseDurationPropertyMixin',
+                'BipedEntityModelHitReactionMixin', 'EntityRenderStateMixin',
+                'EquipmentRendererBloodiedTextureMixin', 'EntityRenderDispatcherPalCompatMixin',
+                'LivingEntityRendererBandageHeadMixin', 'LivingEntityRendererBloodiedTextureMixin',
+                'LivingEntityRendererFirstPersonBridgeMixin', 'LivingEntityRendererStateMixin',
+                'LivingEntityRendererGenericFeedbackMixin', 'PlayerEntityRendererBodyYawMixin',
+                'LivingEntityRendererMobPalBodyMixin', 'LivingEntityRendererCollisionOnlyOutputMixin',
+                'WorldRendererFirstPersonCollisionMixin', 'PlayerEntityModelPalHurtboxMixin',
+                'LivingEntityRendererFirstPersonBodyMixin', 'PlayerInventoryAttackLockMixin',
+                'ModelFirstPersonHeadEquipmentMixin',
+                'PiglinEntityModelAnimationMixin', 'HeldItemRendererItemBoneMixin',
+                'HeldItemFeatureRendererItemBoneMixin', 'ItemRendererEquipmentOverlayMixin',
+                'IllagerEntityRendererArmorMixin', 'ItemRenderStateKccAccess',
+                'ItemRenderStateLayerRenderStateMixin', 'IllagerEntityModelAnimationMixin',
+                'SkeletonEntityModelAnimationMixin', 'ZombieEntityModelAnimationMixin',
+                'ZombieVillagerEntityModelAnimationMixin', 'ZombifiedPiglinEntityModelAnimationMixin'
+        ]
+        filter { String line -> unsupported1211.any { line.contains('"' + it + '"') } ? null : line }
+    }
+    doLast {
+        File commonMixins = file("${destinationDir}/kingdom_come_combat.mixins.json")
+        if (commonMixins.exists()) {
+            commonMixins.setText(commonMixins.readLines('UTF-8').findAll { line ->
+                !line.contains('"AbstractHorseEntityRidingMixin"') &&
+                        !line.contains('"MilkBucketInjuryMixin"')
+            }.join('\n') + '\n', 'UTF-8')
+        }
+        File clientMixins = file("${destinationDir}/kingdom_come_combat.client.mixins.json")
+        if (clientMixins.exists()) {
+            def unsupported = [
+                    'ArmorFeatureRendererEquipmentOverlayMixin', 'ArmorFeatureRendererFirstPersonBodyMixin',
+                    'ArmedEntityRenderStateHandCannonMixin', 'BowUseDurationPropertyMixin',
+                    'BipedEntityModelHitReactionMixin', 'EntityRenderStateMixin',
+                    'EquipmentRendererBloodiedTextureMixin', 'EntityRenderDispatcherPalCompatMixin',
+                    'LivingEntityRendererBandageHeadMixin', 'LivingEntityRendererBloodiedTextureMixin',
+                    'LivingEntityRendererFirstPersonBridgeMixin', 'LivingEntityRendererStateMixin',
+                    'LivingEntityRendererGenericFeedbackMixin', 'PlayerEntityRendererBodyYawMixin',
+                    'LivingEntityRendererMobPalBodyMixin', 'LivingEntityRendererCollisionOnlyOutputMixin',
+                    'WorldRendererFirstPersonCollisionMixin', 'PlayerEntityModelPalHurtboxMixin',
+                    'LivingEntityRendererFirstPersonBodyMixin', 'PlayerInventoryAttackLockMixin',
+                    'ModelFirstPersonHeadEquipmentMixin',
+                    'PiglinEntityModelAnimationMixin', 'HeldItemRendererItemBoneMixin',
+                    'HeldItemFeatureRendererItemBoneMixin', 'ItemRendererEquipmentOverlayMixin',
+                    'IllagerEntityRendererArmorMixin', 'ItemRenderStateKccAccess',
+                    'ItemRenderStateLayerRenderStateMixin', 'IllagerEntityModelAnimationMixin',
+                    'SkeletonEntityModelAnimationMixin', 'ZombieEntityModelAnimationMixin',
+                    'ZombieVillagerEntityModelAnimationMixin', 'ZombifiedPiglinEntityModelAnimationMixin'
+            ]
+            String filteredClientMixins = clientMixins.readLines('UTF-8').findAll { line ->
+                !unsupported.any { line.contains('"' + it + '"') }
+            }.join('\n') + '\n'
+            filteredClientMixins = filteredClientMixins.replace(
+                    '\t\t"ClientPlayerInteractionManagerMixin",',
+					'''\t\t"LegacyZombieEntityModelAnimationMixin",
+\t\t"LegacySkeletonEntityModelAnimationMixin",
+\t\t"LegacyPiglinEntityModelAnimationMixin",
+\t\t"LegacyIllagerEntityModelAnimationMixin",
+\t\t"LegacyPlayerEntityRendererBodyYawMixin",
+\t\t"LegacyLivingEntityRendererBloodiedTextureMixin",
+\t\t"LegacyArmorFeatureRendererBloodiedTextureMixin",
+\t\t"LegacyLivingEntityRendererFirstPersonMixin",
+\t\t"LegacyLivingEntityRendererMobPalBodyMixin",
+\t\t"LegacyLivingEntityRendererGenericFeedbackMixin",
+\t\t"LegacyLivingEntityRendererCollisionOnlyOutputMixin",
+\t\t"LegacyWorldRendererFirstPersonCollisionMixin",
+\t\t"LegacyBipedEntityModelHurtboxMixin",
+\t\t"LegacyPlayerEntityModelPalHurtboxMixin",
+\t\t"LegacyHeldItemFeatureRendererItemBoneMixin",
+\t\t"LegacyHeldItemRendererHitboxMixin",
+\t\t"LegacyItemRendererBloodiedTextureMixin",
+\t\t"LegacyIllagerEntityRendererArmorMixin",
+\t\t"ClientPlayerInteractionManagerMixin",''')
+            filteredClientMixins = filteredClientMixins.replaceAll(',\\s*\\]', '\n\t]')
+            clientMixins.setText(filteredClientMixins, 'UTF-8')
+        }
+        File cushioning = file("${destinationDir}/data/kingdom_come_combat/enchantment/cushioning.json")
+        if (cushioning.exists()) {
+            cushioning.setText(cushioning.getText('UTF-8')
+                    .replace('minecraft:armor_toughness', 'minecraft:generic.armor_toughness'), 'UTF-8')
+        }
+        fileTree("${destinationDir}/data/kingdom_come_combat/recipe").matching {
+            include '**/*.json'
+        }.files.each { File recipe ->
+            def json = new JsonSlurper().parse(recipe)
+            if (json.key instanceof Map) {
+                json.key.replaceAll { key, ingredient ->
+                    if (!(ingredient instanceof String)) return ingredient
+                    ingredient.startsWith('#')
+                            ? [tag: ingredient.substring(1)]
+                            : [item: ingredient]
+                }
+            }
+            if (json.ingredients instanceof List) {
+                json.ingredients = json.ingredients.collect { ingredient ->
+                    if (!(ingredient instanceof String)) return ingredient
+                    ingredient.startsWith('#')
+                            ? [tag: ingredient.substring(1)]
+                            : [item: ingredient]
+                }
+            }
+            ['template', 'base', 'addition'].each { field ->
+                def ingredient = json[field]
+                if (ingredient instanceof String) {
+                    json[field] = ingredient.startsWith('#')
+                            ? [tag: ingredient.substring(1)]
+                            : [item: ingredient]
+                }
+            }
+            recipe.setText(JsonOutput.prettyPrint(JsonOutput.toJson(json)) + '\n', 'UTF-8')
+        }
+        File bulletModel = file("${destinationDir}/assets/kingdom_come_combat/models/item/bullet_with_gunpowder.json")
+        if (bulletModel.exists()) {
+            bulletModel.setText(bulletModel.getText('UTF-8')
+                    .replace('"angle": 15', '"angle": 22.5')
+                    .replace('"angle": -15', '"angle": -22.5'), 'UTF-8')
+        }
+        File poleaxeModel = file("${destinationDir}/assets/kingdom_come_combat/models/item/poleaxe.json")
+        if (poleaxeModel.exists()) {
+            poleaxeModel.setText(poleaxeModel.getText('UTF-8')
+                    .replace('"angle": 20', '"angle": 22.5')
+                    .replace('"angle": -20', '"angle": -22.5'), 'UTF-8')
+        }
+        ['heavy_bullet_with_gunpowder', 'buckshot_with_gunpowder'].each { ammoModel ->
+            File legacyModel = file("${destinationDir}/assets/kingdom_come_combat/models/item/${ammoModel}.json")
+            legacyModel.parentFile.mkdirs()
+            legacyModel.setText('''{
+  "parent": "kingdom_come_combat:item/bullet_with_gunpowder"
+}
+''', 'UTF-8')
+        }
+    }
+}

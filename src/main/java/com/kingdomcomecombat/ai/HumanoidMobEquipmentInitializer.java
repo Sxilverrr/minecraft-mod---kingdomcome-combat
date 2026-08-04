@@ -2,13 +2,12 @@ package com.kingdomcomecombat.ai;
 
 import com.kingdomcomecombat.item.ModItems;
 import com.kingdomcomecombat.combat.CombatItemUtil;
-import com.kingdomcomecombat.config.CombatClientConfig;
 import com.kingdomcomecombat.config.CombatServerConfig;
 import com.kingdomcomecombat.compat.GuardVillagersCompat;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.mob.MobEntity;
-import net.minecraft.entity.mob.SkeletonEntity;
+import net.minecraft.entity.mob.AbstractSkeletonEntity;
 import net.minecraft.entity.mob.PillagerEntity;
 import net.minecraft.entity.mob.VindicatorEntity;
 import net.minecraft.entity.mob.WitherSkeletonEntity;
@@ -36,7 +35,7 @@ public class HumanoidMobEquipmentInitializer {
             state.equipmentInitialized = true;
             return;
         }
-        if (CombatClientConfig.disableVanillaLeftHandedMobs() && mob.isLeftHanded()) {
+        if (CombatServerConfig.disableVanillaLeftHandedMobs() && mob.isLeftHanded()) {
             mob.setLeftHanded(false);
         }
         ZombieLeaderUtil.fixInitialHealthIfEnabled(mob);
@@ -64,7 +63,7 @@ public class HumanoidMobEquipmentInitializer {
             return;
         }
 
-        if (mob instanceof SkeletonEntity skeleton) {
+        if (mob instanceof AbstractSkeletonEntity skeleton) {
             equipSkeleton(skeleton, random);
             equipArmor(mob, random);
             maybeUpgradeShortSword(mob, random);
@@ -97,12 +96,15 @@ public class HumanoidMobEquipmentInitializer {
         enforceEquipmentRules(mob, true);
     }
 
-    private static void equipSkeleton(SkeletonEntity skeleton, Random random) {
+    private static void equipSkeleton(MobEntity skeleton, Random random) {
         if (random.nextDouble() >= 0.65) {
             return;
         }
 
-        equipReplacingRangedWeapon(skeleton, randomUndeadMeleeWeapon(random));
+        equipReplacingRangedWeapon(
+                skeleton,
+                randomUndeadMeleeWeapon(random)
+        );
     }
 
     private static void equipWitherSkeleton(WitherSkeletonEntity skeleton) {
@@ -138,6 +140,9 @@ public class HumanoidMobEquipmentInitializer {
 
     private static void enforceEquipmentRules(MobEntity mob, boolean enforceSpawnArmorDurability) {
         clearOffhandWeapon(mob);
+        if (CombatItemUtil.isPolearm(mob.getMainHandStack())) {
+            mob.equipStack(EquipmentSlot.OFFHAND, ItemStack.EMPTY);
+        }
         if (ZombieLeaderUtil.isLeader(mob)) {
             fillMissingIronArmor(mob, true, true, true, true);
         }
@@ -179,6 +184,7 @@ public class HumanoidMobEquipmentInitializer {
             return;
         }
         if (mob.getMainHandStack().isEmpty()
+                || CombatItemUtil.isPolearm(mob.getMainHandStack())
                 || mob.getMainHandStack().getItem() instanceof RangedWeaponItem
                 || random.nextDouble() >= SHIELD_CHANCE) {
             return;
@@ -269,7 +275,8 @@ public class HumanoidMobEquipmentInitializer {
         }
 
         if (mob instanceof VindicatorEntity) {
-            if (random.nextDouble() < 0.70) {
+            double weaponRoll = random.nextDouble();
+            if (weaponRoll < 0.70) {
                 equipMainHand(mob, Items.IRON_SWORD);
             } else {
                 equipMainHand(mob, random.nextBoolean() ? Items.IRON_AXE : ModItems.IRON_FIGHTING_MACE);

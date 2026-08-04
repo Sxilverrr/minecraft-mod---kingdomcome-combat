@@ -1,0 +1,11 @@
+{
+  "replace": false,
+  "values": [
+    {"id":"knightsheraldry:axe","required":false}, {"id":"knightsheraldry:broad_axe","required":false},
+    {"id":"knightsheraldry:crooked_axe","required":false}, {"id":"knightsheraldry:straight_crooked_axe","required":false},
+    {"id":"knightsheraldry:hammer","required":false}, {"id":"knightsheraldry:war_hammer","required":false},
+    {"id":"knightsheraldry:mace","required":false}, {"id":"knightsheraldry:spiked_mace","required":false},
+    {"id":"knightsheraldry:morning_star","required":false}, {"id":"knightsheraldry:flail","required":false},
+    {"id":"knightsheraldry:ball_flail","required":false}
+  ]
+}

@@ -1,10 +1,14 @@
 package com.kingdomcomecombat.collision;
 
 import com.kingdomcomecombat.compat.GuardVillagersCompat;
+import com.kingdomcomecombat.ai.HumanoidCombatAiProfiles;
 
 import net.minecraft.entity.EntityType;
+import net.minecraft.entity.EntityPose;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.mob.AbstractSkeletonEntity;
+import net.minecraft.entity.mob.ZombieEntity;
 import net.minecraft.util.math.Vec3d;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
@@ -13,11 +17,17 @@ import java.util.Comparator;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
+import net.minecraft.registry.Registries;
 
 public class HumanoidHurtboxLibrary {
     private static final double MODEL_UNIT_TO_BLOCK = 1.0 / 16.0;
     private static final double EXTRA_MARGIN = 1.0 * MODEL_UNIT_TO_BLOCK;
     private static final double CLASSIC_MODEL_HEIGHT_BLOCKS = 32.0 * MODEL_UNIT_TO_BLOCK;
+    private static final Set<net.minecraft.util.Identifier> SYNCED_HUMANOID_AI_TYPES = new HashSet<>();
+    private static final Set<net.minecraft.util.Identifier> SYNCED_AI_TYPES = new HashSet<>();
 
     private HumanoidHurtboxLibrary() {
     }
@@ -25,6 +35,9 @@ public class HumanoidHurtboxLibrary {
     public static List<PartBox> getHurtboxes(LivingEntity entity) {
         if (!isHumanoidTarget(entity)) {
             return getGenericHurtboxes(entity);
+        }
+        if (entity instanceof PlayerEntity && usesPoseCollisionBox(entity.getPose())) {
+            return getHorizontalPlayerHurtboxes(entity);
         }
 
         float yaw = entity.getBodyYaw();
@@ -41,6 +54,83 @@ public class HumanoidHurtboxLibrary {
         boxes.add(createExact(entity, Part.LEFT_LEG, yaw, new Vec3d(2.0, 6.0, 0.0), 4.0, 12.0, 4.0, heightScale));
 
         return boxes;
+    }
+
+    private static boolean usesPoseCollisionBox(EntityPose pose) {
+        return pose == EntityPose.SLEEPING
+                || pose == EntityPose.SWIMMING
+                || pose == EntityPose.GLIDING
+                || pose == EntityPose.SPIN_ATTACK;
+    }
+
+    private static List<PartBox> getHorizontalPlayerHurtboxes(LivingEntity entity) {
+        boolean followsPitch = entity.getPose() == EntityPose.SWIMMING
+                || entity.getPose() == EntityPose.GLIDING
+                || entity.getPose() == EntityPose.SPIN_ATTACK;
+        Vec3d forward;
+        if (entity.getPose() == EntityPose.SLEEPING && entity.getSleepingDirection() != null) {
+            forward = Vec3d.of(entity.getSleepingDirection().getVector()).normalize();
+        } else {
+            forward = followsPitch
+                    ? entity.getRotationVec(1.0F).normalize()
+                    : Vec3d.fromPolar(0.0F, entity.getYaw()).normalize();
+        }
+        if (forward.lengthSquared() < 0.0001) {
+            forward = new Vec3d(0.0, 0.0, 1.0);
+        }
+
+        Vec3d worldUp = new Vec3d(0.0, 1.0, 0.0);
+        Vec3d side = forward.crossProduct(worldUp);
+        if (side.lengthSquared() < 0.0001) {
+            side = new Vec3d(1.0, 0.0, 0.0);
+        } else {
+            side = side.normalize();
+        }
+        Vec3d thicknessAxis = side.crossProduct(forward).normalize();
+        Vec3d center = entity.getBoundingBox().getCenter();
+
+        Vec3d rightShoulderPivot = center.add(forward.multiply(0.34)).add(side.multiply(-0.36))
+                .add(thicknessAxis.multiply(0.09));
+        Vec3d leftShoulderPivot = center.add(forward.multiply(0.34)).add(side.multiply(0.36))
+                .add(thicknessAxis.multiply(0.09));
+        Vec3d rightHipPivot = center.add(forward.multiply(-0.16)).add(side.multiply(-0.14));
+        Vec3d leftHipPivot = center.add(forward.multiply(-0.16)).add(side.multiply(0.14));
+
+        return List.of(
+                horizontalPart(Part.HEAD, center.add(forward.multiply(0.64)), side, forward, thicknessAxis,
+                        0.29, 0.27, 0.29),
+                horizontalPart(Part.SHOULDERS, center.add(forward.multiply(0.32)), side, forward, thicknessAxis,
+                        0.39, 0.16, 0.27),
+                horizontalPart(Part.BODY, center.add(forward.multiply(0.02)), side, forward, thicknessAxis,
+                        0.31, 0.34, 0.27),
+                horizontalPart(Part.RIGHT_ARM, rightShoulderPivot.add(forward.multiply(-0.27)),
+                        side, forward, thicknessAxis, 0.14, 0.27, 0.15),
+                horizontalPart(Part.LEFT_ARM, leftShoulderPivot.add(forward.multiply(-0.27)),
+                        side, forward, thicknessAxis, 0.14, 0.27, 0.15),
+                horizontalPart(Part.RIGHT_LEG, rightHipPivot.add(forward.multiply(-0.39)),
+                        side, forward, thicknessAxis, 0.14, 0.36, 0.15),
+                horizontalPart(Part.LEFT_LEG, leftHipPivot.add(forward.multiply(-0.39)),
+                        side, forward, thicknessAxis, 0.14, 0.36, 0.15)
+        );
+    }
+
+    private static PartBox horizontalPart(
+            Part part,
+            Vec3d center,
+            Vec3d side,
+            Vec3d lengthAxis,
+            Vec3d thicknessAxis,
+            double halfWidth,
+            double halfLength,
+            double halfThickness
+    ) {
+        return new PartBox(part, new AnimatedAttackHitboxLibrary.OrientedBox(
+                center,
+                new Vec3d(halfWidth, halfLength, halfThickness),
+                side,
+                lengthAxis,
+                thicknessAxis
+        ));
     }
 
     public static Optional<HitResult> getHitResult(
@@ -150,6 +240,22 @@ public class HumanoidHurtboxLibrary {
         }
 
         EntityType<?> type = entity.getType();
+        return HumanoidCombatAiProfiles.hasConfiguredType(type)
+                || entity instanceof ZombieEntity
+                || entity instanceof AbstractSkeletonEntity
+                || SYNCED_HUMANOID_AI_TYPES.contains(Registries.ENTITY_TYPE.getId(type))
+                || isBuiltInHumanoidType(type);
+    }
+
+    public static boolean isBuiltInHumanoidTarget(LivingEntity entity) {
+        return entity != null && (GuardVillagersCompat.isGuard(entity)
+                || entity instanceof PlayerEntity
+                || entity instanceof ZombieEntity
+                || entity instanceof AbstractSkeletonEntity
+                || isBuiltInHumanoidType(entity.getType()));
+    }
+
+    private static boolean isBuiltInHumanoidType(EntityType<?> type) {
         return type == EntityType.SKELETON
                 || type == EntityType.STRAY
                 || type == EntityType.WITHER_SKELETON
@@ -170,6 +276,32 @@ public class HumanoidHurtboxLibrary {
                 || type == EntityType.BOGGED
                 || type == EntityType.GIANT
                 || type == EntityType.ARMOR_STAND;
+    }
+
+    public static void replaceSyncedHumanoidAiTypes(Collection<String> entityIds) {
+        SYNCED_HUMANOID_AI_TYPES.clear();
+        if (entityIds == null) {
+            return;
+        }
+        for (String value : entityIds) {
+            net.minecraft.util.Identifier id = net.minecraft.util.Identifier.tryParse(value);
+            if (id != null) {
+                SYNCED_HUMANOID_AI_TYPES.add(id);
+            }
+        }
+    }
+
+    public static void replaceSyncedAiTypes(Collection<String> entityIds) {
+        SYNCED_AI_TYPES.clear();
+        if (entityIds == null) return;
+        for (String value : entityIds) {
+            net.minecraft.util.Identifier id = net.minecraft.util.Identifier.tryParse(value);
+            if (id != null) SYNCED_AI_TYPES.add(id);
+        }
+    }
+
+    public static boolean hasSyncedAiConfiguration(LivingEntity entity) {
+        return entity != null && SYNCED_AI_TYPES.contains(Registries.ENTITY_TYPE.getId(entity.getType()));
     }
 
     public static List<PartBox> getGenericHurtboxes(LivingEntity entity) {
@@ -605,6 +737,9 @@ public class HumanoidHurtboxLibrary {
     }
 
     private static double modelHeightScale(LivingEntity entity) {
+        if (entity instanceof PlayerEntity && entity.getPose() == EntityPose.CROUCHING) {
+            return 0.9;
+        }
         return Math.max(0.5, entity.getHeight() / CLASSIC_MODEL_HEIGHT_BLOCKS);
     }
 

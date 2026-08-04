@@ -288,6 +288,262 @@
         }
       }
     },
+    "minecraft:leather_horse_armor": {
+      "stamina_cost_increase": 0.01,
+      "attack_speed_penalty": 0.0,
+      "movement_speed_penalty": 0.01,
+      "defense": {
+        "thrust": 18.0,
+        "strike": 15.0,
+        "slash": 25.0
+      },
+      "protected_parts": {
+        "face": {
+          "protection": 1.0,
+          "impact_mitigation": 0.36
+        },
+        "neck": {
+          "protection": 1.0,
+          "impact_mitigation": 0.36
+        },
+        "crown": {
+          "protection": 1.0,
+          "impact_mitigation": 0.36
+        },
+        "side_head": {
+          "protection": 1.0,
+          "impact_mitigation": 0.36
+        },
+        "shoulder": {
+          "protection": 1.0,
+          "impact_mitigation": 0.36
+        },
+        "arm": {
+          "protection": 1.0,
+          "impact_mitigation": 0.36
+        },
+        "hand": {
+          "protection": 1.0,
+          "impact_mitigation": 0.36
+        },
+        "abdomen": {
+          "protection": 1.0,
+          "impact_mitigation": 0.36
+        },
+        "chest": {
+          "protection": 1.0,
+          "impact_mitigation": 0.36
+        },
+        "thigh": {
+          "protection": 1.0,
+          "impact_mitigation": 0.36
+        },
+        "knee": {
+          "protection": 1.0,
+          "impact_mitigation": 0.36
+        },
+        "calf": {
+          "protection": 1.0,
+          "impact_mitigation": 0.36
+        },
+        "foot": {
+          "protection": 1.0,
+          "impact_mitigation": 0.36
+        }
+      }
+    },
+    "minecraft:golden_horse_armor": {
+      "stamina_cost_increase": 0.04,
+      "attack_speed_penalty": 0.04,
+      "movement_speed_penalty": 0.03,
+      "defense": {
+        "thrust": 40.0,
+        "strike": 40.0,
+        "slash": 44.0
+      },
+      "protected_parts": {
+        "face": {
+          "protection": 1.0,
+          "impact_mitigation": 0.54
+        },
+        "neck": {
+          "protection": 1.0,
+          "impact_mitigation": 0.54
+        },
+        "crown": {
+          "protection": 1.0,
+          "impact_mitigation": 0.54
+        },
+        "side_head": {
+          "protection": 1.0,
+          "impact_mitigation": 0.54
+        },
+        "shoulder": {
+          "protection": 1.0,
+          "impact_mitigation": 0.54
+        },
+        "arm": {
+          "protection": 1.0,
+          "impact_mitigation": 0.54
+        },
+        "hand": {
+          "protection": 1.0,
+          "impact_mitigation": 0.54
+        },
+        "abdomen": {
+          "protection": 1.0,
+          "impact_mitigation": 0.54
+        },
+        "chest": {
+          "protection": 1.0,
+          "impact_mitigation": 0.54
+        },
+        "thigh": {
+          "protection": 1.0,
+          "impact_mitigation": 0.54
+        },
+        "knee": {
+          "protection": 1.0,
+          "impact_mitigation": 0.54
+        },
+        "calf": {
+          "protection": 1.0,
+          "impact_mitigation": 0.54
+        },
+        "foot": {
+          "protection": 1.0,
+          "impact_mitigation": 0.54
+        }
+      }
+    },
+    "minecraft:iron_horse_armor": {
+      "stamina_cost_increase": 0.05,
+      "attack_speed_penalty": 0.05,
+      "movement_speed_penalty": 0.04,
+      "defense": {
+        "thrust": 50.0,
+        "strike": 50.0,
+        "slash": 55.0
+      },
+      "protected_parts": {
+        "face": {
+          "protection": 1.0,
+          "impact_mitigation": 0.675
+        },
+        "neck": {
+          "protection": 1.0,
+          "impact_mitigation": 0.675
+        },
+        "crown": {
+          "protection": 1.0,
+          "impact_mitigation": 0.675
+        },
+        "side_head": {
+          "protection": 1.0,
+          "impact_mitigation": 0.675
+        },
+        "shoulder": {
+          "protection": 1.0,
+          "impact_mitigation": 0.675
+        },
+        "arm": {
+          "protection": 1.0,
+          "impact_mitigation": 0.675
+        },
+        "hand": {
+          "protection": 1.0,
+          "impact_mitigation": 0.675
+        },
+        "abdomen": {
+          "protection": 1.0,
+          "impact_mitigation": 0.675
+        },
+        "chest": {
+          "protection": 1.0,
+          "impact_mitigation": 0.675
+        },
+        "thigh": {
+          "protection": 1.0,
+          "impact_mitigation": 0.675
+        },
+        "knee": {
+          "protection": 1.0,
+          "impact_mitigation": 0.675
+        },
+        "calf": {
+          "protection": 1.0,
+          "impact_mitigation": 0.675
+        },
+        "foot": {
+          "protection": 1.0,
+          "impact_mitigation": 0.675
+        }
+      }
+    },
+    "minecraft:diamond_horse_armor": {
+      "stamina_cost_increase": 0.07,
+      "attack_speed_penalty": 0.07,
+      "movement_speed_penalty": 0.06,
+      "defense": {
+        "thrust": 55.0,
+        "strike": 45.0,
+        "slash": 63.0
+      },
+      "protected_parts": {
+        "face": {
+          "protection": 1.0,
+          "impact_mitigation": 0.72
+        },
+        "neck": {
+          "protection": 1.0,
+          "impact_mitigation": 0.72
+        },
+        "crown": {
+          "protection": 1.0,
+          "impact_mitigation": 0.72
+        },
+        "side_head": {
+          "protection": 1.0,
+          "impact_mitigation": 0.72
+        },
+        "shoulder": {
+          "protection": 1.0,
+          "impact_mitigation": 0.72
+        },
+        "arm": {
+          "protection": 1.0,
+          "impact_mitigation": 0.72
+        },
+        "hand": {
+          "protection": 1.0,
+          "impact_mitigation": 0.72
+        },
+        "abdomen": {
+          "protection": 1.0,
+          "impact_mitigation": 0.72
+        },
+        "chest": {
+          "protection": 1.0,
+          "impact_mitigation": 0.72
+        },
+        "thigh": {
+          "protection": 1.0,
+          "impact_mitigation": 0.72
+        },
+        "knee": {
+          "protection": 1.0,
+          "impact_mitigation": 0.72
+        },
+        "calf": {
+          "protection": 1.0,
+          "impact_mitigation": 0.72
+        },
+        "foot": {
+          "protection": 1.0,
+          "impact_mitigation": 0.72
+        }
+      }
+    },
     "minecraft:netherite_chestplate": {
       "stamina_cost_increase": 0.09,
       "attack_speed_penalty": 0.09,

@@ -1,6 +1,7 @@
 package com.kingdomcomecombat.mixin.client;
 
 import com.kingdomcomecombat.client.compat.FirstPersonRenderCompat;
+import com.kingdomcomecombat.config.CombatClientConfig;
 import com.zigythebird.playeranimcore.api.firstPerson.FirstPersonMode;
 import com.zigythebird.playeranimcore.animation.layered.AnimationStack;
 import org.spongepowered.asm.mixin.Mixin;
@@ -14,7 +15,8 @@ public class PalFirstPersonModeMixin {
     private void kingdomcomecombat$letFirstPersonModelOwnBodyRendering(
             CallbackInfoReturnable<FirstPersonMode> cir
     ) {
-        if (FirstPersonRenderCompat.shouldSuppressPalFirstPersonRenderer()
+        if ((!CombatClientConfig.firstPersonRenderingEnabled()
+                || FirstPersonRenderCompat.shouldSuppressPalFirstPersonRenderer())
                 && cir.getReturnValue() == FirstPersonMode.THIRD_PERSON_MODEL) {
             cir.setReturnValue(FirstPersonMode.DISABLED);
         }

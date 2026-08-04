@@ -1,0 +1,9 @@
+{
+  "replace": false,
+  "values": [
+    {"id":"valarian_conquest:light_axe","required":false},
+    {"id":"valarian_conquest:heavy_axe","required":false},
+    {"id":"valarian_conquest:dwarven_axe","required":false},
+    {"id":"valarian_conquest:undead_axe","required":false}
+  ]
+}

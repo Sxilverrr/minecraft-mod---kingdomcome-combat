@@ -5,8 +5,9 @@ import com.kingdomcomecombat.client.compat.FirstPersonRenderCompat;
 import com.kingdomcomecombat.client.compat.PalAnimationStateCompat;
 import com.kingdomcomecombat.client.mixin.EntityRenderStateKccAccess;
 import com.kingdomcomecombat.client.render.FirstPersonBodyRenderOffsetContext;
-import com.kingdomcomecombat.client.render.FirstPersonHeadPoseTracker;
 import com.kingdomcomecombat.config.CombatClientConfig;
+import com.kingdomcomecombat.client.render.FirstPersonHeadPoseTracker;
+import com.kingdomcomecombat.client.render.CollisionOnlyRenderContext;
 import com.zigythebird.playeranim.accessors.IPlayerAnimationState;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.VertexConsumerProvider;
@@ -64,12 +65,25 @@ public abstract class LivingEntityRendererFirstPersonBodyMixin {
             int light,
             CallbackInfo ci
     ) {
-        if (!kingdomcomecombat$isFirstPersonPass(state)
-                || !CombatAnimationClient.isKccSpecialFirstPersonActive()) {
+        boolean localFirstPersonPass = kingdomcomecombat$isFirstPersonPass(state);
+        boolean kccFirstPersonPass = localFirstPersonPass
+                && CombatAnimationClient.isKccSpecialFirstPersonActive();
+        boolean externalFirstPersonPass = FirstPersonRenderCompat.isExternalBodyRender();
+        if (!localFirstPersonPass && !externalFirstPersonPass) {
+            return;
+        }
+        int entityId = ((EntityRenderStateKccAccess) state).kingdomcomecombat$getEntityId();
+        if (localFirstPersonPass && CollisionOnlyRenderContext.isActive()) {
+            FirstPersonBodyRenderOffsetContext.begin(entityId, Vec3d.ZERO);
+            return;
+        }
+        if (!kccFirstPersonPass) {
+            FirstPersonBodyRenderOffsetContext.begin(entityId, Vec3d.ZERO);
             return;
         }
         double offset = CombatClientConfig.firstPersonBodyForwardOffset();
         if (Math.abs(offset) <= 0.0001) {
+            FirstPersonBodyRenderOffsetContext.begin(entityId, Vec3d.ZERO);
             return;
         }
         float cameraYaw = MinecraftClient.getInstance().gameRenderer.getCamera().getYaw();
@@ -80,7 +94,7 @@ public abstract class LivingEntityRendererFirstPersonBodyMixin {
         Vector3f beforeOrigin = before.transformPosition(new Vector3f());
         Vector3f afterOrigin = after.transformPosition(new Vector3f());
         FirstPersonBodyRenderOffsetContext.begin(
-                ((EntityRenderStateKccAccess) state).kingdomcomecombat$getEntityId(),
+                entityId,
                 new Vec3d(
                         afterOrigin.x - beforeOrigin.x,
                         afterOrigin.y - beforeOrigin.y,
@@ -118,42 +132,36 @@ public abstract class LivingEntityRendererFirstPersonBodyMixin {
             int light,
             CallbackInfo ci
     ) {
+        boolean shadowPass = FirstPersonRenderCompat.isRenderingShadowPass();
         boolean kccFirstPersonPass = kingdomcomecombat$isFirstPersonPass(state)
                 && CombatAnimationClient.isKccSpecialFirstPersonActive();
         boolean externalFirstPersonPass = FirstPersonRenderCompat.isExternalBodyRender();
-        if ((!kccFirstPersonPass && !externalFirstPersonPass)
+        boolean localShadowPass = shadowPass && kingdomcomecombat$isFirstPersonPass(state);
+        if ((!kccFirstPersonPass && !externalFirstPersonPass && !localShadowPass)
                 || !(this.model instanceof PlayerEntityModel playerModel)) {
             return;
         }
 
         // Keep the head out of the camera pass, but restore it for Iris' shadow
         // pass so first-person shaders receive a complete player silhouette.
-        boolean shadowPass = FirstPersonRenderCompat.isRenderingShadowPass();
+        boolean showBody = shadowPass || !CombatClientConfig.firstPersonWeaponOnly();
+        playerModel.setVisible(showBody);
         playerModel.head.visible = shadowPass;
         playerModel.hat.visible = shadowPass;
-        playerModel.body.visible = true;
-        playerModel.rightArm.visible = true;
-        playerModel.leftArm.visible = true;
-        playerModel.rightLeg.visible = true;
-        playerModel.leftLeg.visible = true;
-        playerModel.jacket.visible = true;
-        playerModel.rightSleeve.visible = true;
-        playerModel.leftSleeve.visible = true;
-        playerModel.rightPants.visible = true;
-        playerModel.leftPants.visible = true;
         FirstPersonHeadPoseTracker.track(playerModel.head);
     }
 
     private static boolean kingdomcomecombat$isFirstPersonPass(LivingEntityRenderState state) {
-        if (!(state instanceof IPlayerAnimationState)) {
-            return false;
-        }
         if (PalAnimationStateCompat.isFirstPersonPass(state)) {
             return true;
         }
         MinecraftClient client = MinecraftClient.getInstance();
-        return !PalAnimationStateCompat.hasFirstPersonPassAccessors(state)
-                && client.player != null
+        // PAL 1.1.7 can submit the local first-person render before its flag is
+        // visible to this mixin. The local entity/perspective check is an
+        // equivalent authoritative fallback and must not be disabled merely
+        // because the accessor exists.
+        return client.player != null
+                && client.currentScreen == null
                 && client.options.getPerspective().isFirstPerson()
                 && ((EntityRenderStateKccAccess) state).kingdomcomecombat$getEntityId() == client.player.getId();
     }

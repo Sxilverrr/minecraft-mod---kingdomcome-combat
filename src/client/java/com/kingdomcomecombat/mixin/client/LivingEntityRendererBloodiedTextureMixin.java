@@ -27,6 +27,9 @@ public abstract class LivingEntityRendererBloodiedTextureMixin {
             boolean showOutline
     ) {
         double blood = ((EntityRenderStateKccAccess) state).kingdomcomecombat$getBodyBloodPercent();
+        if (((EntityRenderStateKccAccess) state).kingdomcomecombat$isDragonArmorBroken()) {
+            texture = BloodiedTextureCache.getDragonCrackedTexture(texture);
+        }
         boolean player = state instanceof PlayerEntityRenderState;
         if (!CombatClientConfig.renderBlood() || blood <= 0.0) {
             return texture;

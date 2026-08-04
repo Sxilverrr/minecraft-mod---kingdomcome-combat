@@ -1,5 +1,6 @@
 {
   "_comment": "非人形敌对/战斗生物的天然护甲、体力和原版近战攻击面板。每次攻击都是单个攻击区域命中单个细分部位；不使用 face 和 neck。友好生物不配置；远程怪物通常不配置 melee_attack；health 由原版或其他系统处理。",
+  "_attack_modes": "melee_attack.attack_type 可设 vanilla、lunge、jump 或 mixed（每次50%突进/50%跳跃）。mixed 可用 lunge_defense_tier 与 jump_defense_tier 分别配置格挡难度。defense_tier: 1普通格挡、2仅完美格挡、3盾牌格挡、4仅盾牌完美格挡、5禁止格挡。true_stamina_damage 是格挡后仍扣除的真实体力，blocked_attacker_knockback 大于0时击退攻击者并中断冲锋。",
   "_part_ids": [
     "face",
     "neck",
@@ -40,10 +41,16 @@
       "stamina": 300.0,
       "stamina_regen_per_tick": 0.1,
       "melee_attack": {
+        "attack_type": "lunge",
+        "windup_ticks": 12,
+        "cooldown_ticks": 30,
+        "active_ticks": 12,
+        "start_distance": 4.0,
+        "movement_speed": 0.42,
         "impact": 30.0,
         "knockback": 0.9,
         "vertical_knockback": 0.65,
-        "defense_tier": 2,
+        "defense_tier": 4,
         "damage_modifiers": {
           "thrust": 0.0,
           "strike": 1.0,
@@ -87,6 +94,12 @@
       "stamina": 700.0,
       "stamina_regen_per_tick": 0.18,
       "melee_attack": {
+        "attack_type": "lunge",
+        "windup_ticks": 12,
+        "cooldown_ticks": 32,
+        "active_ticks": 12,
+        "start_distance": 4.5,
+        "movement_speed": 0.40,
         "impact": 45.0,
         "knockback": 1.2,
         "vertical_knockback": 0.55,
@@ -137,6 +150,12 @@
       "stamina": 350.0,
       "stamina_regen_per_tick": 0.12,
       "melee_attack": {
+        "attack_type": "lunge",
+        "windup_ticks": 16,
+        "cooldown_ticks": 34,
+        "active_ticks": 14,
+        "start_distance": 5.0,
+        "movement_speed": 0.48,
         "impact": 28.0,
         "knockback": 1.1,
         "vertical_knockback": 0.35,
@@ -197,6 +216,13 @@
       "stamina": 90.0,
       "stamina_regen_per_tick": 0.12,
       "melee_attack": {
+        "attack_type": "jump",
+        "windup_ticks": 20,
+        "cooldown_ticks": 30,
+        "active_ticks": 14,
+        "start_distance": 4.5,
+        "movement_speed": 0.46,
+        "jump_velocity": 0.42,
         "impact": 7.0,
         "knockback": 0.25,
         "vertical_knockback": 0.15,
@@ -224,9 +250,17 @@
     },
 
     "minecraft:cave_spider": {
+      "scale": 1.35,
       "stamina": 80.0,
       "stamina_regen_per_tick": 0.14,
       "melee_attack": {
+        "attack_type": "jump",
+        "windup_ticks": 18,
+        "cooldown_ticks": 26,
+        "active_ticks": 12,
+        "start_distance": 4.0,
+        "movement_speed": 0.48,
+        "jump_velocity": 0.40,
         "impact": 5.0,
         "knockback": 0.2,
         "vertical_knockback": 0.1,
@@ -254,6 +288,7 @@
     },
 
     "minecraft:silverfish": {
+      "scale": 1.75,
       "stamina": 45.0,
       "stamina_regen_per_tick": 0.12,
       "melee_attack": {
@@ -280,6 +315,7 @@
     },
 
     "minecraft:endermite": {
+      "scale": 1.75,
       "stamina": 50.0,
       "stamina_regen_per_tick": 0.14,
       "melee_attack": {
@@ -454,10 +490,18 @@
       "stamina": 190.0,
       "stamina_regen_per_tick": 0.12,
       "melee_attack": {
+        "attack_type": "mixed",
+        "windup_ticks": 16,
+        "cooldown_ticks": 32,
+        "active_ticks": 13,
+        "start_distance": 4.5,
+        "movement_speed": 0.46,
         "impact": 18.0,
         "knockback": 0.9,
         "vertical_knockback": 0.35,
         "defense_tier": 2,
+        "lunge_defense_tier": 2,
+        "jump_defense_tier": 3,
         "damage_modifiers": {
           "thrust": 0.0,
           "strike": 1.0,
@@ -484,6 +528,12 @@
       "stamina": 210.0,
       "stamina_regen_per_tick": 0.13,
       "melee_attack": {
+        "attack_type": "lunge",
+        "windup_ticks": 16,
+        "cooldown_ticks": 32,
+        "active_ticks": 13,
+        "start_distance": 4.5,
+        "movement_speed": 0.46,
         "impact": 20.0,
         "knockback": 0.95,
         "vertical_knockback": 0.35,
@@ -595,7 +645,22 @@
 
     "minecraft:blaze": {
       "stamina": 100.0,
-      "stamina_regen_per_tick": 0.12
+      "stamina_regen_per_tick": 0.12,
+      "melee_attack": {
+        "attack_type": "lunge",
+        "airborne_lunge": true,
+        "windup_ticks": 12,
+        "cooldown_ticks": 30,
+        "active_ticks": 12,
+        "start_distance": 5.0,
+        "movement_speed": 0.45,
+        "impact": 8.0,
+        "knockback": 0.3,
+        "vertical_knockback": 0.1,
+        "defense_tier": 1,
+        "damage_modifiers": {"thrust": 0.0, "strike": 0.0, "slash": 1.0},
+        "hit_zones": [{"hit": "body", "parts": ["chest"]}]
+      }
     },
 
     "minecraft:ghast": {
@@ -640,24 +705,26 @@
     },
 
     "minecraft:ender_dragon": {
+      "scale": 1.3,
+      "health": 400,
       "armor": {
         "head": {
           "defense": {
-            "thrust": 0,
-            "strike": 0,
-            "slash": 0
+            "thrust": 60,
+            "strike": 60,
+            "slash": 60
           },
           "impact_mitigation": 0.35,
-          "durability": 800
+          "durability": 200
         },
         "body": {
           "defense": {
-            "thrust": 15,
-            "strike": 15,
-            "slash": 15
+            "thrust": 60,
+            "strike": 60,
+            "slash": 60
           },
           "impact_mitigation": 0.40,
-          "durability": 1600
+          "durability": 200
         }
       },
       "stamina": 900.0,
@@ -690,24 +757,25 @@
     },
 
     "minecraft:wither": {
+      "health": 500,
       "armor": {
         "head": {
           "defense": {
-            "thrust": 5.0,
-            "strike": 5.0,
-            "slash": 5.0
+            "thrust": 40.0,
+            "strike": 40.0,
+            "slash": 40.0
           },
           "impact_mitigation": 0.30,
-          "durability": 600
+          "durability": 30
         },
         "body": {
           "defense": {
-            "thrust": 10.0,
-            "strike": 10.0,
-            "slash": 20.0
+            "thrust": 40.0,
+            "strike": 40.0,
+            "slash": 40.0
           },
           "impact_mitigation": 0.35,
-          "durability": 1000
+          "durability": 30
         }
       },
       "stamina": 800.0,

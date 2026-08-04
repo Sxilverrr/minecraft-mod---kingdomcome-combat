@@ -13,6 +13,7 @@ public class EquipmentFallbackConfig {
     private static DamageTypeProfile defaultWeapon = DamageTypeProfile.even(1.0);
     private static DamageTypeProfile sword = new DamageTypeProfile(1.2, 0.2, 1.3);
     private static DamageTypeProfile longsword = new DamageTypeProfile(1.2, 0.25, 1.2);
+    private static DamageTypeProfile polearm = new DamageTypeProfile(1.0, 0.35, 0.65);
     private static DamageTypeProfile pickaxe = new DamageTypeProfile(1.8, 0.9, 0.3);
     private static DamageTypeProfile axe = new DamageTypeProfile(0.3, 0.9, 0.9);
     private static DamageTypeProfile fightingMace = new DamageTypeProfile(0.0, 1.7, 0.0);
@@ -21,6 +22,7 @@ public class EquipmentFallbackConfig {
     private static double defaultWeaponBaseImpact = 12.0;
     private static double swordBaseImpact = 20.0;
     private static double longswordBaseImpact = 20.0;
+    private static double polearmBaseImpact = 22.0;
     private static double pickaxeBaseImpact = 24.0;
     private static double axeBaseImpact = 26.0;
     private static double fightingMaceBaseImpact = 12.0;
@@ -29,6 +31,7 @@ public class EquipmentFallbackConfig {
     private static double defaultWeaponBlockImpactMitigation = 0.75;
     private static double swordBlockImpactMitigation = 0.75;
     private static double longswordBlockImpactMitigation = 0.75;
+    private static double polearmBlockImpactMitigation = 0.70;
     private static double pickaxeBlockImpactMitigation = 0.75;
     private static double axeBlockImpactMitigation = 0.75;
     private static double fightingMaceBlockImpactMitigation = 0.75;
@@ -37,6 +40,7 @@ public class EquipmentFallbackConfig {
     private static double defaultArmorBreakMultiplier = 1.0;
     private static double swordArmorBreakMultiplier = 1.0;
     private static double longswordArmorBreakMultiplier = 1.15;
+    private static double polearmArmorBreakMultiplier = 0.45;
     private static double pickaxeArmorBreakMultiplier = 1.35;
     private static double axeArmorBreakMultiplier = 1.2;
     private static double fightingMaceArmorBreakMultiplier = 1.0;
@@ -45,20 +49,30 @@ public class EquipmentFallbackConfig {
     private static double defaultWeaponAttackSpeedMultiplier = 1.0;
     private static double swordAttackSpeedMultiplier = 1.0;
     private static double longswordAttackSpeedMultiplier = 1.0;
+    private static double polearmAttackSpeedMultiplier = 1.0;
     private static double pickaxeAttackSpeedMultiplier = 1.0;
     private static double axeAttackSpeedMultiplier = 1.0;
     private static double fightingMaceAttackSpeedMultiplier = 1.0;
     private static double shovelAttackSpeedMultiplier = 1.0;
     private static double hoeAttackSpeedMultiplier = 1.0;
+    private static double defaultWeaponToughness = 1.0;
+    private static double defaultMinimumDurabilityPanelMultiplier = 0.40;
+    private static double polearmWeaponToughness = 1.0;
+    private static double polearmMinimumDurabilityPanelMultiplier = 0.40;
+    private static double defaultHeldMovementSpeedMultiplier = 1.0;
+    private static double polearmHeldMovementSpeedMultiplier = 1.0;
     private static Vec3d defaultWeaponRealHitboxSizeUnits = Vec3d.ZERO;
     private static Vec3d defaultWeaponRealHitboxOffsetUnits = Vec3d.ZERO;
     private static Vec3d defaultWeaponRealHitboxRotationDegrees = Vec3d.ZERO;
     private static Vec3d swordRealHitboxSizeUnits = Vec3d.ZERO;
     private static Vec3d swordRealHitboxOffsetUnits = Vec3d.ZERO;
     private static Vec3d swordRealHitboxRotationDegrees = Vec3d.ZERO;
-    private static Vec3d longswordRealHitboxSizeUnits = Vec3d.ZERO;
+    private static Vec3d longswordRealHitboxSizeUnits = new Vec3d(5.0, 1.5, 19.0);
     private static Vec3d longswordRealHitboxOffsetUnits = Vec3d.ZERO;
-    private static Vec3d longswordRealHitboxRotationDegrees = Vec3d.ZERO;
+    private static Vec3d longswordRealHitboxRotationDegrees = new Vec3d(0.0, 0.0, -45.0);
+    private static Vec3d polearmRealHitboxSizeUnits = new Vec3d(4.0, 4.0, 34.0);
+    private static Vec3d polearmRealHitboxOffsetUnits = Vec3d.ZERO;
+    private static Vec3d polearmRealHitboxRotationDegrees = Vec3d.ZERO;
     private static Vec3d pickaxeRealHitboxSizeUnits = Vec3d.ZERO;
     private static Vec3d pickaxeRealHitboxOffsetUnits = Vec3d.ZERO;
     private static Vec3d pickaxeRealHitboxRotationDegrees = Vec3d.ZERO;
@@ -76,10 +90,15 @@ public class EquipmentFallbackConfig {
     private static Vec3d hoeRealHitboxRotationDegrees = Vec3d.ZERO;
     private static Map<String, String> defaultWeaponAttackMoveIds = Map.of();
     private static Map<String, String> defaultWeaponStanceAnimationNames = Map.of();
+    private static Map<String, String> defaultWeaponExecutionMoveIds = Map.of();
     private static Map<String, String> swordAttackMoveIds = Map.of();
     private static Map<String, String> swordStanceAnimationNames = Map.of();
     private static Map<String, String> longswordAttackMoveIds = Map.of();
     private static Map<String, String> longswordStanceAnimationNames = Map.of();
+    private static Map<String, String> polearmAttackMoveIds = Map.of(
+            "right", "attack_right_longweapon", "left", "attack_left_longweapon", "up", "attack_up_longsword", "down", "attack_down_longweapon");
+    private static Map<String, String> polearmStanceAnimationNames = Map.of(
+            "right", "stance_right_longweapon", "left", "stance_left_longweapon", "up", "stance_up_longsword", "down", "stance_down_longweapon");
     private static Map<String, String> pickaxeAttackMoveIds = Map.of();
     private static Map<String, String> pickaxeStanceAnimationNames = Map.of();
     private static Map<String, String> axeAttackMoveIds = Map.of();
@@ -98,6 +117,7 @@ public class EquipmentFallbackConfig {
     private static Set<Identifier> configuredLongswordItems = Set.of();
     private static Set<Identifier> configuredShortSwordItems = Set.of();
     private static Set<Identifier> configuredHeavyWeaponItems = Set.of();
+    private static Set<Identifier> configuredPolearmItems = Set.of();
     private static DamageTypeProfile helmetAndBootsArmorMultiplier =
             new DamageTypeProfile(18.0, 12.0, 20.0);
     private static DamageTypeProfile chestplateAndLeggingsArmorMultiplier =
@@ -136,6 +156,7 @@ public class EquipmentFallbackConfig {
         defaultWeapon = DamageTypeProfile.even(1.0);
         sword = new DamageTypeProfile(1.2, 0.2, 1.3);
         longsword = new DamageTypeProfile(1.2, 0.25, 1.2);
+        polearm = new DamageTypeProfile(1.0, 0.35, 0.65);
         pickaxe = new DamageTypeProfile(1.8, 0.9, 0.3);
         axe = new DamageTypeProfile(0.3, 0.9, 0.9);
         fightingMace = new DamageTypeProfile(0.0, 1.7, 0.0);
@@ -144,6 +165,7 @@ public class EquipmentFallbackConfig {
         defaultWeaponBaseImpact = 12.0;
         swordBaseImpact = 20.0;
         longswordBaseImpact = 20.0;
+        polearmBaseImpact = 22.0;
         pickaxeBaseImpact = 24.0;
         axeBaseImpact = 26.0;
         fightingMaceBaseImpact = 12.0;
@@ -152,6 +174,7 @@ public class EquipmentFallbackConfig {
         defaultWeaponBlockImpactMitigation = 0.75;
         swordBlockImpactMitigation = 0.75;
         longswordBlockImpactMitigation = 0.75;
+        polearmBlockImpactMitigation = 0.70;
         pickaxeBlockImpactMitigation = 0.75;
         axeBlockImpactMitigation = 0.75;
         fightingMaceBlockImpactMitigation = 0.75;
@@ -160,6 +183,7 @@ public class EquipmentFallbackConfig {
         defaultArmorBreakMultiplier = 1.0;
         swordArmorBreakMultiplier = 1.0;
         longswordArmorBreakMultiplier = 1.15;
+        polearmArmorBreakMultiplier = 0.45;
         pickaxeArmorBreakMultiplier = 1.35;
         axeArmorBreakMultiplier = 1.2;
         fightingMaceArmorBreakMultiplier = 1.0;
@@ -168,20 +192,30 @@ public class EquipmentFallbackConfig {
         defaultWeaponAttackSpeedMultiplier = 1.0;
         swordAttackSpeedMultiplier = 1.0;
         longswordAttackSpeedMultiplier = 1.0;
+        polearmAttackSpeedMultiplier = 1.0;
         pickaxeAttackSpeedMultiplier = 1.0;
         axeAttackSpeedMultiplier = 1.0;
         fightingMaceAttackSpeedMultiplier = 1.0;
         shovelAttackSpeedMultiplier = 1.0;
         hoeAttackSpeedMultiplier = 1.0;
+        defaultWeaponToughness = 1.0;
+        defaultMinimumDurabilityPanelMultiplier = 0.40;
+        polearmWeaponToughness = 1.0;
+        polearmMinimumDurabilityPanelMultiplier = 0.40;
+        defaultHeldMovementSpeedMultiplier = 1.0;
+        polearmHeldMovementSpeedMultiplier = 1.0;
         defaultWeaponRealHitboxSizeUnits = Vec3d.ZERO;
         defaultWeaponRealHitboxOffsetUnits = Vec3d.ZERO;
         defaultWeaponRealHitboxRotationDegrees = Vec3d.ZERO;
         swordRealHitboxSizeUnits = Vec3d.ZERO;
         swordRealHitboxOffsetUnits = Vec3d.ZERO;
         swordRealHitboxRotationDegrees = Vec3d.ZERO;
-        longswordRealHitboxSizeUnits = Vec3d.ZERO;
+        longswordRealHitboxSizeUnits = new Vec3d(5.0, 1.5, 19.0);
         longswordRealHitboxOffsetUnits = Vec3d.ZERO;
-        longswordRealHitboxRotationDegrees = Vec3d.ZERO;
+        longswordRealHitboxRotationDegrees = new Vec3d(0.0, 0.0, -45.0);
+        polearmRealHitboxSizeUnits = new Vec3d(4.0, 4.0, 34.0);
+        polearmRealHitboxOffsetUnits = Vec3d.ZERO;
+        polearmRealHitboxRotationDegrees = Vec3d.ZERO;
         pickaxeRealHitboxSizeUnits = Vec3d.ZERO;
         pickaxeRealHitboxOffsetUnits = Vec3d.ZERO;
         pickaxeRealHitboxRotationDegrees = Vec3d.ZERO;
@@ -199,10 +233,15 @@ public class EquipmentFallbackConfig {
         hoeRealHitboxRotationDegrees = Vec3d.ZERO;
         defaultWeaponAttackMoveIds = Map.of();
         defaultWeaponStanceAnimationNames = Map.of();
+        defaultWeaponExecutionMoveIds = Map.of();
         swordAttackMoveIds = Map.of();
         swordStanceAnimationNames = Map.of();
         longswordAttackMoveIds = Map.of();
         longswordStanceAnimationNames = Map.of();
+        polearmAttackMoveIds = Map.of(
+                "right", "attack_right_longweapon", "left", "attack_left_longweapon", "up", "attack_up_longsword", "down", "attack_down_longweapon");
+        polearmStanceAnimationNames = Map.of(
+                "right", "stance_right_longweapon", "left", "stance_left_longweapon", "up", "stance_up_longsword", "down", "stance_down_longweapon");
         pickaxeAttackMoveIds = Map.of();
         pickaxeStanceAnimationNames = Map.of();
         axeAttackMoveIds = Map.of();
@@ -221,6 +260,7 @@ public class EquipmentFallbackConfig {
         configuredLongswordItems = Set.of();
         configuredShortSwordItems = Set.of();
         configuredHeavyWeaponItems = Set.of();
+        configuredPolearmItems = Set.of();
         helmetAndBootsArmorMultiplier = new DamageTypeProfile(18.0, 12.0, 20.0);
         chestplateAndLeggingsArmorMultiplier = new DamageTypeProfile(10.0, 7.0, 12.0);
         protectionPercent = 0.5;
@@ -282,6 +322,54 @@ public class EquipmentFallbackConfig {
         defaultWeaponAttackSpeedMultiplier = sanitizeAttackSpeedMultiplier(value);
     }
 
+    public static double defaultWeaponToughness() {
+        return defaultWeaponToughness;
+    }
+
+    public static void setDefaultWeaponToughness(double value) {
+        defaultWeaponToughness = Math.max(0.0, value);
+    }
+
+    public static double defaultMinimumDurabilityPanelMultiplier() {
+        return defaultMinimumDurabilityPanelMultiplier;
+    }
+
+    public static void setDefaultMinimumDurabilityPanelMultiplier(double value) {
+        defaultMinimumDurabilityPanelMultiplier = clamp01(value);
+    }
+
+    public static double polearmWeaponToughness() {
+        return polearmWeaponToughness;
+    }
+
+    public static void setPolearmWeaponToughness(double value) {
+        polearmWeaponToughness = Math.max(0.0, value);
+    }
+
+    public static double polearmMinimumDurabilityPanelMultiplier() {
+        return polearmMinimumDurabilityPanelMultiplier;
+    }
+
+    public static void setPolearmMinimumDurabilityPanelMultiplier(double value) {
+        polearmMinimumDurabilityPanelMultiplier = clamp01(value);
+    }
+
+    public static double defaultHeldMovementSpeedMultiplier() {
+        return defaultHeldMovementSpeedMultiplier;
+    }
+
+    public static void setDefaultHeldMovementSpeedMultiplier(double value) {
+        defaultHeldMovementSpeedMultiplier = clamp01(value);
+    }
+
+    public static double polearmHeldMovementSpeedMultiplier() {
+        return polearmHeldMovementSpeedMultiplier;
+    }
+
+    public static void setPolearmHeldMovementSpeedMultiplier(double value) {
+        polearmHeldMovementSpeedMultiplier = clamp01(value);
+    }
+
     public static Vec3d defaultWeaponRealHitboxSizeUnits() {
         return defaultWeaponRealHitboxSizeUnits;
     }
@@ -312,6 +400,14 @@ public class EquipmentFallbackConfig {
 
     public static void setDefaultWeaponAttackMoveIds(Map<String, String> values) {
         defaultWeaponAttackMoveIds = copyStringMap(values);
+    }
+
+    public static Map<String, String> defaultWeaponExecutionMoveIds() {
+        return defaultWeaponExecutionMoveIds;
+    }
+
+    public static void setDefaultWeaponExecutionMoveIds(Map<String, String> values) {
+        defaultWeaponExecutionMoveIds = copyStringMap(values);
     }
 
     public static Map<String, String> defaultWeaponStanceAnimationNames() {
@@ -482,9 +578,35 @@ public class EquipmentFallbackConfig {
         longswordStanceAnimationNames = copyStringMap(values);
     }
 
+    public static DamageTypeProfile polearm() { return polearm; }
+    public static void setPolearm(DamageTypeProfile value) { polearm = value; }
+    public static double polearmBaseImpact() { return polearmBaseImpact; }
+    public static void setPolearmBaseImpact(double value) { polearmBaseImpact = Math.max(0.0, value); }
+    public static double polearmBlockImpactMitigation() { return polearmBlockImpactMitigation; }
+    public static void setPolearmBlockImpactMitigation(double value) { polearmBlockImpactMitigation = clamp01(value); }
+    public static double polearmArmorBreakMultiplier() { return polearmArmorBreakMultiplier; }
+    public static void setPolearmArmorBreakMultiplier(double value) { polearmArmorBreakMultiplier = Math.max(0.0, value); }
+    public static double polearmAttackSpeedMultiplier() { return polearmAttackSpeedMultiplier; }
+    public static void setPolearmAttackSpeedMultiplier(double value) { polearmAttackSpeedMultiplier = sanitizeAttackSpeedMultiplier(value); }
+    public static Vec3d polearmRealHitboxSizeUnits() { return polearmRealHitboxSizeUnits; }
+    public static void setPolearmRealHitboxSizeUnits(Vec3d value) { polearmRealHitboxSizeUnits = nonNullVec(value); }
+    public static Vec3d polearmRealHitboxOffsetUnits() { return polearmRealHitboxOffsetUnits; }
+    public static void setPolearmRealHitboxOffsetUnits(Vec3d value) { polearmRealHitboxOffsetUnits = nonNullVec(value); }
+    public static Vec3d polearmRealHitboxRotationDegrees() { return polearmRealHitboxRotationDegrees; }
+    public static void setPolearmRealHitboxRotationDegrees(Vec3d value) { polearmRealHitboxRotationDegrees = nonNullVec(value); }
+    public static Map<String, String> polearmAttackMoveIds() { return polearmAttackMoveIds; }
+    public static void setPolearmAttackMoveIds(Map<String, String> values) { polearmAttackMoveIds = copyStringMap(values); }
+    public static Map<String, String> polearmStanceAnimationNames() { return polearmStanceAnimationNames; }
+    public static void setPolearmStanceAnimationNames(Map<String, String> values) { polearmStanceAnimationNames = copyStringMap(values); }
+
     public static boolean isConfiguredLongswordItem(Identifier itemId) {
         return itemId != null && configuredLongswordItems.contains(itemId);
     }
+
+    public static Set<Identifier> configuredLongswordItems() { return configuredLongswordItems; }
+    public static Set<Identifier> configuredShortSwordItems() { return configuredShortSwordItems; }
+    public static Set<Identifier> configuredHeavyWeaponItems() { return configuredHeavyWeaponItems; }
+    public static Set<Identifier> configuredPolearmItems() { return configuredPolearmItems; }
 
     public static void setConfiguredLongswordItems(Set<Identifier> itemIds) {
         configuredLongswordItems = itemIds == null ? Set.of() : Set.copyOf(itemIds);
@@ -504,6 +626,14 @@ public class EquipmentFallbackConfig {
 
     public static void setConfiguredHeavyWeaponItems(Set<Identifier> itemIds) {
         configuredHeavyWeaponItems = itemIds == null ? Set.of() : Set.copyOf(itemIds);
+    }
+
+    public static boolean isConfiguredPolearmItem(Identifier itemId) {
+        return itemId != null && configuredPolearmItems.contains(itemId);
+    }
+
+    public static void setConfiguredPolearmItems(Set<Identifier> itemIds) {
+        configuredPolearmItems = itemIds == null ? Set.of() : Set.copyOf(itemIds);
     }
 
     public static DamageTypeProfile pickaxe() {

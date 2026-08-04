@@ -1,0 +1,12 @@
+{
+  "criteria": {
+    "joined_world": {
+      "trigger": "minecraft:tick"
+    }
+  },
+  "rewards": {
+    "recipes": [
+      "kingdom_come_combat:bandage"
+    ]
+  }
+}

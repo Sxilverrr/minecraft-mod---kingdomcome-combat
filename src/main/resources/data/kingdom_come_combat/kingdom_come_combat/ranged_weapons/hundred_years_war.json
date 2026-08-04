@@ -1,0 +1,15 @@
+{
+  "_comment": "Built-in firearm compatibility for Hundred Years War 0.7.x.",
+  "items": {
+    "hundred_years_war:handgonne": {
+      "speed": 0.58,
+      "hardness": 1.8,
+      "power": 1.75
+    },
+    "hundred_years_war:matchlock": {
+      "speed": 0.68,
+      "hardness": 1.65,
+      "power": 1.6
+    }
+  }
+}

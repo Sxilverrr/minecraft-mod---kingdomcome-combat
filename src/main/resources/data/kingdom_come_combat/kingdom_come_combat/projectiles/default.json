@@ -1,5 +1,5 @@
 {
-  "_comment": "投射物面板。damage_panel 会用 投射物最终原始伤害 * 刺击/打击/斩击 修正后进入自定义护甲系统。",
+  "_comment": "投射物面板。damage_panel 会用 投射物最终原始伤害 * 刺击/打击/斩击 修正后进入护甲系统。",
   "entities": {
     "minecraft:arrow": {
       "damage_panel": {
@@ -10,7 +10,7 @@
     },
     "minecraft:spectral_arrow": {
       "damage_panel": {
-        "thrust": 1.2,
+        "thrust": 1.1,
         "strike": 0.1,
         "slash": 0.0
       }

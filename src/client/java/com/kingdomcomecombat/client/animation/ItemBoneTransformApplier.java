@@ -5,6 +5,7 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.entity.state.ArmedEntityRenderState;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.Arm;
 import net.minecraft.util.math.RotationAxis;
 
@@ -25,6 +26,10 @@ public class ItemBoneTransformApplier {
         if (entityId < 0) {
             return;
         }
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (client.player == null || client.player.getId() != entityId) {
+            if (!ClientEntityGeckoAnimationState.shouldRenderCombatAnimation(entityId)) return;
+        }
 
         Optional<GeckoLikeAnimationLibrary.BoneTransform> transform =
                 getTransformForEntity(entityId, state.mainArm != null && arm != state.mainArm);
@@ -32,7 +37,8 @@ public class ItemBoneTransformApplier {
             return;
         }
 
-        applyTransform(matrices, transform.get());
+        Entity entity = client.world == null ? null : client.world.getEntityById(entityId);
+        applyTransform(matrices, transform.get(), false);
     }
 
     private static Optional<GeckoLikeAnimationLibrary.BoneTransform> getTransformForEntity(
@@ -46,9 +52,6 @@ public class ItemBoneTransformApplier {
                     : CombatAnimationClient.getLocalPlayerItemTransform();
         }
 
-        if (offHand) {
-            return Optional.empty();
-        }
         if (client.world == null) {
             return Optional.empty();
         }
@@ -65,6 +68,14 @@ public class ItemBoneTransformApplier {
             MatrixStack matrices,
             GeckoLikeAnimationLibrary.BoneTransform transform
     ) {
+        applyTransform(matrices, transform, false);
+    }
+
+    public static void applyTransform(
+            MatrixStack matrices,
+            GeckoLikeAnimationLibrary.BoneTransform transform,
+            boolean modelSpaceRotation
+    ) {
         transform.position().ifPresent(position ->
                 matrices.translate(
                         -position.x() * PIXEL_TO_BLOCK,
@@ -74,6 +85,12 @@ public class ItemBoneTransformApplier {
         );
 
         transform.rotation().ifPresent(rotation -> {
+            if (modelSpaceRotation) {
+                matrices.multiply(RotationAxis.POSITIVE_Z.rotationDegrees(rotation.z()));
+                matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(rotation.y()));
+                matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees(rotation.x()));
+                return;
+            }
             matrices.multiply(RotationAxis.POSITIVE_Z.rotationDegrees(-rotation.y()));
             matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(-rotation.z()));
             matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees(-rotation.x()));

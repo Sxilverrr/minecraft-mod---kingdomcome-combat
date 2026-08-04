@@ -1,0 +1,6 @@
+{
+  "_comment": "额外允许被处决的非人形生物。人形怪物仍按内置列表允许；这里用于苦力怕等特殊目标。",
+  "entity_types": [
+    "minecraft:creeper"
+  ]
+}

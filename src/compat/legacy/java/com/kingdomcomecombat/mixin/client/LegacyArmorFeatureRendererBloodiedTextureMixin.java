@@ -36,6 +36,9 @@ public class LegacyArmorFeatureRendererBloodiedTextureMixin {
             at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/RenderLayer;getArmorCutoutNoCull(Lnet/minecraft/util/Identifier;)Lnet/minecraft/client/render/RenderLayer;")
     )
     private Identifier kingdomcomecombat$useDamagedArmorTexture(Identifier texture) {
+        if (net.minecraft.client.MinecraftClient.getInstance().currentScreen != null) {
+            return texture;
+        }
         ItemStack stack = kingdomcomecombat$armorStack.get();
         return BloodiedTextureCache.shouldUseEquipmentTexture(stack)
                 ? BloodiedTextureCache.getEquipmentTexture(texture, stack) : texture;

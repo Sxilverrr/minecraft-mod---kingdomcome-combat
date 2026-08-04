@@ -1,11 +1,16 @@
 package com.kingdomcomecombat.client.ui;
 
 import com.kingdomcomecombat.combat.CombatItemUtil;
+import com.kingdomcomecombat.client.config.ClientServerConfigState;
+import com.kingdomcomecombat.item.ModItems;
+import com.kingdomcomecombat.item.HandCannonItem;
 import com.kingdomcomecombat.equipment.ArmorCombatAttributes;
 import com.kingdomcomecombat.equipment.DamageTypeProfile;
 import com.kingdomcomecombat.equipment.EquipmentCombatAttributesRegistry;
 import com.kingdomcomecombat.equipment.EquipmentFallbackConfig;
 import com.kingdomcomecombat.equipment.WeaponCombatAttributes;
+import com.kingdomcomecombat.equipment.RangedWeaponAttributes;
+import com.kingdomcomecombat.equipment.RangedWeaponAttributesRegistry;
 import net.fabricmc.fabric.api.client.item.v1.ItemTooltipCallback;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.AttributeModifiersComponent;
@@ -14,6 +19,7 @@ import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.attribute.EntityAttributeModifier;
 import net.minecraft.entity.attribute.EntityAttributes;
 import net.minecraft.item.ItemStack;
+import net.minecraft.registry.Registries;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
@@ -30,6 +36,25 @@ public class CombatAttributeTooltipClient {
 
     public static void register() {
         ItemTooltipCallback.EVENT.register((stack, context, type, lines) -> {
+            Identifier itemId = Registries.ITEM.getId(stack.getItem());
+            if (!lines.isEmpty() && "kingdom_come_combat".equals(itemId.getNamespace())) {
+                // Some light tooltip/recipe-viewer themes render an inherited
+                // (unset) item-name color as black. Keep every KCC item name
+                // explicit so registration style differences cannot leak into
+                // the first tooltip line.
+                lines.set(0, lines.get(0).copy().formatted(Formatting.WHITE));
+            }
+            if (stack.isOf(ModItems.BANDAGE)) {
+                lines.add(Text.translatable("tooltip.kingdom_come_combat.bandage.use")
+                        .formatted(Formatting.GRAY));
+            }
+            if (ClientServerConfigState.lightweightDamageModeEnabled()) {
+                return;
+            }
+            if (stack.isOf(ModItems.HAND_CANNON)) {
+                appendHandCannonLoadState(lines, stack);
+                appendHandCannonPanel(lines, stack);
+            }
             EquipmentCombatAttributesRegistry.getConfiguredWeapon(stack).ifPresentOrElse(
                     attributes -> appendWeapon(lines, stack, attributes, false),
                     () -> {
@@ -56,7 +81,43 @@ public class CombatAttributeTooltipClient {
                         }
                     }
             );
+            if (RangedWeaponAttributesRegistry.isConfigured(stack)) {
+                appendRangedWeapon(lines, RangedWeaponAttributesRegistry.get(stack));
+            }
         });
+    }
+
+    private static void appendHandCannonLoadState(java.util.List<Text> lines, ItemStack stack) {
+        if (HandCannonItem.isLoaded(stack) || HandCannonItem.isPowderLoaded(stack)) {
+            String ammo = switch (HandCannonItem.loadedAmmoType(stack)) {
+                case HEAVY -> "tooltip.kingdom_come_combat.hand_cannon.ammo.heavy";
+                case BUCKSHOT -> "tooltip.kingdom_come_combat.hand_cannon.ammo.buckshot";
+                default -> "tooltip.kingdom_come_combat.hand_cannon.ammo.normal";
+            };
+            String state = HandCannonItem.isLoaded(stack)
+                    ? "tooltip.kingdom_come_combat.hand_cannon.loaded"
+                    : "tooltip.kingdom_come_combat.hand_cannon.ramrod";
+            lines.add(Text.translatable(state, Text.translatable(ammo)).formatted(Formatting.GREEN));
+        } else {
+            lines.add(Text.translatable("tooltip.kingdom_come_combat.hand_cannon.unloaded").formatted(Formatting.DARK_GRAY));
+        }
+    }
+
+    private static void appendHandCannonPanel(java.util.List<Text> lines, ItemStack stack) {
+        lines.add(Text.translatable("tooltip.kingdom_come_combat.hand_cannon.panel").formatted(Formatting.GOLD));
+        lines.add(Text.translatable(
+                "tooltip.kingdom_come_combat.hand_cannon.initial_speed",
+                oneDecimal(HandCannonItem.initialSpeedMetersPerSecond(stack)))
+                .formatted(Formatting.YELLOW));
+        lines.add(Text.translatable(
+                "tooltip.kingdom_come_combat.hand_cannon.accuracy",
+                oneDecimal(HandCannonItem.accuracyPercent(stack)))
+                .formatted(Formatting.YELLOW));
+        lines.add(Text.translatable(
+                "tooltip.kingdom_come_combat.hand_cannon.fuse_time",
+                oneDecimal(HandCannonItem.minFuseTicks(stack) / 20.0),
+                oneDecimal(HandCannonItem.maxFuseTicks(stack) / 20.0))
+                .formatted(Formatting.YELLOW));
     }
 
     private static void appendWeapon(
@@ -73,7 +134,7 @@ public class CombatAttributeTooltipClient {
         appendProfile(
                 lines,
                 "tooltip.kingdom_come_combat.actual",
-                actualWeaponPanel(stack, attributes.damagePanel()),
+                actualWeaponPanel(stack, attributes),
                 Formatting.DARK_RED,
                 false
         );
@@ -85,7 +146,35 @@ public class CombatAttributeTooltipClient {
                         "tooltip.kingdom_come_combat.attack_speed_multiplier",
                         percent(attributes.attackSpeedMultiplier()))
                 .formatted(Formatting.YELLOW));
+        lines.add(Text.translatable(
+                        "tooltip.kingdom_come_combat.weapon_impact",
+                        oneDecimal(attributes.baseImpact()))
+                .formatted(Formatting.GOLD));
+        lines.add(Text.translatable(
+                        "tooltip.kingdom_come_combat.armor_break_multiplier",
+                        percent(attributes.armorBreakMultiplier()))
+                .formatted(Formatting.DARK_RED));
         appendHeavyHammerEnchantments(lines, stack);
+    }
+
+    private static void appendRangedWeapon(
+            java.util.List<Text> lines,
+            RangedWeaponAttributes attributes
+    ) {
+        lines.add(Text.translatable("tooltip.kingdom_come_combat.ranged_weapon_panel")
+                .formatted(Formatting.GOLD));
+        lines.add(Text.translatable(
+                        "tooltip.kingdom_come_combat.ranged_draw_speed",
+                        percent(attributes.drawSpeed()))
+                .formatted(Formatting.YELLOW));
+        lines.add(Text.translatable(
+                        "tooltip.kingdom_come_combat.ranged_hardness",
+                        oneDecimal(attributes.hardness()))
+                .formatted(Formatting.YELLOW));
+        lines.add(Text.translatable(
+                        "tooltip.kingdom_come_combat.ranged_projectile_speed",
+                        percent(attributes.projectileSpeed()))
+                .formatted(Formatting.YELLOW));
     }
 
     private static void appendHeavyHammerEnchantments(java.util.List<Text> lines, ItemStack stack) {
@@ -200,10 +289,14 @@ public class CombatAttributeTooltipClient {
 
     private static DamageTypeProfile actualWeaponPanel(
             ItemStack stack,
-            DamageTypeProfile profile
+            WeaponCombatAttributes attributes
     ) {
+        DamageTypeProfile profile = attributes.damagePanel();
         double attackDamage = attackDamage(stack);
-        double edgeMultiplier = weaponEdgeDurabilityMultiplier(stack);
+        double edgeMultiplier = weaponEdgeDurabilityMultiplier(
+                stack,
+                attributes.minimumDurabilityPanelMultiplier()
+        );
         DamageTypeProfile weaponEnchantPanel = enchantmentWeaponPanel(stack);
         return new DamageTypeProfile(
                 attackDamage * profile.thrust() * edgeMultiplier * 5.0 + weaponEnchantPanel.thrust(),
@@ -212,13 +305,13 @@ public class CombatAttributeTooltipClient {
         );
     }
 
-    private static double weaponEdgeDurabilityMultiplier(ItemStack stack) {
+    private static double weaponEdgeDurabilityMultiplier(ItemStack stack, double minimumMultiplier) {
         if (stack.isEmpty() || !stack.isDamageable() || stack.getMaxDamage() <= 0) {
             return 1.0;
         }
 
         double damageRatio = Math.max(0.0, Math.min(1.0, stack.getDamage() / (double) stack.getMaxDamage()));
-        return 1.0 - 0.60 * damageRatio;
+        return 1.0 - (1.0 - minimumMultiplier) * damageRatio;
     }
 
     private static DamageTypeProfile actualArmorPanel(ItemStack stack, DamageTypeProfile defense) {

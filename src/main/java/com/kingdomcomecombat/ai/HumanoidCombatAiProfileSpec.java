@@ -12,6 +12,7 @@ public final class HumanoidCombatAiProfileSpec {
     private final NumberValue blockChance;
     private final NumberValue perfectBlockChance;
     private final NumberValue comboLevel;
+    private final NumberValue comboPlanChance;
     private final NumberValue dodgeChance;
     private final NumberValue aiLevel;
     private final NumberValue staminaMax;
@@ -35,6 +36,7 @@ public final class HumanoidCombatAiProfileSpec {
         blockChance = number(json, "block_chance", fallback.blockChance());
         perfectBlockChance = number(json, "perfect_block_chance", fallback.perfectBlockChance());
         comboLevel = number(json, "combo_level", fallback.comboLevel());
+        comboPlanChance = number(json, "combo_plan_chance", fallback.comboPlanChance());
         dodgeChance = number(json, "dodge_chance", fallback.dodgeChance());
         aiLevel = number(json, "ai_level", fallback.aiLevel());
         staminaMax = number(json, "stamina_max", fallback.staminaMax());
@@ -64,6 +66,7 @@ public final class HumanoidCombatAiProfileSpec {
                 blockChance.sample(random),
                 perfectBlockChance.sample(random),
                 (int) comboLevel.sample(random),
+                comboPlanChance.sample(random),
                 dodgeChance.sample(random),
                 (int) aiLevel.sample(random),
                 staminaMax.sample(random),

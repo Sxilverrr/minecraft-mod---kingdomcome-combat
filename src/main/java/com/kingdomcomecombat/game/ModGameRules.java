@@ -21,6 +21,13 @@ public class ModGameRules {
                     GameRuleFactory.createBooleanRule(true)
             );
 
+    public static final GameRules.Key<GameRules.BooleanRule> PLAYER_DIRECTIONAL_BLOCKING =
+            GameRuleRegistry.register(
+                    "kccPlayerDirectionalBlocking",
+                    GameRules.Category.PLAYER,
+                    GameRuleFactory.createBooleanRule(true)
+            );
+
     public static final GameRules.Key<DoubleRule> COMBAT_SPEED =
             GameRuleRegistry.register(
                     "kccCombatSpeed",
@@ -39,7 +46,13 @@ public class ModGameRules {
             GameRuleRegistry.register(
                     "kccHardcoreMode",
                     GameRules.Category.PLAYER,
-                    GameRuleFactory.createBooleanRule(false, (server, rule) -> syncHardcoreMode(server))
+                    GameRuleFactory.createBooleanRule(false, (server, rule) -> {
+                        // The create-world screen edits its detached GameRules
+                        // before a MinecraftServer exists.
+                        if (server != null) {
+                            syncHardcoreMode(server);
+                        }
+                    })
             );
 
     private ModGameRules() {
@@ -51,9 +64,10 @@ public class ModGameRules {
     }
 
     public static void initializeForServer(MinecraftServer server) {
-        if (server.isHardcore() && !server.getGameRules().getBoolean(HARDCORE_MODE)) {
-            server.getGameRules().get(HARDCORE_MODE).set(true, server);
+        if (server.isHardcore()) {
+            server.getOverworld().getGameRules().get(HARDCORE_MODE).set(true, server);
         }
+        syncHardcoreMode(server);
     }
 
     public static boolean traumaEnabled(LivingEntity entity) {
@@ -68,7 +82,16 @@ public class ModGameRules {
     }
 
     public static boolean hardcoreMode(ServerWorld world) {
-        return world.getGameRules().getBoolean(HARDCORE_MODE);
+        return world.getServer().isHardcore() || world.getGameRules().getBoolean(HARDCORE_MODE);
+    }
+
+    public static boolean hardcoreMode(GameRules rules) {
+        return rules.getBoolean(HARDCORE_MODE);
+    }
+
+    /** Updates world-creation rules before a MinecraftServer exists. */
+    public static void setHardcoreMode(GameRules rules, boolean enabled) {
+        rules.get(HARDCORE_MODE).set(enabled, null);
     }
 
     private static void syncHardcoreMode(MinecraftServer server) {
@@ -94,6 +117,13 @@ public class ModGameRules {
 
     public static boolean classicMode(LivingEntity entity) {
         return entity != null && classicMode(entity.getWorld());
+    }
+
+    public static boolean playerDirectionalBlocking(World world) {
+        if (!(world instanceof ServerWorld serverWorld)) {
+            return true;
+        }
+        return serverWorld.getGameRules().getBoolean(PLAYER_DIRECTIONAL_BLOCKING);
     }
 
     public static double combatSpeed(World world) {

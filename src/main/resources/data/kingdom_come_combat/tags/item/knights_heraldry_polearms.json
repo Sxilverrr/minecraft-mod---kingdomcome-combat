@@ -1,0 +1,11 @@
+{
+  "replace": false,
+  "values": [
+    {"id":"knightsheraldry:spear","required":false}, {"id":"knightsheraldry:pike","required":false},
+    {"id":"knightsheraldry:halberd","required":false}, {"id":"knightsheraldry:poleaxe","required":false},
+    {"id":"knightsheraldry:polehammer","required":false}, {"id":"knightsheraldry:bec_de_corbin","required":false},
+    {"id":"knightsheraldry:billhook","required":false}, {"id":"knightsheraldry:bardiche","required":false},
+    {"id":"knightsheraldry:glaive","required":false}, {"id":"knightsheraldry:curved_glaive","required":false},
+    {"id":"knightsheraldry:pitchfork","required":false}
+  ]
+}

@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 
 public class ClientEntityGeckoAnimationState {
     private static final float FADE_SECONDS = 0.12F;
@@ -20,6 +21,7 @@ public class ClientEntityGeckoAnimationState {
     private static final Map<Integer, ImpactSlowdown> ATTACK_IMPACT_SLOWDOWNS = new HashMap<>();
     private static final Map<Integer, Double> INTERRUPT_FADE_STARTS = new HashMap<>();
     private static final Map<Integer, ItemTransition> ITEM_TRANSITIONS = new HashMap<>();
+    private static final Map<Integer, UUID> ENTITY_IDENTITIES = new HashMap<>();
 
     private ClientEntityGeckoAnimationState() {
     }
@@ -44,6 +46,7 @@ public class ClientEntityGeckoAnimationState {
             float startupSlowdown,
             String animationName
     ) {
+        bindEntityIdentity(entityId);
         float sanitizedSpeed = sanitizeSpeed(speedMultiplier);
         float sanitizedSlowdown = sanitizeSlowdown(startupSlowdown);
         String sanitizedAnimation = animationName == null || animationName.isBlank() ? "" : animationName;
@@ -56,6 +59,7 @@ public class ClientEntityGeckoAnimationState {
             return;
         }
 
+        ATTACK_IMPACT_SLOWDOWNS.remove(entityId);
         ATTACKS.put(
                 entityId,
                 new AttackAnimation(
@@ -79,6 +83,7 @@ public class ClientEntityGeckoAnimationState {
             float speedMultiplier,
             String animationName
     ) {
+        bindEntityIdentity(entityId);
         StanceAnimation current = STANCES.get(entityId);
         float sanitizedSpeed = sanitizeSpeed(speedMultiplier);
         String sanitizedAnimation = animationName == null ? "" : animationName;
@@ -103,11 +108,16 @@ public class ClientEntityGeckoAnimationState {
         );
     }
 
+    public static void clearStance(int entityId) {
+        STANCES.remove(entityId);
+    }
+
     public static void startBlock(
             int entityId,
             GeckoLikeAnimationLibrary.Kind kind,
             CombatDirection direction
     ) {
+        bindEntityIdentity(entityId);
         BLOCKS.put(entityId, new BlockAnimation(kind, direction, animationTicks()));
         interruptAttack(entityId);
     }
@@ -129,15 +139,54 @@ public class ClientEntityGeckoAnimationState {
             CombatDirection direction,
             String animationName
     ) {
+        startHitReaction(entityId, direction, animationName, false);
+    }
+
+    public static void startHitReaction(
+            int entityId,
+            CombatDirection direction,
+            String animationName,
+            boolean holdLastFrame
+    ) {
+        startHitReaction(entityId, direction, animationName, holdLastFrame, 1.0F);
+    }
+
+    public static void startHitReaction(
+            int entityId,
+            CombatDirection direction,
+            String animationName,
+            boolean holdLastFrame,
+            float speedMultiplier
+    ) {
         if (animationName == null || animationName.isBlank()) {
             return;
         }
+        if (isExecutionAttackActive(entityId)) {
+            return;
+        }
 
+        bindEntityIdentity(entityId);
         interruptAttack(entityId);
         HIT_REACTIONS.put(
                 entityId,
-                new HitReactionAnimation(direction, animationName, animationTicks())
+                new HitReactionAnimation(
+                        direction,
+                        animationName,
+                        animationTicks(),
+                        holdLastFrame,
+                        sanitizeSpeed(speedMultiplier)
+                )
         );
+    }
+
+    public static boolean isHoldingFinalHitReactionFrame(int entityId) {
+        HitReactionAnimation reaction = HIT_REACTIONS.get(entityId);
+        if (reaction == null || !reaction.holdLastFrame()) {
+            return false;
+        }
+
+        float length = GeckoLikeAnimationLibrary.getNamedLengthSeconds(reaction.animationName());
+        return reaction.elapsedSeconds() >= length;
     }
 
     public static ActiveAnimation get(int entityId) {
@@ -205,7 +254,43 @@ public class ClientEntityGeckoAnimationState {
     }
 
     public static boolean hasActiveCombatLayer(int entityId) {
-        return entityId >= 0 && !getLayers(entityId).isEmpty();
+        return entityId >= 0
+                && (HIT_REACTIONS.containsKey(entityId)
+                || BLOCKS.containsKey(entityId)
+                || ATTACKS.containsKey(entityId)
+                || STANCES.containsKey(entityId));
+    }
+
+    /**
+     * Combat poses also drive rendered-bone collision boxes, so every entity
+     * with an active combat layer must keep its animation applied. Render-distance
+     * LOD here would make another nearby player's hit validation use a stale pose.
+     */
+    public static boolean shouldRenderCombatAnimation(int entityId) {
+        return hasActiveCombatLayer(entityId);
+    }
+
+    /** Current instantaneous playback rate used by PAL-backed remote players. */
+    public static float playbackSpeed(int entityId) {
+        HitReactionAnimation reaction = HIT_REACTIONS.get(entityId);
+        if (reaction != null) return reaction.speedMultiplier();
+        if (BLOCKS.containsKey(entityId)) return 1.0F;
+
+        AttackAnimation attack = ATTACKS.get(entityId);
+        if (attack != null) {
+            if (isImpactSlowdownActive(entityId)) return 0.01F;
+            float slowWindowSeconds = com.kingdomcomecombat.combat.CombatControlConfig
+                    .PERFECT_COUNTER_SLOW_TICKS / 20.0F;
+            if (attack.startupSlowdown() > 0.0F
+                    && attack.rawElapsedSeconds() <= slowWindowSeconds) {
+                return Math.max(0.01F,
+                        attack.speedMultiplier() * (1.0F - attack.startupSlowdown()));
+            }
+            return attack.speedMultiplier();
+        }
+
+        StanceAnimation stance = STANCES.get(entityId);
+        return stance == null ? 1.0F : stance.speedMultiplier();
     }
 
     public static ActiveAnimation getBlockLayer(int entityId) {
@@ -215,7 +300,8 @@ public class ClientEntityGeckoAnimationState {
         }
 
         float length = block.lengthSeconds();
-        if (block.elapsedSeconds(entityId) > length) {
+        float elapsed = block.elapsedSeconds(entityId);
+        if (elapsed > length) {
             BLOCKS.remove(entityId);
             return null;
         }
@@ -223,8 +309,8 @@ public class ClientEntityGeckoAnimationState {
         return new ActiveAnimation(
                 block.kind(),
                 block.direction(),
-                block.elapsedSeconds(entityId),
-                block.weight(entityId, length),
+                elapsed,
+                block.weight(length, elapsed),
                 ""
         );
     }
@@ -238,6 +324,16 @@ public class ClientEntityGeckoAnimationState {
         float length = GeckoLikeAnimationLibrary.getNamedLengthSeconds(reaction.animationName());
         float elapsed = reaction.elapsedSeconds();
         if (elapsed > length) {
+            if (reaction.holdLastFrame()) {
+                elapsed = Math.max(0.0F, length - 0.001F);
+                return new ActiveAnimation(
+                        GeckoLikeAnimationLibrary.Kind.ATTACK,
+                        reaction.direction(),
+                        elapsed,
+                        1.0F,
+                        reaction.animationName()
+                );
+            }
             HIT_REACTIONS.remove(entityId);
             return null;
         }
@@ -261,10 +357,12 @@ public class ClientEntityGeckoAnimationState {
                     )
                     : GeckoLikeAnimationLibrary.getNamedLengthSeconds(attack.animationName());
 
-            if (attack.elapsedSeconds(entityId) <= animationLength) {
+            float elapsed = attack.elapsedSeconds(entityId);
+            if (elapsed <= animationLength) {
                 float interruptWeight = getInterruptWeight(entityId);
                 if (interruptWeight <= 0.0F) {
                     ATTACKS.remove(entityId);
+                    ATTACK_IMPACT_SLOWDOWNS.remove(entityId);
                     INTERRUPT_FADE_STARTS.remove(entityId);
                     return null;
                 }
@@ -272,22 +370,38 @@ public class ClientEntityGeckoAnimationState {
                 return new ActiveAnimation(
                         GeckoLikeAnimationLibrary.Kind.ATTACK,
                         attack.direction(),
-                        attack.elapsedSeconds(entityId),
-                        attack.weight(entityId, animationLength) * interruptWeight,
+                        elapsed,
+                        attack.weight(animationLength, elapsed) * interruptWeight,
                         attack.animationName()
                 );
             }
 
             ATTACKS.remove(entityId);
+            ATTACK_IMPACT_SLOWDOWNS.remove(entityId);
             INTERRUPT_FADE_STARTS.remove(entityId);
         }
 
         return null;
     }
 
+    private static boolean isExecutionAttackActive(int entityId) {
+        AttackAnimation attack = ATTACKS.get(entityId);
+        return attack != null && isExecutionAnimationName(attack.animationName());
+    }
+
+    private static boolean isExecutionAnimationName(String animationName) {
+        return animationName != null && animationName.startsWith("execution_");
+    }
+
     public static Set<Integer> getActiveAttackEntityIds() {
         return Set.copyOf(ATTACKS.keySet());
     }
+
+    public static boolean hasAnyActiveAttack() { return !ATTACKS.isEmpty(); }
+
+    public static boolean hasActiveAttack(int entityId) { return ATTACKS.containsKey(entityId); }
+
+    public static boolean hasActiveStance(int entityId) { return STANCES.containsKey(entityId); }
 
     public static ActiveAnimation getStanceLayer(int entityId) {
         StanceAnimation stance = STANCES.get(entityId);
@@ -316,40 +430,94 @@ public class ClientEntityGeckoAnimationState {
     }
 
     public static Optional<GeckoLikeAnimationLibrary.BoneTransform> getItemTransform(int entityId) {
-        List<ActiveAnimation> layers = getLayers(entityId);
         GeckoLikeAnimationLibrary.BoneTransform target = zeroItemTransform();
-        for (int i = layers.size() - 1; i >= 0; i--) {
-            ActiveAnimation layer = layers.get(i);
-            GeckoLikeAnimationLibrary.BoneTransform transform =
-                    layer.customAnimationName().isBlank()
-                            ? GeckoLikeAnimationLibrary.sampleBone(
-                                    layer.kind(),
-                                    layer.direction(),
-                                    "item",
-                                    layer.elapsedSeconds()
-                            )
-                            : GeckoLikeAnimationLibrary.sampleNamedBone(
-                                    layer.customAnimationName(),
-                                    "item",
-                                    layer.elapsedSeconds()
-                            );
-
-            if (!transform.empty()) {
-                target = fillMissingChannelsWithZero(transform);
-                break;
+        ActiveAnimation hitReaction = getHitReactionLayer(entityId);
+        if (hitReaction != null) {
+            target = itemTransformOrZero(hitReaction);
+        } else {
+            ActiveAnimation block = getBlockLayer(entityId);
+            if (block != null) {
+                target = itemTransformOrZero(block);
+            } else {
+                ActiveAnimation attack = getAttackLayer(entityId);
+                if (attack != null) {
+                    target = itemTransformOrZero(attack);
+                } else {
+                    ActiveAnimation stance = getStanceLayer(entityId);
+                    if (stance != null) {
+                        target = itemTransformOrZero(stance);
+                    }
+                }
             }
         }
 
         return Optional.of(updateItemTransition(entityId, target));
     }
 
+    private static GeckoLikeAnimationLibrary.BoneTransform itemTransformOrZero(ActiveAnimation layer) {
+        GeckoLikeAnimationLibrary.BoneTransform transform =
+                layer.customAnimationName().isBlank()
+                        ? GeckoLikeAnimationLibrary.sampleBone(
+                                layer.kind(),
+                                layer.direction(),
+                                "item",
+                                layer.elapsedSeconds()
+                        )
+                        : GeckoLikeAnimationLibrary.sampleNamedBone(
+                                layer.customAnimationName(),
+                                "item",
+                                layer.elapsedSeconds()
+                        );
+        return transform.empty() ? zeroItemTransform() : fillMissingChannelsWithZero(transform);
+    }
+
     public static void tickCleanup() {
         MinecraftClient client = MinecraftClient.getInstance();
+        cleanupEntityIdentities(client);
         cleanupAttacks(client);
         cleanupHitReactions(client);
         cleanupBlocks(client);
         cleanupStances(client);
         cleanupItemTransitions(client);
+    }
+
+    private static void bindEntityIdentity(int entityId) {
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (client.world == null) {
+            return;
+        }
+        var entity = client.world.getEntityById(entityId);
+        if (entity == null) {
+            return;
+        }
+        UUID current = entity.getUuid();
+        UUID previous = ENTITY_IDENTITIES.put(entityId, current);
+        if (previous != null && !previous.equals(current)) {
+            clearEntityState(entityId);
+            ENTITY_IDENTITIES.put(entityId, current);
+        }
+    }
+
+    private static void cleanupEntityIdentities(MinecraftClient client) {
+        Iterator<Map.Entry<Integer, UUID>> iterator = ENTITY_IDENTITIES.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<Integer, UUID> entry = iterator.next();
+            var entity = client.world == null ? null : client.world.getEntityById(entry.getKey());
+            if (entity == null || !entry.getValue().equals(entity.getUuid())) {
+                clearEntityState(entry.getKey());
+                iterator.remove();
+            }
+        }
+    }
+
+    private static void clearEntityState(int entityId) {
+        ATTACKS.remove(entityId);
+        HIT_REACTIONS.remove(entityId);
+        BLOCKS.remove(entityId);
+        STANCES.remove(entityId);
+        ATTACK_IMPACT_SLOWDOWNS.remove(entityId);
+        INTERRUPT_FADE_STARTS.remove(entityId);
+        ITEM_TRANSITIONS.remove(entityId);
     }
 
     private static GeckoLikeAnimationLibrary.BoneTransform updateItemTransition(
@@ -430,6 +598,8 @@ public class ClientEntityGeckoAnimationState {
             if (animation.elapsedSeconds(entry.getKey()) > animationLength
                     || client.world == null
                     || client.world.getEntityById(entry.getKey()) == null) {
+                ATTACK_IMPACT_SLOWDOWNS.remove(entry.getKey());
+                INTERRUPT_FADE_STARTS.remove(entry.getKey());
                 iterator.remove();
             }
         }
@@ -443,9 +613,13 @@ public class ClientEntityGeckoAnimationState {
             HitReactionAnimation animation = entry.getValue();
             float animationLength = GeckoLikeAnimationLibrary.getNamedLengthSeconds(animation.animationName());
 
-            if (animation.elapsedSeconds() > animationLength
-                    || client.world == null
+            if (client.world == null
                     || client.world.getEntityById(entry.getKey()) == null) {
+                iterator.remove();
+                continue;
+            }
+
+            if (!animation.holdLastFrame() && animation.elapsedSeconds() > animationLength) {
                 iterator.remove();
             }
         }
@@ -523,12 +697,13 @@ public class ClientEntityGeckoAnimationState {
             return (float) ((now - startedAtTicks) / 20.0);
         }
 
-        if (now >= slowdown.endTicks()) {
-            ATTACK_IMPACT_SLOWDOWNS.remove(entityId);
-            return (float) ((now - startedAtTicks) / 20.0);
-        }
-
         return (float) ((now - startedAtTicks - slowdown.lostTicks(now)) / 20.0);
+    }
+
+    private static boolean isImpactSlowdownActive(int entityId) {
+        ImpactSlowdown slowdown = ATTACK_IMPACT_SLOWDOWNS.get(entityId);
+        if (slowdown == null) return false;
+        return animationTicks() < slowdown.endTicks();
     }
 
     public record ActiveAnimation(
@@ -558,12 +733,12 @@ public class ClientEntityGeckoAnimationState {
             ) * speedMultiplier;
         }
 
-        float weight(int entityId, float animationLengthSeconds) {
+        float weight(float animationLengthSeconds, float elapsedSeconds) {
             float rawElapsed = rawElapsedSeconds();
             float fadeIn = Math.min(1.0F, rawElapsed / FADE_SECONDS);
             float fadeOut = Math.min(
                     1.0F,
-                    Math.max(0.0F, animationLengthSeconds - elapsedSeconds(entityId)) / FADE_SECONDS
+                    Math.max(0.0F, animationLengthSeconds - elapsedSeconds) / FADE_SECONDS
             );
             return Math.max(0.0F, Math.min(fadeIn, fadeOut));
         }
@@ -590,10 +765,13 @@ public class ClientEntityGeckoAnimationState {
     private record HitReactionAnimation(
             CombatDirection direction,
             String animationName,
-            double startedAtTicks
+            double startedAtTicks,
+            boolean holdLastFrame,
+            float speedMultiplier
     ) {
         float elapsedSeconds() {
-            return (float) ((animationTicks() - startedAtTicks) / 20.0);
+            return (float) ((animationTicks() - startedAtTicks) / 20.0)
+                    * speedMultiplier;
         }
 
         float weight(float animationLengthSeconds) {
@@ -626,8 +804,7 @@ public class ClientEntityGeckoAnimationState {
                     : GeckoLikeAnimationLibrary.getLengthSeconds(kind);
         }
 
-        float weight(int entityId, float lengthSeconds) {
-            float elapsed = elapsedSeconds(entityId);
+        float weight(float lengthSeconds, float elapsed) {
             float fadeIn = 1.0F;
             float fadeOut = Math.min(1.0F, Math.max(0.0F, lengthSeconds - elapsed) / FADE_SECONDS);
             return Math.max(0.0F, Math.min(fadeIn, fadeOut));

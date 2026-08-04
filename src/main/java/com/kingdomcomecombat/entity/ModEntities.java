@@ -15,6 +15,9 @@ public final class ModEntities {
             Registries.ENTITY_TYPE,
             HAND_CANNON_BULLET_ID,
             EntityType.Builder.<HandCannonBulletEntity>create(HandCannonBulletEntity::new, SpawnGroup.MISC)
+                    // Short-lived projectiles are never persisted, so Minecraft must not
+                    // look for a world-save DataFixer schema for this custom entity type.
+                    .disableSaving()
                     .dimensions(0.18F, 0.18F)
                     .maxTrackingRange(96)
                     .trackingTickInterval(1)

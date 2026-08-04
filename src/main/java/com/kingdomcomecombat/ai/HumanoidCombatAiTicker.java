@@ -16,19 +16,26 @@ import com.kingdomcomecombat.combat.ServerComboState;
 import com.kingdomcomecombat.combat.ServerCombatControlState;
 import com.kingdomcomecombat.injury.ModStatusEffects;
 import com.kingdomcomecombat.combat.ServerCombatState;
+import com.kingdomcomecombat.config.CombatServerConfig;
 import com.kingdomcomecombat.equipment.EquipmentCombatAttributesRegistry;
+import com.kingdomcomecombat.equipment.MobCombatAttributesRegistry;
+import com.kingdomcomecombat.equipment.MobScaleRegistry;
 import com.kingdomcomecombat.game.ModGameRules;
 import com.kingdomcomecombat.network.EntityCombatStancePayload;
 import com.kingdomcomecombat.network.EntityAttackAnimationPayload;
+import com.kingdomcomecombat.network.EntityCinematicVictimAnimationPayload;
 import com.kingdomcomecombat.network.EntityComboAttackAnimationPayload;
 import com.kingdomcomecombat.network.IncomingAttackWarningPayload;
+import com.kingdomcomecombat.network.CombatNetworkBroadcaster;
 import com.kingdomcomecombat.stamina.ServerStaminaState;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.attribute.EntityAttributes;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.entity.mob.ZombieEntity;
+import net.minecraft.entity.mob.VindicatorEntity;
 import net.minecraft.item.RangedWeaponItem;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
@@ -36,9 +43,11 @@ import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 public class HumanoidCombatAiTicker {
@@ -57,7 +66,7 @@ public class HumanoidCombatAiTicker {
     private static final double MINIMUM_PERFECT_BLOCK_CHANCE = 0.20;
     private static final Map<UUID, HumanoidCombatAiState> STATES = new HashMap<>();
     private static final Map<UUID, StanceSyncSnapshot> LAST_STANCE_SYNCS = new HashMap<>();
-    private static final Map<Integer, MobEntity> ACTIVE_COMBAT_MOBS = new HashMap<>();
+    private static final Set<UUID> ACTIVE_COMBAT_MOBS = new HashSet<>();
     private static long nextStateCleanupTick = 0L;
 
     private HumanoidCombatAiTicker() {
@@ -70,13 +79,29 @@ public class HumanoidCombatAiTicker {
             AiAttackCoordinator.tick(server.getOverworld().getTime());
             for (ServerWorld world : server.getWorlds()) {
                 for (Entity entity : world.iterateEntities()) {
+                    if (entity instanceof LivingEntity livingEntity
+                            && !(entity instanceof net.minecraft.entity.player.PlayerEntity)) {
+                        // Reuse this mandatory entity pass. ServerCombatTicker used
+                        // to scan the whole world a second time for the same work.
+                        MobCombatAttributesRegistry.applyConfiguredAttributes(livingEntity);
+                    }
                     if (entity instanceof MobEntity mob) {
+                        if (!isLoadedMob(world, mob)) {
+                            continue;
+                        }
+                        ConfiguredMobAttackTicker.tick(mob);
+                        if (!isLoadedMob(world, mob)) {
+                            continue;
+                        }
                         tickMob(mob);
+                        if (!isLoadedMob(world, mob)) {
+                            continue;
+                        }
                         BeastCombatAiTicker.tickMobFromSharedPass(mob);
                     }
                 }
             }
-            separateActiveCombatMobs();
+            separateActiveCombatMobs(server);
 
             long time = server.getOverworld().getTime();
             if (time >= nextStateCleanupTick) {
@@ -88,9 +113,17 @@ public class HumanoidCombatAiTicker {
     }
 
     private static void tickMob(MobEntity mob) {
-        HumanoidCombatAiProfile profile = HumanoidCombatAiProfiles.getProfile(mob);
-        if (profile == null || !mob.isAlive() || mob.isRemoved()) {
+        if (!mob.isAlive() || mob.isRemoved() || !(mob.getWorld() instanceof ServerWorld)) {
             return;
+        }
+        HumanoidCombatAiProfile profile = HumanoidCombatAiProfiles.getProfile(mob);
+        if (profile == null) {
+            return;
+        }
+        var scaleAttribute = mob.getAttributeInstance(EntityAttributes.SCALE);
+        double configuredScale = MobScaleRegistry.get(mob.getType());
+        if (scaleAttribute != null && Math.abs(scaleAttribute.getBaseValue() - configuredScale) > 0.001) {
+            scaleAttribute.setBaseValue(configuredScale);
         }
 
         HumanoidCombatAiState state = STATES.computeIfAbsent(
@@ -111,6 +144,7 @@ public class HumanoidCombatAiTicker {
 
         LivingEntity target = mob.getTarget();
         if (!canEnterCombatState(mob, target, profile, state)) {
+            clearCombatStance(mob, state);
             recoverVanillaMovement(mob, target, state);
             return;
         }
@@ -118,6 +152,17 @@ public class HumanoidCombatAiTicker {
         ServerStaminaState.setEntityMaxStamina(mob.getUuid(), profile.staminaMax());
         ServerStaminaState.setEntityRegenPerTick(mob.getUuid(), profile.staminaRegenPerTick());
         markActiveCombatMob(mob);
+        // In 1.21.1 the Vindicator held-item feature is rendered only while
+        // this vanilla flag is true. Vanilla melee goals may clear it every
+        // tick, including during a KCC attack, so restore it every combat tick.
+        if (mob instanceof VindicatorEntity) {
+            mob.setAttacking(true);
+        }
+
+        if (com.kingdomcomecombat.combat.CombatItemUtil.isPolearm(mob.getMainHandStack())
+                && state.direction == CombatDirection.UP) {
+            setDirection(state, CombatDirection.RIGHT);
+        }
 
         ActiveServerAttack activeAttack = ServerCombatState.getAttack(mob.getUuid());
         if (activeAttack != null) {
@@ -168,13 +213,15 @@ public class HumanoidCombatAiTicker {
         }
 
         ActiveServerAttack targetAttack = ServerCombatState.getAttack(target.getUuid());
-        if (targetAttack != null && targetAttack.moveConfig().directHitTick() >= 0) {
+        if (targetAttack != null) {
             return;
         }
 
+        boolean startedComboPlan = !forcedCounterAttack
+                && maybeStartComboPlan(mob, target, profile, state);
         if (forcedCounterAttack && state.forcedCounterDirection != null) {
             setDirection(state, state.forcedCounterDirection);
-        } else {
+        } else if (!startedComboPlan) {
             maybeChangeDirection(mob, state, profile, false);
         }
 
@@ -234,7 +281,9 @@ public class HumanoidCombatAiTicker {
                 ignored -> new HumanoidCombatAiState()
         );
 
-        CombatDirection counterDirection = CombatDirection.afterPerfectBlock(blockDirection);
+        CombatDirection counterDirection = com.kingdomcomecombat.combat.CombatItemUtil.isPolearm(mob.getMainHandStack())
+                ? state.direction
+                : CombatDirection.afterPerfectBlock(blockDirection);
         setDirection(state, counterDirection);
         state.forcedCounterDirection = counterDirection;
         state.attackCooldownTicks = 0;
@@ -254,11 +303,15 @@ public class HumanoidCombatAiTicker {
             LivingEntity target,
             CombatDirection incomingAttackDirection
     ) {
+        if (!ServerCombatControlState.canAttack(mob)) {
+            return false;
+        }
         HumanoidCombatAiProfile profile = HumanoidCombatAiProfiles.getProfile(mob);
         if (profile == null
                 || profile.aiLevel() < 3
                 || target == null
                 || !target.isAlive()
+                || com.kingdomcomecombat.combat.CombatItemUtil.isPolearm(target.getMainHandStack())
                 || !com.kingdomcomecombat.combat.CombatItemUtil.isSword(mob.getMainHandStack())) {
             return false;
         }
@@ -269,7 +322,7 @@ public class HumanoidCombatAiTicker {
         );
         if (state.stanceSwitchLockTicks > 0
                 || ServerCombatState.getAttack(mob.getUuid()) != null
-                || !ServerCombatControlState.canAttack(mob)) {
+                ) {
             return false;
         }
 
@@ -278,7 +331,7 @@ public class HumanoidCombatAiTicker {
             return false;
         }
 
-        if (mob.getRandom().nextDouble() > profile.perfectBlockChance()) {
+        if (mob.getRandom().nextDouble() > scaledBlockChance(mob, profile.perfectBlockChance())) {
             return false;
         }
 
@@ -288,7 +341,8 @@ public class HumanoidCombatAiTicker {
         }
 
         double staminaCost = moveConfig.staminaCost()
-                * com.kingdomcomecombat.equipment.EquipmentCombatAttributesRegistry.armorStaminaCostMultiplier(mob);
+                * com.kingdomcomecombat.equipment.EquipmentCombatAttributesRegistry.armorStaminaCostMultiplier(mob)
+                * CombatControlConfig.MOB_ATTACK_STAMINA_COST_MULTIPLIER;
         if (!ServerStaminaState.consume(mob, staminaCost)) {
             return false;
         }
@@ -303,12 +357,9 @@ public class HumanoidCombatAiTicker {
         faceTarget(mob, target);
         alignMasterCounterPair(mob, target, moveConfig.masterCounterSpacing());
 
-        float attackAnimationSpeed = (float) Math.max(
-                0.05,
-                profile.attackAnimationSpeed()
-                        * EquipmentCombatAttributesRegistry.weaponAttackSpeedMultiplier(mob)
-                        * ModGameRules.combatSpeed(mob)
-        );
+        // Master counters are fixed cinematic actions. Mob profile, weapon and
+        // combat-speed modifiers must not retime either the animation or hits.
+        float attackAnimationSpeed = 1.0F;
         int totalTicks = CombatAttackTiming.getAttackTotalTicks(state.direction, moveConfig);
         int minTotalTicks = 20;
         if (moveConfig.directHitTick() >= 0) {
@@ -318,7 +369,7 @@ public class HumanoidCombatAiTicker {
             minTotalTicks = Math.max(minTotalTicks, moveConfig.weaponClashTick() + 8);
         }
         int normalSpeedTotalTicks = Math.max(totalTicks, minTotalTicks);
-        totalTicks = Math.max(1, (int) Math.ceil(normalSpeedTotalTicks / attackAnimationSpeed));
+        totalTicks = normalSpeedTotalTicks;
 
         ServerCombatControlState.disableMovement(mob.getUuid(), totalTicks);
         ServerCombatControlState.disableMovement(target.getUuid(), totalTicks);
@@ -431,6 +482,7 @@ public class HumanoidCombatAiTicker {
     }
 
     public static boolean shouldForcePerfectBlock(LivingEntity entity) {
+        if (CombatServerConfig.lightweightBlockingModeEnabled()) return false;
         HumanoidCombatAiState state = STATES.get(entity.getUuid());
         HumanoidCombatAiProfile profile = HumanoidCombatAiProfiles.getProfile(entity);
         if (state == null || profile == null || profile.perfectBlockChance() < MINIMUM_PERFECT_BLOCK_CHANCE) {
@@ -574,7 +626,17 @@ public class HumanoidCombatAiTicker {
             boolean consumesFollowUp,
             boolean transitionAttack
     ) {
-        if (state.stanceSwitchLockTicks > 0) {
+        if (ServerCombatState.getAttack(target.getUuid()) != null) {
+            return false;
+        }
+        if (com.kingdomcomecombat.combat.CombatItemUtil.isPolearm(mob.getMainHandStack())
+                && state.direction == CombatDirection.UP) {
+            setDirection(state, mob.getRandom().nextBoolean() ? CombatDirection.LEFT : CombatDirection.RIGHT);
+        }
+        // A confirmed follow-up changes stance and starts its blended transition
+        // in the same tick. The stance change itself sets this lock, so applying
+        // it here would reject every directional follow-up immediately.
+        if (!transitionAttack && state.stanceSwitchLockTicks > 0) {
             return false;
         }
 
@@ -590,7 +652,8 @@ public class HumanoidCombatAiTicker {
         }
 
         AttackMoveConfig moveConfig = selectAttackMove(mob, state);
-        double staminaCost = comboMove != null ? comboMove.staminaCost() : moveConfig.staminaCost();
+        double staminaCost = (comboMove != null ? comboMove.staminaCost() : moveConfig.staminaCost())
+                * CombatControlConfig.MOB_ATTACK_STAMINA_COST_MULTIPLIER;
         if (!ServerStaminaState.hasAtLeast(mob, staminaCost)) {
             return false;
         }
@@ -609,9 +672,10 @@ public class HumanoidCombatAiTicker {
         boolean comboAttack = comboMove != null;
         float attackAnimationSpeed = (float) Math.max(
                 0.05,
-                profile.attackAnimationSpeed()
-                        * EquipmentCombatAttributesRegistry.weaponAttackSpeedMultiplier(mob)
-                        * (comboAttack ? 1.0 : ModGameRules.combatSpeed(mob))
+                profile.attackAnimationSpeed() * (comboAttack
+                        ? 1.0
+                        : EquipmentCombatAttributesRegistry.weaponAttackSpeedMultiplier(mob)
+                                * ModGameRules.combatSpeed(mob))
         );
         int rawAttackTicks = comboMove != null
                 ? CombatAttackTiming.getComboAttackTotalTicks(comboMove.animationName())
@@ -648,6 +712,14 @@ public class HumanoidCombatAiTicker {
         if (comboMove != null) {
             clearComboPlan(state);
             syncComboAttackAnimation(mob, attackDirection, comboMove, attackAnimationSpeed);
+            if (comboMove.suctionCombo() && !comboMove.victimAnimationName().isBlank()) {
+                syncCinematicVictimAnimation(
+                        target,
+                        attackDirection,
+                        comboMove.victimAnimationName(),
+                        attackAnimationSpeed
+                );
+            }
         } else {
             syncAttackAnimation(mob, attackDirection, profile, moveConfig, attackAnimationSpeed, startupSlowdown);
         }
@@ -658,8 +730,27 @@ public class HumanoidCombatAiTicker {
     private static double scaledAttackDesire(MobEntity mob, HumanoidCombatAiProfile profile) {
         return Math.min(
                 1.0,
-                Math.max(0.0, profile.attackDesirePerHalfSecond() * ModGameRules.combatSpeed(mob))
+                Math.max(0.0, scaleAiChance(mob, profile.attackDesirePerHalfSecond())
+                        * (CombatServerConfig.lightweightBlockingModeEnabled() ? 0.9 : 1.0)
+                        * ModGameRules.combatSpeed(mob))
         );
+    }
+
+    public static double scaleAiChance(LivingEntity entity, double chance) {
+        double multiplier = switch (entity.getWorld().getDifficulty()) {
+            case EASY, PEACEFUL -> 0.8;
+            case NORMAL -> 0.9;
+            default -> 1.0;
+        };
+        return Math.max(0.0, Math.min(1.0, chance * multiplier));
+    }
+
+    public static double scaledBlockChance(LivingEntity entity, double chance) {
+        double scaled = scaleAiChance(entity, chance);
+        if (CombatServerConfig.lightweightBlockingModeEnabled()) {
+            scaled = Math.max(0.0, scaled - (1.0 - scaled));
+        }
+        return scaled;
     }
 
     private static void applyPostAttackDirectionChange(
@@ -721,7 +812,7 @@ public class HumanoidCombatAiTicker {
             return false;
         }
 
-        double chance = Math.min(0.80, 0.12 + profile.aiLevel() * 0.08 + profile.comboLevel() * 0.06);
+        double chance = profile.comboPlanChance();
         if (mob.getRandom().nextDouble() > chance) {
             return false;
         }
@@ -740,6 +831,33 @@ public class HumanoidCombatAiTicker {
         state.plannedComboIndex = 2;
         setDirection(state, combo.sequence().get(1));
         state.handSwitchCooldownTicks = 0;
+        return true;
+    }
+
+    private static boolean maybeStartComboPlan(
+            MobEntity mob,
+            LivingEntity target,
+            HumanoidCombatAiProfile profile,
+            HumanoidCombatAiState state
+    ) {
+        if (state.plannedCombo != null) return true;
+        if (profile.comboLevel() <= 0 || mob.getRandom().nextDouble() > profile.comboPlanChance()) {
+            return false;
+        }
+        List<ComboMoveConfig> candidates = ComboMoveConfigs.all().stream()
+                .filter(combo -> combo.sequence().size() >= 2)
+                .filter(combo -> canAiUseCombo(mob, target, profile, combo))
+                .toList();
+        if (candidates.isEmpty()) return false;
+
+        ComboMoveConfig combo = candidates.get(mob.getRandom().nextInt(candidates.size()));
+        state.plannedCombo = combo;
+        state.plannedComboIndex = 1;
+        state.followUpAttacksRemaining = Math.max(
+                state.followUpAttacksRemaining, combo.sequence().size() - 1);
+        state.handSwitchCooldownTicks = 0;
+        setDirection(state, combo.sequence().getFirst());
+        ServerComboState.clear(mob.getUuid());
         return true;
     }
 
@@ -779,7 +897,7 @@ public class HumanoidCombatAiTicker {
     private static int rollFollowUpAttacks(MobEntity attacker, HumanoidCombatAiProfile profile) {
         int max = Math.max(0, profile.maxFollowUpAttacks());
         int count = 0;
-        while (count < max && attacker.getRandom().nextDouble() <= profile.followUpAttackChance()) {
+        while (count < max && attacker.getRandom().nextDouble() <= scaleAiChance(attacker, profile.followUpAttackChance())) {
             count++;
         }
 
@@ -811,17 +929,33 @@ public class HumanoidCombatAiTicker {
             return false;
         }
 
-        if (mob.getRandom().nextDouble() > profile.dodgeChance()) {
+        if (mob.getRandom().nextDouble() > scaleAiChance(mob, profile.dodgeChance())) {
             return false;
         }
 
         faceTarget(mob, attacker);
+        ActiveServerAttack incoming = ServerCombatState.getAttack(attacker.getUuid());
+        DodgeDirection dodgeDirection = incoming != null
+                && (incoming.direction == CombatDirection.UP || incoming.direction == CombatDirection.DOWN)
+                ? preferredSideDodge(mob)
+                : DodgeDirection.BACK;
         ServerStaminaState.consume(mob, CombatControlConfig.DODGE_STAMINA_COST);
-        ServerCombatControlState.startDodge(mob.getUuid(), DodgeDirection.BACK);
+        ServerCombatControlState.startDodge(mob, dodgeDirection);
         state.dodgeCooldownTicks = 32;
         state.attackCooldownTicks = Math.max(state.attackCooldownTicks, 12);
         mob.getNavigation().stop();
         return true;
+    }
+
+    private static DodgeDirection preferredSideDodge(MobEntity mob) {
+        double radians = Math.toRadians(mob.getYaw());
+        Vec3d right = new Vec3d(Math.cos(radians), 0.0, Math.sin(radians));
+        boolean rightClear = mob.getWorld().isSpaceEmpty(mob, mob.getBoundingBox().offset(right.multiply(1.2)));
+        boolean leftClear = mob.getWorld().isSpaceEmpty(mob, mob.getBoundingBox().offset(right.multiply(-1.2)));
+        if (rightClear && leftClear) return mob.getRandom().nextBoolean() ? DodgeDirection.RIGHT : DodgeDirection.LEFT;
+        if (rightClear) return DodgeDirection.RIGHT;
+        if (leftClear) return DodgeDirection.LEFT;
+        return DodgeDirection.BACK;
     }
 
     private static boolean canEnterCombatState(
@@ -960,7 +1094,7 @@ public class HumanoidCombatAiTicker {
         mob.getNavigation().stop();
         faceTarget(mob, target);
         ServerStaminaState.consume(mob, CombatControlConfig.FORWARD_STEP_STAMINA_COST);
-        ServerCombatControlState.startDodge(mob.getUuid(), DodgeDirection.FORWARD);
+        ServerCombatControlState.startDodge(mob, DodgeDirection.FORWARD);
         state.forwardStepChaseCooldownTicks = FORWARD_STEP_CHASE_COOLDOWN_TICKS;
         state.decisionTicks = Math.min(state.decisionTicks, 3);
         return true;
@@ -992,6 +1126,11 @@ public class HumanoidCombatAiTicker {
             LivingEntity target,
             HumanoidCombatAiProfile profile
     ) {
+        // Horizontal spacing must not pin a mob on a ledge while its target is below it.
+        // In that case vanilla navigation needs to be allowed to walk off/down immediately.
+        if (Math.abs(target.getY() - mob.getY()) > 0.75) {
+            return false;
+        }
         double minimumDistance = Math.max(
                 CombatMovementConfig.LOCKED_MIN_TARGET_DISTANCE,
                 profile.minDistance()
@@ -1048,6 +1187,10 @@ public class HumanoidCombatAiTicker {
     }
 
     private static void faceTarget(MobEntity mob, LivingEntity target) {
+        if (target instanceof net.minecraft.entity.player.PlayerEntity
+                && ServerCombatControlState.isDodging(target)) {
+            return;
+        }
         mob.lookAtEntity(target, 45.0F, 45.0F);
 
         Vec3d delta = target.getPos().subtract(mob.getPos());
@@ -1072,6 +1215,11 @@ public class HumanoidCombatAiTicker {
 
         CombatDirection[] directions = CombatDirection.values();
         CombatDirection next = directions[mob.getRandom().nextInt(directions.length)];
+
+        if (com.kingdomcomecombat.combat.CombatItemUtil.isPolearm(mob.getMainHandStack())) {
+            directions = new CombatDirection[]{CombatDirection.LEFT, CombatDirection.RIGHT, CombatDirection.DOWN};
+            next = directions[mob.getRandom().nextInt(directions.length)];
+        }
 
         if (directions.length > 1) {
             while (next == state.direction) {
@@ -1100,6 +1248,7 @@ public class HumanoidCombatAiTicker {
             CombatDirection direction,
             HumanoidCombatAiProfile profile
     ) {
+        STATES.computeIfAbsent(mob.getUuid(), ignored -> new HumanoidCombatAiState()).stanceSynced = true;
         int targetId = mob.getTarget() == null ? -1 : mob.getTarget().getId();
         String animationName = CombatWeaponUtil.stanceAnimationName(mob, direction);
         float animationSpeed = (float) profile.attackAnimationSpeed();
@@ -1127,6 +1276,18 @@ public class HumanoidCombatAiTicker {
                 mob.getUuid(),
                 new StanceSyncSnapshot(targetId, direction, animationSpeed, animationName, now)
         );
+    }
+
+    private static void clearCombatStance(MobEntity mob, HumanoidCombatAiState state) {
+        if (mob instanceof VindicatorEntity) {
+            mob.setAttacking(false);
+        }
+        if (!state.stanceSynced) {
+            return;
+        }
+        sendToNearbyPlayers(mob, new EntityCombatStancePayload(mob.getId(), -1, -1, 1.0F, ""));
+        state.stanceSynced = false;
+        LAST_STANCE_SYNCS.remove(mob.getUuid());
     }
 
     private static void syncAttackAnimation(
@@ -1165,6 +1326,23 @@ public class HumanoidCombatAiTicker {
         sendToNearbyPlayers(mob, payload);
     }
 
+    private static void syncCinematicVictimAnimation(
+            LivingEntity victim,
+            CombatDirection direction,
+            String animationName,
+            float attackAnimationSpeed
+    ) {
+        EntityCinematicVictimAnimationPayload payload = new EntityCinematicVictimAnimationPayload(
+                victim.getId(),
+                direction.ordinal(),
+                animationName,
+                attackAnimationSpeed,
+                false
+        );
+
+        sendToNearbyPlayers(victim, payload);
+    }
+
     private static void syncMasterCounterAnimation(
             LivingEntity entity,
             CombatDirection direction,
@@ -1200,7 +1378,12 @@ public class HumanoidCombatAiTicker {
                 new IncomingAttackWarningPayload(
                         attacker.getId(),
                         direction.ordinal(),
-                        isCurrentAttackUnblockable(attacker) ? 1 : 0
+                        isCurrentAttackUnblockable(attacker)
+                                ? IncomingAttackWarningPayload.UNBLOCKABLE
+                                : (ModGameRules.classicMode(player)
+                                || com.kingdomcomecombat.combat.CombatItemUtil.hasDirectionAgnosticBlock(player)
+                                ? IncomingAttackWarningPayload.DIRECTION_FREE_BLOCK
+                                : IncomingAttackWarningPayload.DIRECTIONAL_BLOCK)
                 )
         );
     }
@@ -1250,11 +1433,7 @@ public class HumanoidCombatAiTicker {
     }
 
     private static void sendToNearbyPlayers(LivingEntity entity, net.minecraft.network.packet.CustomPayload payload) {
-        for (ServerPlayerEntity player : ((ServerWorld) entity.getWorld()).getPlayers()) {
-            if (player.squaredDistanceTo(entity) <= 64.0 * 64.0) {
-                ServerPlayNetworking.send(player, payload);
-            }
-        }
+        CombatNetworkBroadcaster.sendTrackingAndSelf(entity, payload);
     }
 
     private static CombatDirection blockDirectionForAttack(CombatDirection attackDirection) {
@@ -1341,14 +1520,20 @@ public class HumanoidCombatAiTicker {
     }
 
     static void markActiveCombatMob(MobEntity mob) {
-        ACTIVE_COMBAT_MOBS.put(mob.getId(), mob);
+        if (!mob.isRemoved()) {
+            ACTIVE_COMBAT_MOBS.add(mob.getUuid());
+        }
     }
 
-    private static void separateActiveCombatMobs() {
+    private static void separateActiveCombatMobs(net.minecraft.server.MinecraftServer server) {
         double minimumDistance = Math.max(0.1, CombatMovementConfig.LOCKED_MIN_TARGET_DISTANCE - 0.2);
         double minimumDistanceSquared = minimumDistance * minimumDistance;
         Map<CombatCell, List<MobEntity>> cells = new HashMap<>();
-        for (MobEntity mob : ACTIVE_COMBAT_MOBS.values()) {
+        for (UUID uuid : ACTIVE_COMBAT_MOBS) {
+            Entity resolved = findEntity(server, uuid);
+            if (!(resolved instanceof MobEntity mob)) {
+                continue;
+            }
             if (!mob.isAlive() || mob.isRemoved()) {
                 continue;
             }
@@ -1370,6 +1555,9 @@ public class HumanoidCombatAiTicker {
                             continue;
                         }
                         for (MobEntity other : neighbors) {
+                            if (mob.isRemoved() || other.isRemoved() || !mob.isAlive() || !other.isAlive()) {
+                                continue;
+                            }
                             if (mob.getId() >= other.getId() || mob.getWorld() != other.getWorld()) {
                                 continue;
                             }
@@ -1408,6 +1596,13 @@ public class HumanoidCombatAiTicker {
                     MathHelper.floor(mob.getZ() / cellSize)
             );
         }
+    }
+
+    private static boolean isLoadedMob(ServerWorld world, MobEntity mob) {
+        // The entity comes directly from this world's live iteration. A ticker
+        // can remove it, so recheck the cheap flags between dispatches; a UUID
+        // world lookup here was needlessly repeated three times for every mob.
+        return !mob.isRemoved() && mob.isAlive() && mob.getWorld() == world;
     }
 
     private static Entity findEntity(net.minecraft.server.MinecraftServer server, UUID uuid) {

@@ -23,6 +23,10 @@ public class ActiveServerAttack {
     public boolean movementKeyLunge;
     public int lungeForwardInput = 1;
     public int lungeSideInput = 0;
+    public int lungeProgressTicks = 0;
+    public double accumulatedLungeSpeed = 0.0;
+    public double mobLungeStartX = Double.NaN;
+    public double mobLungeStartZ = Double.NaN;
     public final int attackTotalTicks;
     public final float animationSpeedMultiplier;
     public final ComboMoveConfig comboMove;

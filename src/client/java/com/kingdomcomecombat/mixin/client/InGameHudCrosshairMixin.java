@@ -1,5 +1,6 @@
 package com.kingdomcomecombat.mixin.client;
 
+import com.kingdomcomecombat.client.combat.ClientExecutionState;
 import com.kingdomcomecombat.client.lockon.LockOnState;
 import com.kingdomcomecombat.client.game.ClientGameRuleState;
 import net.minecraft.client.gui.DrawContext;
@@ -23,7 +24,7 @@ public class InGameHudCrosshairMixin {
             RenderTickCounter tickCounter,
             CallbackInfo ci
     ) {
-        if (LockOnState.locked || ClientGameRuleState.hardcoreMode()) {
+        if (LockOnState.locked || ClientExecutionState.shouldHideCrosshair() || ClientGameRuleState.hardcoreMode()) {
             ci.cancel();
         }
     }

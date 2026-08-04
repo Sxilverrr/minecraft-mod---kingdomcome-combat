@@ -1,0 +1,15 @@
+{
+  "_comment": "Built-in compatibility for Epic Knights 10.12 ranged weapons.",
+  "items": {
+    "magistuarmory:longbow": {
+      "speed": 0.9,
+      "hardness": 1.15,
+      "power": 1.15
+    },
+    "magistuarmory:heavy_crossbow": {
+      "speed": 0.72,
+      "hardness": 1.35,
+      "power": 1.35
+    }
+  }
+}

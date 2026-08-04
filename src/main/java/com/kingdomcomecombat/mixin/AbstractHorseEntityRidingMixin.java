@@ -195,19 +195,9 @@ public abstract class AbstractHorseEntityRidingMixin extends AnimalEntity implem
             LivingEntity controllingPassenger,
             CallbackInfoReturnable<Vec2f> cir
     ) {
-        if (!(controllingPassenger instanceof PlayerEntity player)) {
-            return;
+        if (controllingPassenger instanceof PlayerEntity) {
+            cir.setReturnValue(kingdomcomecombat$getControlledRotation(controllingPassenger));
         }
-
-        ServerHorseControlState.Input input = kingdomcomecombat$getHorseInput(player);
-        if (!this.getWorld().isClient()) {
-            this.setYaw(input.yaw());
-        }
-
-        cir.setReturnValue(new Vec2f(
-                controllingPassenger.getPitch() * 0.5F,
-                this.getYaw()
-        ));
     }
 
     @Inject(method = "getControlledMovementInput", at = @At("HEAD"), cancellable = true)
@@ -216,12 +206,7 @@ public abstract class AbstractHorseEntityRidingMixin extends AnimalEntity implem
             Vec3d movementInput,
             CallbackInfoReturnable<Vec3d> cir
     ) {
-        ServerHorseControlState.Input input = kingdomcomecombat$getHorseInput(controllingPlayer);
-        boolean shouldMoveForward = input.forward() > 0.1F
-                || Math.abs(input.sideways()) > 0.1F
-                || kccCurrentSpeed > 0.001;
-        double forward = shouldMoveForward && kccPanicDelayTicks <= 0 && kccBrakeDelayTicks <= 0 ? 1.0 : 0.0;
-        cir.setReturnValue(new Vec3d(0.0, 0.0, forward));
+        cir.setReturnValue(kingdomcomecombat$getControlledMovementInput(controllingPlayer));
     }
 
     @Inject(method = "getSaddledSpeed", at = @At("RETURN"), cancellable = true)
@@ -229,6 +214,28 @@ public abstract class AbstractHorseEntityRidingMixin extends AnimalEntity implem
             PlayerEntity controllingPlayer,
             CallbackInfoReturnable<Float> cir
     ) {
+        cir.setReturnValue(kingdomcomecombat$modifySaddledSpeed(controllingPlayer, cir.getReturnValueF()));
+    }
+
+    @Override
+    public Vec2f kingdomcomecombat$getControlledRotation(LivingEntity controllingPassenger) {
+        PlayerEntity player = (PlayerEntity) controllingPassenger;
+        ServerHorseControlState.Input input = kingdomcomecombat$getHorseInput(player);
+        if (!this.getWorld().isClient()) this.setYaw(input.yaw());
+        return new Vec2f(controllingPassenger.getPitch() * 0.5F, this.getYaw());
+    }
+
+    @Override
+    public Vec3d kingdomcomecombat$getControlledMovementInput(PlayerEntity controllingPlayer) {
+        ServerHorseControlState.Input input = kingdomcomecombat$getHorseInput(controllingPlayer);
+        boolean shouldMoveForward = input.forward() > 0.1F
+                || Math.abs(input.sideways()) > 0.1F || kccCurrentSpeed > 0.001;
+        double forward = shouldMoveForward && kccPanicDelayTicks <= 0 && kccBrakeDelayTicks <= 0 ? 1.0 : 0.0;
+        return new Vec3d(0.0, 0.0, forward);
+    }
+
+    @Override
+    public float kingdomcomecombat$modifySaddledSpeed(PlayerEntity controllingPlayer, float vanillaSpeed) {
         double speedFactor;
         if (kccCurrentSpeed >= KCC_RUN_THRESHOLD) {
             double sprintProgress = (Math.min(1.0, kccCurrentSpeed) - KCC_RUN_THRESHOLD) / (1.0 - KCC_RUN_THRESHOLD);
@@ -249,7 +256,7 @@ public abstract class AbstractHorseEntityRidingMixin extends AnimalEntity implem
             speedFactor *= 1.0 - turnAmount * 0.20;
         }
 
-        cir.setReturnValue((float) (cir.getReturnValueF() * speedFactor));
+        return (float) (vanillaSpeed * speedFactor);
     }
 
     @Unique

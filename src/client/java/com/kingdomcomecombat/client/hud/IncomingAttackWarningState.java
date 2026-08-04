@@ -20,7 +20,7 @@ public class IncomingAttackWarningState {
         }
         attackerEntityId = attackerId;
         direction = attackDirection;
-        warningType = Math.max(0, Math.min(2, type));
+        warningType = Math.max(0, Math.min(3, type));
         ticksRemaining = warningType == 2 ? PERFECT_BLOCK_TICKS : WARNING_TICKS;
     }
 

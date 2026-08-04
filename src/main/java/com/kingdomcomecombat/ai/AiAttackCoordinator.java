@@ -36,6 +36,10 @@ public final class AiAttackCoordinator {
             return false;
         }
 
+        if (ServerCombatState.getAttack(target.getUuid()) != null) {
+            return false;
+        }
+
         long worldTime = attacker.getWorld().getTime();
         AttackTurn turn = ATTACK_TURNS_BY_TARGET.get(target.getUuid());
         if (turn == null || turn.busyUntilTick < worldTime) {

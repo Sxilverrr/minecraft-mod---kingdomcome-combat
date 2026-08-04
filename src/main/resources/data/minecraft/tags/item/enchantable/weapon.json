@@ -1,0 +1,8 @@
+{
+  "replace": false,
+  "values": [
+    "#kingdom_come_combat:longswords",
+    "#kingdom_come_combat:fighting_maces",
+    "#kingdom_come_combat:polearms"
+  ]
+}

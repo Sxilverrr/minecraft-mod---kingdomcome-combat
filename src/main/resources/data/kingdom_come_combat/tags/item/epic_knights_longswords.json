@@ -1,0 +1,237 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "magistuarmory:wood_bastardsword",
+      "required": false
+    },
+    {
+      "id": "magistuarmory:stone_bastardsword",
+      "required": false
+    },
+    {
+      "id": "magistuarmory:iron_bastardsword",
+      "required": false
+    },
+    {
+      "id": "magistuarmory:gold_bastardsword",
+      "required": false
+    },
+    {
+      "id": "magistuarmory:diamond_bastardsword",
+      "required": false
+    },
+    {
+      "id": "magistuarmory:netherite_bastardsword",
+      "required": false
+    },
+    {
+      "id": "magistuarmory:copper_bastardsword",
+      "required": false
+    },
+    {
+      "id": "magistuarmory:steel_bastardsword",
+      "required": false
+    },
+    {
+      "id": "magistuarmory:silver_bastardsword",
+      "required": false
+    },
+    {
+      "id": "magistuarmory:tin_bastardsword",
+      "required": false
+    },
+    {
+      "id": "magistuarmory:bronze_bastardsword",
+      "required": false
+    },
+    {
+      "id": "magistuarmory:wood_estoc",
+      "required": false
+    },
+    {
+      "id": "magistuarmory:stone_estoc",
+      "required": false
+    },
+    {
+      "id": "magistuarmory:iron_estoc",
+      "required": false
+    },
+    {
+      "id": "magistuarmory:gold_estoc",
+      "required": false
+    },
+    {
+      "id": "magistuarmory:diamond_estoc",
+      "required": false
+    },
+    {
+      "id": "magistuarmory:netherite_estoc",
+      "required": false
+    },
+    {
+      "id": "magistuarmory:copper_estoc",
+      "required": false
+    },
+    {
+      "id": "magistuarmory:steel_estoc",
+      "required": false
+    },
+    {
+      "id": "magistuarmory:silver_estoc",
+      "required": false
+    },
+    {
+      "id": "magistuarmory:tin_estoc",
+      "required": false
+    },
+    {
+      "id": "magistuarmory:bronze_estoc",
+      "required": false
+    },
+    {
+      "id": "magistuarmory:wood_claymore",
+      "required": false
+    },
+    {
+      "id": "magistuarmory:stone_claymore",
+      "required": false
+    },
+    {
+      "id": "magistuarmory:iron_claymore",
+      "required": false
+    },
+    {
+      "id": "magistuarmory:gold_claymore",
+      "required": false
+    },
+    {
+      "id": "magistuarmory:diamond_claymore",
+      "required": false
+    },
+    {
+      "id": "magistuarmory:netherite_claymore",
+      "required": false
+    },
+    {
+      "id": "magistuarmory:copper_claymore",
+      "required": false
+    },
+    {
+      "id": "magistuarmory:steel_claymore",
+      "required": false
+    },
+    {
+      "id": "magistuarmory:silver_claymore",
+      "required": false
+    },
+    {
+      "id": "magistuarmory:tin_claymore",
+      "required": false
+    },
+    {
+      "id": "magistuarmory:bronze_claymore",
+      "required": false
+    },
+    {
+      "id": "magistuarmory:wood_zweihander",
+      "required": false
+    },
+    {
+      "id": "magistuarmory:stone_zweihander",
+      "required": false
+    },
+    {
+      "id": "magistuarmory:iron_zweihander",
+      "required": false
+    },
+    {
+      "id": "magistuarmory:gold_zweihander",
+      "required": false
+    },
+    {
+      "id": "magistuarmory:diamond_zweihander",
+      "required": false
+    },
+    {
+      "id": "magistuarmory:netherite_zweihander",
+      "required": false
+    },
+    {
+      "id": "magistuarmory:copper_zweihander",
+      "required": false
+    },
+    {
+      "id": "magistuarmory:steel_zweihander",
+      "required": false
+    },
+    {
+      "id": "magistuarmory:silver_zweihander",
+      "required": false
+    },
+    {
+      "id": "magistuarmory:tin_zweihander",
+      "required": false
+    },
+    {
+      "id": "magistuarmory:bronze_zweihander",
+      "required": false
+    },
+    {
+      "id": "magistuarmory:wood_flamebladedsword",
+      "required": false
+    },
+    {
+      "id": "magistuarmory:stone_flamebladedsword",
+      "required": false
+    },
+    {
+      "id": "magistuarmory:iron_flamebladedsword",
+      "required": false
+    },
+    {
+      "id": "magistuarmory:gold_flamebladedsword",
+      "required": false
+    },
+    {
+      "id": "magistuarmory:diamond_flamebladedsword",
+      "required": false
+    },
+    {
+      "id": "magistuarmory:netherite_flamebladedsword",
+      "required": false
+    },
+    {
+      "id": "magistuarmory:copper_flamebladedsword",
+      "required": false
+    },
+    {
+      "id": "magistuarmory:steel_flamebladedsword",
+      "required": false
+    },
+    {
+      "id": "magistuarmory:silver_flamebladedsword",
+      "required": false
+    },
+    {
+      "id": "magistuarmory:tin_flamebladedsword",
+      "required": false
+    },
+    {
+      "id": "magistuarmory:bronze_flamebladedsword",
+      "required": false
+    },
+    {
+      "id": "magistuarmory:noble_sword",
+      "required": false
+    },
+    {
+      "id": "magistuarmory:rusted_bastardsword",
+      "required": false
+    },
+    {
+      "id": "magistuarmory:messer_sword",
+      "required": false
+    }
+  ]
+}

@@ -35,7 +35,8 @@ public class CombatWeaponUtil {
             return base;
         }
 
-        if (BeowulfArmState.isActive(attacker)) {
+        if (BeowulfArmState.isActive(attacker)
+                && !CombatItemUtil.isPolearm(attacker.getMainHandStack())) {
             String shortSwordMoveId = EquipmentFallbackConfig.swordAttackMoveIds()
                     .getOrDefault(directionKey(direction), "");
             AttackMoveConfig shortSwordMove = AttackMoveConfigs.getNamed(shortSwordMoveId);
@@ -75,13 +76,46 @@ public class CombatWeaponUtil {
             return "";
         }
 
-        if (BeowulfArmState.isActive(entity)) {
+        if (BeowulfArmState.isActive(entity)
+                && !CombatItemUtil.isPolearm(entity.getMainHandStack())) {
             return EquipmentFallbackConfig.swordStanceAnimationNames()
                     .getOrDefault(directionKey(direction), "");
         }
 
         return EquipmentCombatAttributesRegistry.getWeapon(entity.getMainHandStack())
                 .stanceAnimationName(directionKey(direction));
+    }
+
+    public static ComboMoveConfig resolveExecutionMove(LivingEntity attacker, CombatDirection stanceDirection) {
+        if (attacker == null) {
+            return null;
+        }
+
+        WeaponCombatAttributes attributes =
+                EquipmentCombatAttributesRegistry.getWeapon(attacker.getMainHandStack());
+        String configuredSet = attributes.executionMoveId(directionKey(stanceDirection));
+        if (configuredSet.isBlank() && CombatItemUtil.isShortSword(attacker.getMainHandStack())) {
+            configuredSet = "shortsword";
+        }
+        if (configuredSet.isBlank() && CombatItemUtil.isHeavyWeapon(attacker.getMainHandStack())) {
+            configuredSet = "heavy_weapon";
+        }
+        if (configuredSet.isBlank()) {
+            configuredSet = EquipmentFallbackConfig.defaultWeaponExecutionMoveIds()
+                    .getOrDefault(directionKey(stanceDirection), "");
+        }
+        if (configuredSet.isBlank()) {
+            configuredSet = defaultExecutionSet(attacker);
+        }
+        return ExecutionMoveConfigs.find(configuredSet, stanceDirection, attacker.getMainHandStack())
+                .orElse(null);
+    }
+
+    private static String defaultExecutionSet(LivingEntity attacker) {
+        if (CombatItemUtil.isShortSword(attacker.getMainHandStack())) {
+            return "shortsword";
+        }
+        return CombatItemUtil.isHeavyWeapon(attacker.getMainHandStack()) ? "heavy_weapon" : "base";
     }
 
     private static String directionKey(CombatDirection direction) {
@@ -110,7 +144,13 @@ public class CombatWeaponUtil {
                 source.weaponClashSound(),
                 source.masterCounterSpacing(),
                 source.horizontalKnockback(),
-                source.hitReaction()
+                source.hitReaction(),
+                source.directHitHeightParts(),
+                source.defenseDirection(),
+                source.classicDirectionalBlock(),
+                source.blockable(),
+                source.dodgeable(),
+                source.jumpDodgeLegs()
         );
     }
 }

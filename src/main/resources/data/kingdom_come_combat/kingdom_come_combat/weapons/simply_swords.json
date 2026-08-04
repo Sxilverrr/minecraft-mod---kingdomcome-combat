@@ -1,0 +1,124 @@
+{
+  "_comment": "Simply Swords compatibility. Its implicit weapon-type tags cover both material variants and unique weapons.",
+  "items": {
+    "#simplyswords:swords": {},
+    "#kingdom_come_combat:simply_swords_longswords": {
+      "real_hitbox_size_units": {"x": 5.0, "y": 1.5, "z": 24.0},
+      "attack_moves": {
+        "right": "attack_right_longsword",
+        "left": "attack_left_longsword",
+        "up": "attack_up_longsword",
+        "down": "attack_down_longsword"
+      },
+      "stance_animations": {
+        "right": "stance_right_longsword",
+        "left": "stance_left_longsword",
+        "up": "stance_up_longsword",
+        "down": "stance_down_longsword"
+      }
+    },
+    "#kingdom_come_combat:simply_swords_polearms": {
+      "damage_panel": {"thrust": 1.0, "strike": 0.35, "slash": 1.2},
+      "base_impact": 50.0,
+      "block_impact_mitigation": 0.90,
+      "armor_break_multiplier": 2.1,
+      "held_movement_speed_multiplier": 0.9,
+      "real_hitbox_size_units": {"x": 4.0, "y": 4.0, "z": 42.0},
+      "real_hitbox_rotation_degrees": {"x": 90.0, "y": 0.0, "z": 0.0},
+      "attack_moves": {
+        "right": "attack_right_longweapon",
+        "left": "attack_left_longweapon",
+        "up": "attack_up_longsword",
+        "down": "attack_down_longweapon"
+      },
+      "stance_animations": {
+        "right": "stance_right_longweapon",
+        "left": "stance_left_longweapon",
+        "up": "stance_up_longsword",
+        "down": "stance_down_longweapon"
+      }
+    },
+    "#simplyswords:implicit/dagger": {
+      "damage_panel": {"thrust": 1.25, "strike": 0.1, "slash": 0.75},
+      "base_impact": 12.0,
+      "block_impact_mitigation": 0.55,
+      "armor_break_multiplier": 0.25,
+      "attack_speed_multiplier": 1.12,
+      "real_hitbox_size_units": {"x": 3.0, "y": 1.0, "z": 15.0}
+    },
+    "#simplyswords:implicit/sai": {
+      "damage_panel": {"thrust": 1.15, "strike": 0.2, "slash": 0.6},
+      "base_impact": 14.0,
+      "block_impact_mitigation": 0.68,
+      "armor_break_multiplier": 0.3,
+      "attack_speed_multiplier": 1.1,
+      "real_hitbox_size_units": {"x": 4.0, "y": 2.0, "z": 16.0}
+    },
+    "#simplyswords:implicit/rapier": {
+      "damage_panel": {"thrust": 1.5, "strike": 0.1, "slash": 0.55},
+      "base_impact": 16.0,
+      "block_impact_mitigation": 0.68,
+      "armor_break_multiplier": 0.3,
+      "attack_speed_multiplier": 1.08,
+      "real_hitbox_size_units": {"x": 3.0, "y": 1.0, "z": 27.0}
+    },
+    "#simplyswords:implicit/cutlass": {
+      "damage_panel": {"thrust": 0.7, "strike": 0.25, "slash": 1.35},
+      "base_impact": 20.0,
+      "block_impact_mitigation": 0.72,
+      "armor_break_multiplier": 0.4,
+      "real_hitbox_size_units": {"x": 4.0, "y": 1.5, "z": 22.0}
+    },
+    "#simplyswords:implicit/hammer": {
+      "damage_panel": {"thrust": 0.15, "strike": 1.2, "slash": 0.1},
+      "base_impact": 38.0,
+      "block_impact_mitigation": 0.62,
+      "armor_break_multiplier": 1.45,
+      "attack_speed_multiplier": 0.94,
+      "attack_moves": {
+        "right": "attack_right_heavy",
+        "left": "attack_left_heavy",
+        "up": "attack_up_heavy",
+        "down": "attack_down_heavy"
+      }
+    },
+    "#simplyswords:implicit/greathammer": {
+      "damage_panel": {"thrust": 0.1, "strike": 1.55, "slash": 0.05},
+      "base_impact": 52.0,
+      "block_impact_mitigation": 0.66,
+      "armor_break_multiplier": 1.9,
+      "attack_speed_multiplier": 0.82,
+      "held_movement_speed_multiplier": 0.88,
+      "real_hitbox_size_units": {"x": 10.0, "y": 10.0, "z": 34.0},
+      "attack_moves": {
+        "right": "attack_right_heavy",
+        "left": "attack_left_heavy",
+        "up": "attack_up_heavy",
+        "down": "attack_down_heavy"
+      }
+    },
+    "#simplyswords:implicit/greataxe": {
+      "damage_panel": {"thrust": 0.05, "strike": 0.8, "slash": 1.45},
+      "base_impact": 46.0,
+      "block_impact_mitigation": 0.65,
+      "armor_break_multiplier": 1.65,
+      "attack_speed_multiplier": 0.85,
+      "held_movement_speed_multiplier": 0.9,
+      "real_hitbox_size_units": {"x": 8.0, "y": 3.0, "z": 33.0},
+      "attack_moves": {
+        "right": "attack_right_heavy",
+        "left": "attack_left_heavy",
+        "up": "attack_up_heavy",
+        "down": "attack_down_heavy"
+      }
+    },
+    "#simplyswords:implicit/chakram": {
+      "damage_panel": {"thrust": 0.1, "strike": 0.35, "slash": 1.25},
+      "base_impact": 15.0,
+      "block_impact_mitigation": 0.5,
+      "armor_break_multiplier": 0.3,
+      "attack_speed_multiplier": 1.1,
+      "real_hitbox_size_units": {"x": 10.0, "y": 2.0, "z": 10.0}
+    }
+  }
+}

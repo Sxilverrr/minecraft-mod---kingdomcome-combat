@@ -12,6 +12,7 @@ public class CombatKeyBindings {
     public static KeyBinding SOFT_LOCK_KEY;
     public static KeyBinding SKILL_SCREEN_KEY;
     public static KeyBinding DODGE_KEY;
+    public static KeyBinding WAR_CRY_KEY;
 
     public static void register() {
         LOCK_ON_KEY = KeyBindingHelper.registerKeyBinding(new KeyBinding(
@@ -36,6 +37,12 @@ public class CombatKeyBindings {
                 "key.kingdom_come_combat.dodge",
                 InputUtil.Type.KEYSYM,
                 InputUtil.UNKNOWN_KEY.getCode(),
+                CATEGORY
+        ));
+        WAR_CRY_KEY = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+                "key.kingdom_come_combat.war_cry",
+                InputUtil.Type.KEYSYM,
+                GLFW.GLFW_KEY_GRAVE_ACCENT,
                 CATEGORY
         ));
     }

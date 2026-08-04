@@ -3,16 +3,21 @@ package com.kingdomcomecombat.combat;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.damage.DamageSource;
 import com.kingdomcomecombat.injury.ModStatusEffects;
+import com.kingdomcomecombat.network.CombatNetworkBroadcaster;
+import com.kingdomcomecombat.network.EntityDodgeAnimationPayload;
 
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.UUID;
+import java.util.Set;
 
 public class ServerCombatControlState {
     private static final Map<UUID, Integer> ATTACK_DISABLED = new HashMap<>();
     private static final Map<UUID, Integer> BLOCK_DISABLED = new HashMap<>();
     private static final Map<UUID, Integer> MOVEMENT_DISABLED = new HashMap<>();
+    private static final Map<UUID, Integer> DODGE_DISABLED = new HashMap<>();
+    private static final Map<UUID, Integer> DODGE_COOLDOWNS = new HashMap<>();
     private static final Map<UUID, Integer> PERFECT_COUNTER_WINDOWS = new HashMap<>();
     private static final Map<UUID, DodgeWindow> DODGES = new HashMap<>();
 
@@ -23,6 +28,8 @@ public class ServerCombatControlState {
         tickMap(ATTACK_DISABLED);
         tickMap(BLOCK_DISABLED);
         tickMap(MOVEMENT_DISABLED);
+        tickMap(DODGE_DISABLED);
+        tickMap(DODGE_COOLDOWNS);
         tickMap(PERFECT_COUNTER_WINDOWS);
 
         Iterator<Map.Entry<UUID, DodgeWindow>> iterator = DODGES.entrySet().iterator();
@@ -47,12 +54,28 @@ public class ServerCombatControlState {
         MOVEMENT_DISABLED.merge(uuid, Math.max(0, ticks), Math::max);
     }
 
+    public static void disableDodge(UUID uuid, int ticks) {
+        DODGE_DISABLED.merge(uuid, Math.max(0, ticks), Math::max);
+        DODGES.remove(uuid);
+    }
+
     public static void clearMovementDisable(UUID uuid) {
         MOVEMENT_DISABLED.remove(uuid);
+        DODGE_DISABLED.remove(uuid);
     }
 
     public static void clearBlockDisable(UUID uuid) {
         BLOCK_DISABLED.remove(uuid);
+    }
+
+    public static void clear(UUID uuid) {
+        ATTACK_DISABLED.remove(uuid);
+        BLOCK_DISABLED.remove(uuid);
+        MOVEMENT_DISABLED.remove(uuid);
+        DODGE_DISABLED.remove(uuid);
+        DODGE_COOLDOWNS.remove(uuid);
+        PERFECT_COUNTER_WINDOWS.remove(uuid);
+        DODGES.remove(uuid);
     }
 
     public static boolean canAttack(LivingEntity entity) {
@@ -75,8 +98,17 @@ public class ServerCombatControlState {
         return MOVEMENT_DISABLED.getOrDefault(uuid, 0) > 0;
     }
 
+    public static void collectMovementControlledUuids(Set<UUID> destination) {
+        destination.addAll(MOVEMENT_DISABLED.keySet());
+        destination.addAll(DODGES.keySet());
+    }
+
     public static void startPerfectCounterWindow(UUID uuid) {
         PERFECT_COUNTER_WINDOWS.put(uuid, CombatControlConfig.PERFECT_COUNTER_WINDOW_TICKS);
+    }
+
+    public static boolean isPerfectCounterWindowActive(UUID uuid) {
+        return PERFECT_COUNTER_WINDOWS.getOrDefault(uuid, 0) > 0;
     }
 
     public static boolean consumePerfectCounterAttackSlow(UUID uuid) {
@@ -90,6 +122,7 @@ public class ServerCombatControlState {
 
     public static void startDodge(UUID uuid, DodgeDirection direction) {
         DODGES.put(uuid, new DodgeWindow(direction, 0));
+        DODGE_COOLDOWNS.put(uuid, CombatControlConfig.DODGE_TOTAL_TICKS + CombatControlConfig.DODGE_COOLDOWN_TICKS);
         disableAttack(
                 uuid,
                 direction == DodgeDirection.FORWARD
@@ -102,6 +135,16 @@ public class ServerCombatControlState {
                         ? CombatControlConfig.FORWARD_STEP_BLOCK_DISABLE_TICKS
                         : CombatControlConfig.DODGE_BLOCK_DISABLE_TICKS
         );
+    }
+
+    public static void startDodge(LivingEntity entity, DodgeDirection direction) {
+        startDodge(entity.getUuid(), direction);
+        if (!entity.getWorld().isClient()) {
+            CombatNetworkBroadcaster.sendTrackingAndSelf(
+                    entity,
+                    new EntityDodgeAnimationPayload(entity.getId(), direction.ordinal())
+            );
+        }
     }
 
     public static boolean dodgesAttack(LivingEntity entity, CombatDirection attackDirection) {
@@ -135,7 +178,9 @@ public class ServerCombatControlState {
     }
 
     public static boolean canDodge(LivingEntity entity) {
-        return ModStatusEffects.effectiveLevel(entity, ModStatusEffects.LEG_INJURY) <= 0;
+        return DODGE_DISABLED.getOrDefault(entity.getUuid(), 0) <= 0
+                && DODGE_COOLDOWNS.getOrDefault(entity.getUuid(), 0) <= 0
+                && ModStatusEffects.effectiveLevel(entity, ModStatusEffects.LEG_INJURY) <= 2;
     }
 
     private static void tickMap(Map<UUID, Integer> map) {

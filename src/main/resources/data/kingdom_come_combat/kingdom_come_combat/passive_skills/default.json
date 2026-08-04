@@ -1,18 +1,6 @@
 {
   "_comment": "被动技能配置路径：data/<namespace>/kingdom_come_combat/passive_skills/*.json。每个技能可配置 name/display_name/title、description/desc/text、icon/texture、source(book、advancement、experience)、advancement/achievement、experience_cost/xp_cost/cost。source=book 需要在 data/<namespace>/kingdom_come_combat/skill_books/<id>.json 创建 passive_id 对应的技能书；source=advancement 会在玩家完成对应 advancement 后自动学习；source=experience 会出现在技能界面的可学习 tab，长按后消耗 experience_cost 经验点数学习，不是等级。icon 可写完整资源路径，也可只写文件名，对应 textures/gui/passive_skills/<icon>.png。",
   "skills": {
-    "dodge": {
-      "name": "闪避",
-      "description": "步伐是战斗的关键一环，为你寻找优势的位置或事躲开致命的攻击",
-      "translations": {
-        "en_us": {
-          "name": "Dodge",
-          "description": "Footwork is a vital part of combat, letting you find an advantageous position or evade a lethal blow."
-        }
-      },
-      "icon": "",
-      "source": "book"
-    },
     "master_counter": {
       "name": "大师之击",
       "description": "大师之击包含了剑术大师记录的4种化被动为主动的攻击，交击，怒击，顶击，曲击。当敌人进攻时以相同方向的攻击触发，命中敌人。",
@@ -43,7 +31,7 @@
     },
     "hunter": {
       "name": "怪物猎人",
-      "description": "沉着冷静的应对你的敌人，击杀敌人会令你回复10点体力值",
+      "description": "沉着冷静地应对敌人。击杀敌人会令你恢复15点体力。",
       "translations": {
         "en_us": {
           "name": "Monster Hunter",
@@ -59,11 +47,11 @@
     },
     "fighter": {
       "name": "角斗士",
-      "description": "从古罗马起放弃盾牌的打法，代表着纯粹的血腥。如果只使用了一只手，造成额外的7%伤害",
+      "description": "从古罗马起放弃盾牌的打法，代表着纯粹的血腥。如果只使用了一只手，造成额外的10%伤害",
       "translations": {
         "en_us": {
           "name": "Gladiator",
-          "description": "A shieldless style from ancient arenas, pure and bloody. If your offhand is empty, deal 7% more damage."
+          "description": "A shieldless style from ancient arenas, pure and bloody. If your offhand is empty, deal 10% more damage."
         }
       },
       "icon": "",
@@ -71,12 +59,12 @@
       "experience_cost": 1500,
       "perks": {
         "condition_offhand_empty": 1.0,
-        "damage_multiplier": 1.07
+        "damage_multiplier": 1.1
       }
     },
     "strong_arm": {
       "name": "贝奥武夫之臂",
-      "description": "力大无穷，你可以单手举起长剑，把他当成短剑使用。只有在副手有东西时触发。如果这样使用长剑，剑的面板下降20%，体力消耗+20%，攻击速度减少20%",
+      "description": "力大无穷，你可以单手举起长剑，把它当成短剑使用。仅在副手持有物品时触发。以这种方式使用长剑时，伤害和攻击速度降低20%，攻击体力消耗增加20%。",
       "translations": {
         "en_us": {
           "name": "Beowulf's Arm",
@@ -96,11 +84,11 @@
     },
     "combo_attack": {
       "name": "势不可挡",
-      "description": "你的攻击速度极快，敌人难以反应，直到一击毙命。使用短剑快速连续攻击时，每次命中都会令后续攻击额外造成3%伤害；只要攻击间隔没有中断，增幅就会持续叠加。",
+      "description": "你的攻击速度极快，敌人难以反应，直到一击毙命。使用短剑快速连续攻击时，每次命中都会令后续攻击额外造成5%伤害；只要攻击间隔没有中断，增幅就会持续叠加。",
       "translations": {
         "en_us": {
           "name": "Unstoppable",
-          "description": "Your attacks come too quickly for the enemy to react. Each rapid successive hit with a short sword adds 3% damage to subsequent attacks, stacking until the attack rhythm is broken."
+          "description": "Your attacks come too quickly for the enemy to react. Each rapid successive hit with a short sword adds 5% damage to subsequent attacks, stacking until the attack rhythm is broken."
         }
       },
       "icon": "",
@@ -108,8 +96,8 @@
       "experience_cost": 2500,
       "perks": {
         "condition_weapon_short_sword": 1.0,
-        "rapid_attack_damage_per_stack": 0.03,
-        "rapid_attack_window_ticks": 30.0
+        "rapid_attack_damage_per_stack": 0.05,
+        "rapid_attack_window_ticks": 40.0
       }
     },
     "sword_master": {
@@ -354,6 +342,164 @@
       "perks": {
         "hit_analgesia_level": 2.0,
         "hit_analgesia_duration_ticks": 600.0
+      }
+    },
+    "fortress": {
+      "name": "固若金汤",
+      "description": "穿戴重甲时，累计承受15点伤害会获得5秒固守；固守期间若护甲完全抵挡伤害，则免疫该次冲击效果。",
+      "translations": {
+        "en_us": {
+          "name": "Fortress",
+          "description": "While wearing heavy armor, taking a total of 15 damage grants Fortified for 5 seconds. While Fortified, if your armor completely blocks the damage, you are immune to that hit's impact effect."
+        }
+      },
+      "source": "experience",
+      "experience_cost": 2000,
+      "icon": "",
+      "perks": {
+        "condition_armor_above": 15.0,
+        "fortress_damage_threshold": 3.0,
+        "fortress_duration_ticks": 100.0
+      }
+    },
+    "grand_finale": {
+      "name": "好戏开演",
+      "description": "连招体力消耗增加10%，但造成15%的额外伤害。",
+      "translations": {
+        "en_us": {
+          "name": "Grand Finale",
+          "description": "Combos cost 10% more stamina, but deal 15% additional damage."
+        }
+      },
+      "source": "experience",
+      "experience_cost": 2000,
+      "icon": "",
+      "perks": {
+        "condition_combo": 1.0,
+        "combo_stamina_cost_multiplier": 1.1,
+        "combo_damage_multiplier": 1.15
+      }
+    },
+    "focused": {
+      "name": "全神贯注",
+      "description": "生命值高于90%时，体力上限增加40点。",
+      "translations": {
+        "en_us": {
+          "name": "Focused",
+          "description": "While your health is above 90%, your maximum stamina is increased by 40."
+        }
+      },
+      "source": "experience",
+      "experience_cost": 2000,
+      "icon": "",
+      "perks": {
+        "condition_health_above": 0.9,
+        "max_stamina_bonus": 40.0
+      }
+    },
+    "relentless_edge": {
+      "name": "锋不可当",
+      "description": "敌人非完美格挡你的攻击后，完美格挡概率降低5%，持续5秒，不可叠加。",
+      "translations": {
+        "en_us": {
+          "name": "Relentless Edge",
+          "description": "After an enemy blocks your attack without performing a perfect block, their perfect block chance is reduced by 5% for 5 seconds. This effect does not stack."
+        }
+      },
+      "source": "experience",
+      "experience_cost": 2000,
+      "icon": "",
+      "perks": {
+        "target_perfect_block_chance_penalty": 0.95,
+        "target_perfect_block_penalty_duration_ticks": 100.0
+      }
+    },
+    "opening_strike": {
+      "name": "破绽打击",
+      "description": "攻击处于攻击动画中的敌人时，额外造成20%的冲击力。",
+      "translations": {
+        "en_us": {
+          "name": "Opening Strike",
+          "description": "Attacking an enemy during their attack animation deals 20% more impact."
+        }
+      },
+      "source": "experience",
+      "experience_cost": 2000,
+      "icon": "",
+      "perks": {
+        "attacking_target_impact_multiplier": 1.2
+      }
+    },
+    "flywheel": {
+      "name": "飞轮效应",
+      "description": "发动连招后，20秒内体力消耗降低25%。",
+      "translations": {
+        "en_us": {
+          "name": "Flywheel Effect",
+          "description": "After performing a combo, stamina costs are reduced by 25% for 20 seconds."
+        }
+      },
+      "source": "experience",
+      "experience_cost": 2000,
+      "icon": "",
+      "perks": {
+        "condition_combo": 1.0,
+        "combo_buff_stamina_cost_multiplier": 0.75,
+        "combo_buff_duration_ticks": 400.0
+      }
+    },
+    "second_intention": {
+      "name": "第二意图",
+      "description": "当大师之击反制对方的完美防御反击时，恢复35点体力。",
+      "translations": {
+        "en_us": {
+          "name": "Second Intention",
+          "description": "When your master strike counters an opponent's perfect defensive counter, restore 35 stamina."
+        }
+      },
+      "source": "experience",
+      "experience_cost": 2000,
+      "icon": "",
+      "perks": {
+        "condition_master_counter": 1.0,
+        "counter_perfect_counter_stamina_restore": 35.0
+      }
+    },
+    "terrifying_warrior": {
+      "name": "骇人战士",
+      "description": "你的战吼令人胆寒。施放战吼时，使10米内敌人的体力恢复速度降低20%，持续20秒；该效果有30秒冷却。",
+      "translations": {
+        "en_us": {
+          "name": "Terrifying Warrior",
+          "description": "Your war cry strikes fear into nearby foes, reducing the stamina regeneration of enemies within 10 meters by 20% for 20 seconds. This effect has a 30-second cooldown."
+        }
+      },
+      "icon": "",
+      "source": "experience",
+      "experience_cost": 1500,
+      "perks": {
+        "war_cry_enemy_stamina_regen_multiplier": 0.8,
+        "war_cry_debuff_duration_ticks": 400.0,
+        "war_cry_cooldown_ticks": 600.0
+      }
+    },
+    "rout_breaker": {
+      "name": "溃逃破军",
+      "description": "处决敌人会震慑其同伴，使附近敌人造成的伤害降低10%，持续30秒；该效果有60秒冷却。",
+      "translations": {
+        "en_us": {
+          "name": "Rout Breaker",
+          "description": "Executing an enemy shatters the resolve of nearby foes, reducing their damage by 10% for 30 seconds. This effect has a 60-second cooldown."
+        }
+      },
+      "icon": "",
+      "source": "experience",
+      "experience_cost": 1500,
+      "perks": {
+        "execution_enemy_damage_multiplier": 0.9,
+        "execution_debuff_duration_ticks": 600.0,
+        "execution_debuff_cooldown_ticks": 1200.0,
+        "execution_debuff_radius": 10.0
       }
     },
     "hunter_plus": {

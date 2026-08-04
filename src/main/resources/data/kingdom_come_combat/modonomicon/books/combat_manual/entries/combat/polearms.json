@@ -1,0 +1,22 @@
+{
+  "type": "modonomicon:content",
+  "category": "kingdom_come_combat:combat",
+  "description": "book.kingdom_come_combat.combat_manual.polearms.description",
+  "icon": {"id": "kingdom_come_combat:iron_poleaxe"},
+  "id": "kingdom_come_combat:combat/polearms",
+  "name": "book.kingdom_come_combat.combat_manual.polearms.name",
+  "pages": [
+    {
+      "type": "modonomicon:text",
+      "title": "book.kingdom_come_combat.combat_manual.polearms.intro.title",
+      "text": "book.kingdom_come_combat.combat_manual.polearms.intro.text"
+    },
+    {"type": "modonomicon:crafting_recipe", "recipe_id_1": "kingdom_come_combat:copper_poleaxe", "recipe_id_2": "kingdom_come_combat:iron_poleaxe"},
+    {"type": "modonomicon:crafting_recipe", "recipe_id_1": "kingdom_come_combat:golden_poleaxe", "recipe_id_2": "kingdom_come_combat:diamond_poleaxe"},
+    {"type": "modonomicon:crafting_recipe", "recipe_id_1": "kingdom_come_combat:netherite_poleaxe"}
+  ],
+  "parents": [{"entry": "kingdom_come_combat:combat/panels"}],
+  "sort_number": 9,
+  "x": 4,
+  "y": 0
+}

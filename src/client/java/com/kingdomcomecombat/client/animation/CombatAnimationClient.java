@@ -11,6 +11,7 @@ import com.kingdomcomecombat.config.CombatClientConfig;
 import com.kingdomcomecombat.item.HandCannonItem;
 import com.kingdomcomecombat.item.ModItems;
 import com.kingdomcomecombat.client.lockon.LockOnState;
+import com.kingdomcomecombat.client.compat.FirstPersonRenderCompat;
 import com.zigythebird.playeranim.animation.PlayerAnimationController;
 import com.zigythebird.playeranim.api.PlayerAnimationAccess;
 import com.zigythebird.playeranim.api.PlayerAnimationFactory;
@@ -34,7 +35,11 @@ import net.minecraft.util.Arm;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 public class CombatAnimationClient {
     private static final Identifier COMBAT_LAYER_ID =
@@ -79,6 +84,9 @@ public class CombatAnimationClient {
     private static final String HAND_CANNON_RELOAD_NAME = "load_hand_cannon";
 
     private static final int ATTACK_FADE_TICKS = 2;
+    private static final int REMOTE_TRANSITION_IN_TICKS = 4;
+    private static final int REMOTE_CHAIN_TRANSITION_TICKS = 6;
+    private static final int REMOTE_BLOCK_IN_TICKS = 3;
     private static final int BLOCK_IN_FADE_TICKS = 1;
     private static final int BLOCK_OUT_FADE_TICKS = 8;
     private static final int STANCE_FADE_TICKS = CombatTiming.ATTACK_TO_STANCE_BLEND_TICKS;
@@ -89,8 +97,12 @@ public class CombatAnimationClient {
     private static boolean attackAnimationPlaying = false;
     private static SpeedModifier combatSpeedModifier = null;
     private static SpeedModifier blockSpeedModifier = null;
+    private static final Map<UUID, RemoteSpeedControl> REMOTE_SPEED_CONTROLS = new HashMap<>();
+    private static final Map<UUID, Integer> REMOTE_COMBAT_TRANSITIONS = new HashMap<>();
+    private static final Map<UUID, Integer> REMOTE_BLOCK_TRANSITIONS = new HashMap<>();
     private static int blockReturnTicks = 0;
     private static int hitReactionLockTicks = 0;
+    private static boolean cinematicVictimAnimationPlaying = false;
     private static int visualHitStopTicks = 0;
     private static TrackedAnimation combatItemAnimation = null;
     private static TrackedAnimation blockItemAnimation = null;
@@ -180,11 +192,6 @@ public class CombatAnimationClient {
             return;
         }
 
-        if (livingEntity instanceof AbstractClientPlayerEntity) {
-            playAttackOnPlayer((AbstractClientPlayerEntity) livingEntity, direction, false);
-            return;
-        }
-
         ClientEntityGeckoAnimationState.startAttack(
                 entityId,
                 direction,
@@ -192,6 +199,15 @@ public class CombatAnimationClient {
                 startupSlowdown,
                 animationName
         );
+
+        if (livingEntity instanceof AbstractClientPlayerEntity) {
+            AbstractClientPlayerEntity remote = (AbstractClientPlayerEntity) livingEntity;
+            Identifier animation = animationName == null || animationName.isBlank()
+                    ? getAttackAnimation(direction)
+                    : CombatAnimationResource.playerAnimationId(animationName);
+            playRemoteTransientPlayerAnimation(remote, animation, false, REMOTE_TRANSITION_IN_TICKS);
+            return;
+        }
     }
 
     private static void retimeLocalSyncedAttack(
@@ -336,6 +352,51 @@ public class CombatAnimationClient {
         bladeTrailActive = false;
     }
 
+    public static void playCinematicVictimAnimation(
+            String animationName,
+            CombatDirection fallbackDirection,
+            float speedMultiplier,
+            int durationTicks
+    ) {
+        if (animationName == null || animationName.isBlank()) {
+            return;
+        }
+        PlayerAnimationController controller = getController();
+        if (controller == null) {
+            return;
+        }
+
+        Identifier animation = CombatAnimationResource.playerAnimationId(animationName);
+        PlayerAnimationController blockController = getBlockController();
+        if (blockController != null) {
+            playWithFade(blockController, NEUTRAL, BLOCK_OUT_FADE_TICKS);
+        }
+        blockReturnTicks = 0;
+        blockItemAnimation = null;
+        setBlockAnimationSpeed(1.0F);
+        clearVisualHitStop();
+        setCombatAnimationSpeed(1.0F);
+        playWithFade(controller, animation, CombatTiming.ATTACK_CHAIN_TRANSITION_TICKS);
+        currentAnimation = animation;
+        attackAnimationPlaying = true;
+        cinematicVictimAnimationPlaying = true;
+        hitReactionLockTicks = Math.max(hitReactionLockTicks, Math.max(1, durationTicks));
+        combatItemAnimation = new TrackedAnimation(
+                GeckoLikeAnimationLibrary.Kind.ATTACK,
+                fallbackDirection,
+                animationTicks(),
+                Math.max(0.05F, speedMultiplier),
+                animationName
+        );
+        bladeTrailActive = false;
+        displayedCameraTransformUpdatedAt = -1L;
+        setCombatAnimationSpeed(speedMultiplier);
+    }
+
+    public static void extendHitReactionLock(int ticks) {
+        hitReactionLockTicks = Math.max(hitReactionLockTicks, Math.max(1, ticks));
+    }
+
     public static void playBlock(int animationType, CombatDirection direction) {
         PlayerAnimationController controller = getBlockController();
         if (controller == null) {
@@ -364,6 +425,8 @@ public class CombatAnimationClient {
     }
 
     private static void tick(MinecraftClient client) {
+        tickRemoteAnimationTransitions(client);
+        tickRemoteAnimationSpeeds(client);
         maintainAlwaysOnFirstPersonModel(client);
         tickHandCannonReload(client);
         tickVisualHitStop();
@@ -410,6 +473,175 @@ public class CombatAnimationClient {
                 : ATTACK_FADE_TICKS;
 
         playWithFade(controller, animation, fadeTicks);
+    }
+
+    public static void playRemotePlayerAnimation(
+            AbstractClientPlayerEntity player,
+            Identifier animation,
+            boolean blockLayer,
+            int fadeTicks
+    ) {
+        PlayerAnimationController controller = getController(
+                player,
+                blockLayer ? BLOCK_LAYER_ID : COMBAT_LAYER_ID
+        );
+        if (controller != null) {
+            playWithFade(controller, animation, fadeTicks);
+            if (!blockLayer) {
+                syncRemoteAnimationSpeed(player, controller);
+            }
+        }
+    }
+
+    public static void playRemoteTransientPlayerAnimation(
+            AbstractClientPlayerEntity player,
+            Identifier animation,
+            boolean blockLayer,
+            int fadeTicks
+    ) {
+        Map<UUID, Integer> transitions = blockLayer
+                ? REMOTE_BLOCK_TRANSITIONS : REMOTE_COMBAT_TRANSITIONS;
+        int effectiveFadeTicks = !blockLayer && transitions.containsKey(player.getUuid())
+                ? Math.max(fadeTicks, REMOTE_CHAIN_TRANSITION_TICKS)
+                : fadeTicks;
+        playRemotePlayerAnimation(player, animation, blockLayer, effectiveFadeTicks);
+        transitions.put(player.getUuid(), player.getId());
+    }
+
+    public static boolean isRemoteCombatTransitionActive(AbstractClientPlayerEntity player) {
+        return REMOTE_COMBAT_TRANSITIONS.containsKey(player.getUuid());
+    }
+
+    public static int remoteAttackFadeTicks() {
+        return REMOTE_TRANSITION_IN_TICKS;
+    }
+
+    public static int remoteBlockFadeTicks() {
+        return REMOTE_BLOCK_IN_TICKS;
+    }
+
+    public static void blendRemotePlayerToCurrentStance(
+            AbstractClientPlayerEntity player,
+            int fadeTicks
+    ) {
+        REMOTE_COMBAT_TRANSITIONS.remove(player.getUuid());
+        playRemotePlayerAnimation(player, remoteBaseAnimation(player.getId()), false, fadeTicks);
+    }
+
+    private static void syncRemoteAnimationSpeed(
+            AbstractClientPlayerEntity player,
+            PlayerAnimationController controller
+    ) {
+        UUID uuid = player.getUuid();
+        RemoteSpeedControl current = REMOTE_SPEED_CONTROLS.get(uuid);
+        if (current == null || current.controller() != controller) {
+            if (current != null) {
+                SpeedModifier oldModifier = current.modifier();
+                current.controller().removeModifierIf(existing -> existing == oldModifier);
+            }
+            SpeedModifier modifier = new SpeedModifier(
+                    ClientEntityGeckoAnimationState.playbackSpeed(player.getId())
+            );
+            controller.addModifierLast(modifier);
+            REMOTE_SPEED_CONTROLS.put(uuid, new RemoteSpeedControl(controller, modifier));
+            return;
+        }
+        current.modifier().speed = ClientEntityGeckoAnimationState.playbackSpeed(player.getId());
+    }
+
+    public static void refreshRemoteAnimationSpeed(AbstractClientPlayerEntity player) {
+        PlayerAnimationController controller = getController(player);
+        if (controller != null) {
+            syncRemoteAnimationSpeed(player, controller);
+        }
+    }
+
+    private static void tickRemoteAnimationSpeeds(MinecraftClient client) {
+        Iterator<Map.Entry<UUID, RemoteSpeedControl>> iterator =
+                REMOTE_SPEED_CONTROLS.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<UUID, RemoteSpeedControl> entry = iterator.next();
+            Entity entity = client.world == null ? null : client.world.getPlayerByUuid(entry.getKey());
+            if (!(entity instanceof AbstractClientPlayerEntity remote)
+                    || remote == client.player
+                    || remote.isRemoved()) {
+                iterator.remove();
+                continue;
+            }
+            entry.getValue().modifier().speed =
+                    ClientEntityGeckoAnimationState.playbackSpeed(remote.getId());
+        }
+    }
+
+    private static void tickRemoteAnimationTransitions(MinecraftClient client) {
+        tickRemoteAnimationTransitions(client, REMOTE_COMBAT_TRANSITIONS, false);
+        tickRemoteAnimationTransitions(client, REMOTE_BLOCK_TRANSITIONS, true);
+    }
+
+    private static void tickRemoteAnimationTransitions(
+            MinecraftClient client,
+            Map<UUID, Integer> transitions,
+            boolean blockLayer
+    ) {
+        Iterator<Map.Entry<UUID, Integer>> iterator = transitions.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<UUID, Integer> entry = iterator.next();
+            Entity entity = client.world == null ? null : client.world.getPlayerByUuid(entry.getKey());
+            if (!(entity instanceof AbstractClientPlayerEntity remote)
+                    || remote == client.player
+                    || remote.isRemoved()) {
+                iterator.remove();
+                continue;
+            }
+
+            int entityId = remote.getId();
+            boolean active = blockLayer
+                    ? ClientEntityGeckoAnimationState.getBlockLayer(entityId) != null
+                    : ClientEntityGeckoAnimationState.getAttackLayer(entityId) != null
+                    || ClientEntityGeckoAnimationState.getHitReactionLayer(entityId) != null;
+            if (active) {
+                continue;
+            }
+
+            Identifier animation = blockLayer ? NEUTRAL : remoteBaseAnimation(entityId);
+            PlayerAnimationController controller = getController(
+                    remote,
+                    blockLayer ? BLOCK_LAYER_ID : COMBAT_LAYER_ID
+            );
+            if (controller != null) {
+                playWithFade(
+                        controller,
+                        animation,
+                        blockLayer ? BLOCK_OUT_FADE_TICKS : STANCE_FADE_TICKS
+                );
+                if (!blockLayer) {
+                    syncRemoteAnimationSpeed(remote, controller);
+                }
+            }
+            iterator.remove();
+        }
+    }
+
+    private static Identifier remoteBaseAnimation(int entityId) {
+        ClientEntityGeckoAnimationState.ActiveAnimation stance =
+                ClientEntityGeckoAnimationState.getStanceLayer(entityId);
+        return stance == null
+                ? NEUTRAL
+                : syncedStanceAnimation(stance.direction(), stance.customAnimationName());
+    }
+
+    public static Identifier syncedStanceAnimation(CombatDirection direction, String animationName) {
+        return animationName == null || animationName.isBlank()
+                ? getStanceAnimation(direction)
+                : CombatAnimationResource.playerAnimationId(animationName);
+    }
+
+    public static Identifier syncedBlockAnimation(int animationType, CombatDirection direction) {
+        return switch (animationType) {
+            case 1 -> BLOCK_UNPERFECT_1;
+            case 2 -> BLOCK_UNPERFECT_2;
+            default -> getBlockAnimation(direction);
+        };
     }
     public static void playAttackTransitionPreview(CombatDirection direction) {
         String customAttackAnimation = localPlayerAttackAnimationName(direction);
@@ -553,6 +785,9 @@ public class CombatAnimationClient {
         }
 
         visualHitStopTicks = Math.max(visualHitStopTicks, ticks);
+        if (CombatClientState.attacking) {
+            CombatClientState.startHitStop(ticks);
+        }
         setCombatAnimationSpeed(0.01F);
         setBlockAnimationSpeed(0.01F);
         retimeCombatItemAnimation(0.0F);
@@ -603,6 +838,22 @@ public class CombatAnimationClient {
         playNeutral();
         blockItemAnimation = null;
         hitReactionLockTicks = 0;
+        cinematicVictimAnimationPlaying = false;
+    }
+
+    public static void resetAfterDeath() {
+        handCannonReloadActive = false;
+        attackAnimationPlaying = false;
+        currentAnimation = null;
+        combatItemAnimation = null;
+        blockItemAnimation = null;
+        bladeTrailActive = false;
+        blockReturnTicks = 0;
+        hitReactionLockTicks = 0;
+        cinematicVictimAnimationPlaying = false;
+        clearVisualHitStop();
+        resetAnimationSpeeds();
+        playNeutral();
     }
 
     public static void clearCurrentAnimation() {
@@ -624,6 +875,10 @@ public class CombatAnimationClient {
                 && CombatItemUtil.hasSweepingEdge(client.player.getMainHandStack())));
     }
 
+    public static boolean isCinematicVictimAnimationPlaying() {
+        return cinematicVictimAnimationPlaying;
+    }
+
     public static boolean isLocalMovementLockedByAnimation() {
         return blockReturnTicks > 0 || hitReactionLockTicks > 0;
     }
@@ -640,7 +895,9 @@ public class CombatAnimationClient {
 
     private static boolean shouldUseSpecialFirstPerson(AbstractClientPlayerEntity player) {
         MinecraftClient client = MinecraftClient.getInstance();
-        if (client.player != player
+        if (!CombatClientConfig.firstPersonRenderingEnabled()
+                || FirstPersonRenderCompat.isFirstPersonModelLoaded()
+                || client.player != player
                 || player.isGliding()
                 || player.isSwimming()
                 || player.isInSwimmingPose()
@@ -683,6 +940,13 @@ public class CombatAnimationClient {
     private static void tickHitReactionLock() {
         if (hitReactionLockTicks > 0) {
             hitReactionLockTicks--;
+        }
+        if (hitReactionLockTicks <= 0 && cinematicVictimAnimationPlaying) {
+            cinematicVictimAnimationPlaying = false;
+            attackAnimationPlaying = false;
+            currentAnimation = null;
+            combatItemAnimation = null;
+            setCombatAnimationSpeed(1.0F);
         }
     }
 
@@ -1426,6 +1690,12 @@ public class CombatAnimationClient {
             return startOffsetSeconds
                     + (float) ((animationTicks() - startedAtTicks) / 20.0) * speedMultiplier;
         }
+    }
+
+    private record RemoteSpeedControl(
+            PlayerAnimationController controller,
+            SpeedModifier modifier
+    ) {
     }
 
     private static double animationTicks() {

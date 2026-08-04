@@ -1,0 +1,24 @@
+{
+  "replace": false,
+  "values": [
+    {"id":"valarian_conquest:common_sword","required":false},
+    {"id":"valarian_conquest:soldiers_sword","required":false},
+    {"id":"valarian_conquest:practice_sword","required":false},
+    {"id":"valarian_conquest:noble_sword","required":false},
+    {"id":"valarian_conquest:mercenary_sword","required":false},
+    {"id":"valarian_conquest:undead_sword","required":false},
+    {"id":"valarian_conquest:elven_sword","required":false},
+    {"id":"valarian_conquest:barathian_sword","required":false},
+    {"id":"valarian_conquest:bohemian_sword","required":false},
+    {"id":"valarian_conquest:burgundian_sword","required":false},
+    {"id":"valarian_conquest:caladrian_sword","required":false},
+    {"id":"valarian_conquest:galician_sword","required":false},
+    {"id":"valarian_conquest:hospitaller_sword","required":false},
+    {"id":"valarian_conquest:lancastian_sword","required":false},
+    {"id":"valarian_conquest:numerian_sword","required":false},
+    {"id":"valarian_conquest:orleanian_sword","required":false},
+    {"id":"valarian_conquest:templar_sword","required":false},
+    {"id":"valarian_conquest:valarian_sword","required":false},
+    {"id":"valarian_conquest:visgothian_sword","required":false}
+  ]
+}

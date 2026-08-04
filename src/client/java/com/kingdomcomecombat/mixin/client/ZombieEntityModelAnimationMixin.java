@@ -1,6 +1,7 @@
 package com.kingdomcomecombat.mixin.client;
 
 import com.kingdomcomecombat.client.animation.ClientEntityGeckoAnimationState;
+import com.kingdomcomecombat.client.animation.ClientDodgeAnimationState;
 import com.kingdomcomecombat.client.animation.MobStanceHeadTargeting;
 import com.kingdomcomecombat.client.animation.VanillaSkeletonGeckoAnimationApplier;
 import com.kingdomcomecombat.client.collision.ClientModelHurtboxCache;
@@ -27,6 +28,7 @@ public class ZombieEntityModelAnimationMixin {
         if (ClientEntityGeckoAnimationState.isStanceOnly(entityId)) {
             MobStanceHeadTargeting.apply(entityId, state, model.head, model.body);
         }
+        ClientDodgeAnimationState.applyBiped(entityId, model.body, model.head, model.rightArm, model.leftArm, model.rightLeg, model.leftLeg);
         ClientModelHurtboxCache.update(
                 entityId,
                 model.head,

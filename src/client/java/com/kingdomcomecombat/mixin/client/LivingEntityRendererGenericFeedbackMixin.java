@@ -3,6 +3,8 @@ package com.kingdomcomecombat.mixin.client;
 import com.kingdomcomecombat.client.collision.ClientGenericModelTracker;
 import com.kingdomcomecombat.client.compat.FirstPersonRenderCompat;
 import com.kingdomcomecombat.client.mixin.EntityRenderStateKccAccess;
+import com.kingdomcomecombat.client.render.CollisionOnlyRenderContext;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.render.entity.LivingEntityRenderer;
 import net.minecraft.client.render.entity.model.EntityModel;
@@ -36,6 +38,14 @@ public abstract class LivingEntityRendererGenericFeedbackMixin {
             return;
         }
         int entityId = ((EntityRenderStateKccAccess) state).kingdomcomecombat$getEntityId();
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (client.player != null
+                && entityId == client.player.getId()
+                && client.options.getPerspective().isFirstPerson()
+                && !CollisionOnlyRenderContext.isActive()) {
+            kingdomcomecombat$trackingGenericModel = false;
+            return;
+        }
         kingdomcomecombat$trackingGenericModel =
                 ClientGenericModelTracker.begin(entityId, model, matrices);
     }

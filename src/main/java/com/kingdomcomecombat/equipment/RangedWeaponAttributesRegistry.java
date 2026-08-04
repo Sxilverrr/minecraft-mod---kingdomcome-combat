@@ -30,4 +30,25 @@ public final class RangedWeaponAttributesRegistry {
                 RangedWeaponAttributes.DEFAULT
         );
     }
+
+    public static boolean isConfigured(ItemStack stack) {
+        return stack != null
+                && !stack.isEmpty()
+                && ATTRIBUTES.containsKey(Registries.ITEM.getId(stack.getItem()));
+    }
+
+    public static Map<String, RangedWeaponAttributes> snapshot() {
+        Map<String, RangedWeaponAttributes> result = new HashMap<>();
+        ATTRIBUTES.forEach((id, attributes) -> result.put(id.toString(), attributes));
+        return Map.copyOf(result);
+    }
+
+    public static void replace(Map<String, RangedWeaponAttributes> attributes) {
+        ATTRIBUTES.clear();
+        if (attributes == null) return;
+        attributes.forEach((id, value) -> {
+            Identifier parsed = Identifier.tryParse(id);
+            if (parsed != null && value != null) ATTRIBUTES.put(parsed, value);
+        });
+    }
 }

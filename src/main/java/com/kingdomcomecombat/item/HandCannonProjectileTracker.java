@@ -5,6 +5,7 @@ import net.minecraft.entity.Entity;
 import net.minecraft.particle.ParticleTypes;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.world.ServerWorld;
+import com.kingdomcomecombat.entity.HandCannonBulletEntity;
 
 import java.util.HashSet;
 import java.util.Iterator;
@@ -41,8 +42,15 @@ public final class HandCannonProjectileTracker {
                 continue;
             }
             if (projectile.getWorld() instanceof ServerWorld world) {
+                net.minecraft.particle.ParticleEffect trail = projectile instanceof HandCannonBulletEntity bullet
+                        ? switch (bullet.getAmmoType()) {
+                            case HEAVY -> ParticleTypes.LARGE_SMOKE;
+                            case BUCKSHOT -> ParticleTypes.POOF;
+                            default -> ParticleTypes.CAMPFIRE_COSY_SMOKE;
+                        }
+                        : ParticleTypes.CAMPFIRE_COSY_SMOKE;
                 world.spawnParticles(
-                        ParticleTypes.CAMPFIRE_COSY_SMOKE,
+                        trail,
                         projectile.getX(),
                         projectile.getY(),
                         projectile.getZ(),

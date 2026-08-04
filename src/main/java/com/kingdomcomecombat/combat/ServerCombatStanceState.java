@@ -39,6 +39,11 @@ public final class ServerCombatStanceState {
         return LARGE_SHIELD_DISABLED.getOrDefault(uuid, 0) <= 0;
     }
 
+    public static void clear(UUID uuid) {
+        STANCES.remove(uuid);
+        LARGE_SHIELD_DISABLED.remove(uuid);
+    }
+
     public static void tick() {
         Iterator<Map.Entry<UUID, StanceEntry>> iterator = STANCES.entrySet().iterator();
         while (iterator.hasNext()) {

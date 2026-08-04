@@ -16,10 +16,18 @@ public class CombatAnimationNames {
             case "attack_up_longsword" -> "attack_up";
             case "attack_down_longsword" -> "attack_down";
 
+            case "attack_right_longweapon" -> "attack_right";
+            case "attack_left_longweapon" -> "attack_left";
+            case "attack_down_longweapon" -> "attack_down";
+
             case "stance_right_longsword" -> "stance_right";
             case "stance_left_longsword" -> "stance_left";
             case "stance_up_longsword" -> "stance_up";
             case "stance_down_longsword" -> "stance_down";
+
+            case "stance_right_longweapon" -> "stance_right";
+            case "stance_left_longweapon" -> "stance_left";
+            case "stance_down_longweapon" -> "stance_down";
 
             case "attack_smash" -> "combo_smash";
             case "smash_hit" -> "combo_smash";

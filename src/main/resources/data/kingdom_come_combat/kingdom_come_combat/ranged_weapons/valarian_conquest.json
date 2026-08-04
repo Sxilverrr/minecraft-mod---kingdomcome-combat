@@ -1,0 +1,7 @@
+{
+  "_comment": "Valarian Conquest bows.",
+  "items": {
+    "valarian_conquest:longbow": {"speed": 0.9, "hardness": 1.15, "power": 1.15},
+    "valarian_conquest:elven_longbow": {"speed": 1.0, "hardness": 1.1, "power": 1.12}
+  }
+}

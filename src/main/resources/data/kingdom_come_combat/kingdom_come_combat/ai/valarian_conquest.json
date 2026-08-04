@@ -1,0 +1,27 @@
+{
+  "_comment": "Valarian Conquest 4.2.1.1 melee soldiers use its HumanoidModel with KCC limb animation. Ranged archers remain on their native ranged AI.",
+  "entities": {
+    "valarian_conquest:soldier": {
+      "min_attack_interval_ticks": [16, 22],
+      "attack_desire_per_half_second": [0.48, 0.68],
+      "block_chance": [0.72, 0.94],
+      "perfect_block_chance": [0.18, 0.48],
+      "combo_level": [2, 4],
+      "dodge_chance": [0.03, 0.09],
+      "ai_level": [2, 4],
+      "stamina_max": [110.0, 150.0],
+      "stamina_regen_per_tick": [0.31, 0.38],
+      "attack_animation_speed": [0.86, 0.98],
+      "attack_startup_slowdown": [0.32, 0.46],
+      "toughness": [4.0, 7.0],
+      "follow_up_attack_chance": [0.64, 0.86],
+      "max_follow_up_attacks": 4,
+      "keep_distance": false,
+      "requires_weapon": true,
+      "combat_enter_distance": 8.0,
+      "attack_distance": 2.5,
+      "approach_distance": 1.8,
+      "exhausted_retreat_distance": 4.5
+    }
+  }
+}

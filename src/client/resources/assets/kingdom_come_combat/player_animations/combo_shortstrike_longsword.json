@@ -2,7 +2,7 @@
 	"format_version": "1.8.0",
 	"animations": {
 		"combo_shortstrike_longsword": {
-			"animation_length": 0.9583,
+			"animation_length": 0.7917,
 			"bones": {
 				"body": {
 					"rotation": {
@@ -15,7 +15,7 @@
 						"0.5417": {
 							"vector": [0, -50, 0]
 						},
-						"0.9583": {
+						"0.7917": {
 							"vector": [2.9758, -49.9351, -3.8858]
 						}
 					},
@@ -76,7 +76,7 @@
 							},
 							"lerp_mode": "catmullrom"
 						},
-						"0.375": {
+						"0.3333": {
 							"post": {
 								"vector": [-56.0582, -24.6469, -92.4665]
 							},
@@ -88,7 +88,7 @@
 							},
 							"lerp_mode": "catmullrom"
 						},
-						"0.9583": {
+						"0.7917": {
 							"post": {
 								"vector": [-86.2027, -32.0213, -56.3195]
 							},
@@ -117,7 +117,7 @@
 							},
 							"lerp_mode": "catmullrom"
 						},
-						"0.9583": {
+						"0.7917": {
 							"post": {
 								"vector": [-2, 2, -2]
 							},
@@ -188,7 +188,7 @@
 							},
 							"lerp_mode": "catmullrom"
 						},
-						"0.9583": {
+						"0.7917": {
 							"post": {
 								"vector": [-111.0445, 31.8167, -20.9899]
 							},

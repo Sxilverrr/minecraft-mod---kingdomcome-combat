@@ -1,0 +1,8 @@
+{
+  "_comment": "Millenaire culture bows.",
+  "items": {
+    "millenaire:yumibow": {"speed": 1.08, "hardness": 1.0, "power": 1.08},
+    "millenaire:seljuk_bow": {"speed": 1.04, "hardness": 0.95, "power": 1.02},
+    "millenaire:inuitbow": {"speed": 0.96, "hardness": 1.05, "power": 1.0}
+  }
+}

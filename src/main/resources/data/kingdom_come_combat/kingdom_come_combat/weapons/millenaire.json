@@ -1,0 +1,11 @@
+{
+  "_comment": "Millenaire 9.0 culture melee weapons.",
+  "items": {
+    "millenaire:norman_sword": {"damage_panel": {"thrust": 0.75, "strike": 0.35, "slash": 1.0}, "attack_speed_multiplier": 1.0},
+    "millenaire:seljuk_scimitar": {"damage_panel": {"thrust": 0.45, "strike": 0.3, "slash": 1.15}, "attack_speed_multiplier": 1.05},
+    "millenaire:japanese_tachi": {"damage_panel": {"thrust": 0.55, "strike": 0.3, "slash": 1.25}, "attack_speed_multiplier": 1.02},
+    "millenaire:mayan_mace": {"damage_panel": {"thrust": 0.05, "strike": 1.35, "slash": 0.2}, "attack_speed_multiplier": 0.88, "armor_break_multiplier": 0.7},
+    "millenaire:byzantine_mace": {"damage_panel": {"thrust": 0.05, "strike": 1.45, "slash": 0.2}, "attack_speed_multiplier": 0.86, "armor_break_multiplier": 0.75},
+    "millenaire:inuittrident": {"damage_panel": {"thrust": 1.2, "strike": 0.25, "slash": 0.55}, "attack_speed_multiplier": 0.98, "real_hitbox_size_units": {"x": 4.0, "y": 4.0, "z": 32.0}}
+  }
+}

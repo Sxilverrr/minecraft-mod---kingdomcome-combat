@@ -20,6 +20,8 @@ import com.kingdomcomecombat.combat.CombatTiming;
 import com.kingdomcomecombat.combat.ComboMoveConfig;
 import com.kingdomcomecombat.combat.ComboMoveConfigs;
 import com.kingdomcomecombat.combat.DodgeDamageConfig;
+import com.kingdomcomecombat.combat.ExecutionMoveConfigs;
+import com.kingdomcomecombat.combat.ExecutionTargetConfig;
 import com.kingdomcomecombat.config.CombatServerConfig;
 import com.kingdomcomecombat.collision.AnimatedAttackHitboxLibrary;
 import com.kingdomcomecombat.equipment.ArmorCombatAttributes;
@@ -29,19 +31,24 @@ import com.kingdomcomecombat.equipment.EquipmentCombatAttributesRegistry;
 import com.kingdomcomecombat.equipment.EquipmentFallbackConfig;
 import com.kingdomcomecombat.equipment.MobCombatAttributes;
 import com.kingdomcomecombat.equipment.MobCombatAttributesRegistry;
+import com.kingdomcomecombat.equipment.MobScaleRegistry;
 import com.kingdomcomecombat.equipment.ProjectileCombatAttributesRegistry;
 import com.kingdomcomecombat.equipment.RangedWeaponAttributes;
 import com.kingdomcomecombat.equipment.RangedWeaponAttributesRegistry;
 import com.kingdomcomecombat.equipment.ShieldCombatAttributes;
 import com.kingdomcomecombat.equipment.WeaponCombatAttributes;
 import com.kingdomcomecombat.item.SkillBookTexts;
+import com.kingdomcomecombat.hardship.HardshipConfig;
+import com.kingdomcomecombat.hardship.HardshipConfigs;
 import com.kingdomcomecombat.passive.PassiveSkillConfig;
 import com.kingdomcomecombat.passive.PassiveSkillConfigs;
+import com.kingdomcomecombat.passive.CombatExperienceConfig;
 import com.kingdomcomecombat.combat.CombatItemUtil;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.EquipmentSlot;
 import net.fabricmc.fabric.api.resource.SimpleSynchronousResourceReloadListener;
 import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
 import net.minecraft.entity.damage.DamageType;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.RegistryKey;
@@ -56,6 +63,8 @@ import net.minecraft.util.math.Vec3d;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.AbstractMap;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -65,6 +74,7 @@ import java.util.Set;
 public class CombatDataReloadListener implements SimpleSynchronousResourceReloadListener {
     private static final Identifier ID =
             Identifier.of(KingdomComeCombat.MOD_ID, "combat_data");
+    private static volatile List<WeaponDefinition> cachedWeaponDefinitions = List.of();
 
     @Override
     public Identifier getFabricId() {
@@ -74,6 +84,7 @@ public class CombatDataReloadListener implements SimpleSynchronousResourceReload
     @Override
     public void reload(ResourceManager manager) {
         ComboMoveConfigs.clear();
+        ExecutionMoveConfigs.clear();
         AttackMoveConfigs.clear();
         HumanoidCombatAiProfiles.clear();
         BeastCombatAiProfiles.clear();
@@ -85,14 +96,20 @@ public class CombatDataReloadListener implements SimpleSynchronousResourceReload
         DodgeDamageConfig.reset();
         EquipmentCombatAttributesRegistry.clear();
         MobCombatAttributesRegistry.clear();
+        MobScaleRegistry.clear();
         ProjectileCombatAttributesRegistry.clear();
         RangedWeaponAttributesRegistry.clear();
         BloodSplashConfig.clear();
         SkillBookTexts.clear();
         PassiveSkillConfigs.clear();
+        CombatExperienceConfig.reset();
+        HardshipConfigs.clear();
         EquipmentFallbackConfig.reset();
+        ExecutionTargetConfig.reset();
         loadEquipmentDefaults(manager);
         loadCombos(manager);
+        loadExecutions(manager);
+        loadExecutionTargets(manager);
         loadMoves(manager);
         loadWeapons(manager);
         loadRangedWeapons(manager);
@@ -104,15 +121,79 @@ public class CombatDataReloadListener implements SimpleSynchronousResourceReload
         loadBeastAiProfiles(manager);
         loadBloodSplash(manager);
         loadPassiveSkills(manager);
+        loadCombatExperience(manager);
+        loadHardships(manager);
         loadSkillBooks(manager);
         CombatMovementConfig.setCombatMinDistance(CombatServerConfig.combatMinDistance());
     }
 
+    /**
+     * Returns every matching resource in data-pack priority order (lowest first).
+     *
+     * <p>{@link ResourceManager#findResources} keeps only the highest-priority
+     * resource for each identifier and then orders the result by identifier. That
+     * is not sufficient for KCC data: packs are allowed to use their own namespace
+     * while overriding semantic ids inside the JSON. In that case an identifier
+     * sort can make the bundled namespace overwrite an enabled external pack.
+     */
+    private static List<Map.Entry<Identifier, Resource>> findJsonResources(
+            ResourceManager manager,
+            String path
+    ) {
+        Map<String, Integer> packPriority = new HashMap<>();
+        int[] priority = {0};
+        manager.streamResourcePacks().forEach(pack ->
+                packPriority.put(pack.getId(), priority[0]++));
+
+        List<Map.Entry<Identifier, Resource>> resources = new ArrayList<>();
+        manager.findAllResources(path, id -> id.getPath().endsWith(".json"))
+                .forEach((id, stack) -> stack.forEach(resource ->
+                        resources.add(new AbstractMap.SimpleImmutableEntry<>(id, resource))));
+        resources.sort(Comparator
+                .comparingInt((Map.Entry<Identifier, Resource> entry) ->
+                        packPriority.getOrDefault(entry.getValue().getPackId(), -1))
+                .thenComparing(Map.Entry::getKey));
+        return resources;
+    }
+
+    private static void loadHardships(ResourceManager manager) {
+        for (Map.Entry<Identifier, Resource> entry : findJsonResources(
+                manager, "kingdom_come_combat/hardships")) {
+            JsonObject root = readJson(entry.getKey(), entry.getValue());
+            JsonArray debuffs = root.getAsJsonArray("debuffs");
+            if (debuffs == null) continue;
+            for (JsonElement element : debuffs) {
+                if (!element.isJsonObject()) continue;
+                JsonObject json = element.getAsJsonObject();
+                Map<String, HardshipConfig.Translation> translations = new HashMap<>();
+                JsonObject translated = json.getAsJsonObject("translations");
+                if (translated != null) {
+                    for (Map.Entry<String, JsonElement> text : translated.entrySet()) {
+                        if (!text.getValue().isJsonObject()) continue;
+                        JsonObject value = text.getValue().getAsJsonObject();
+                        translations.put(text.getKey().toLowerCase(), new HardshipConfig.Translation(
+                                firstString(value, "", "title", "translated_title"),
+                                firstString(value, "", "description", "translated_description")
+                        ));
+                    }
+                }
+                HardshipConfigs.register(new HardshipConfig(
+                        firstString(json, "", "id"),
+                        firstString(json, "", "title"),
+                        firstString(json, "", "description"),
+                        firstString(json, "", "icon"),
+                        firstString(json, "", "translated_title", "translation_title"),
+                        firstString(json, "", "translated_description", "translation_description"),
+                        translations,
+                        numberMap(json.getAsJsonObject("preks"))
+                ));
+            }
+        }
+    }
+
     private static void loadPassiveSkills(ResourceManager manager) {
-        for (Map.Entry<Identifier, Resource> entry : manager.findResources(
-                "kingdom_come_combat/passive_skills",
-                id -> id.getPath().endsWith(".json")
-        ).entrySet()) {
+        for (Map.Entry<Identifier, Resource> entry : findJsonResources(
+                manager, "kingdom_come_combat/passive_skills")) {
             JsonObject json = readJson(entry.getKey(), entry.getValue());
             if (json.has("skills")) {
                 JsonElement skills = json.get("skills");
@@ -128,6 +209,23 @@ public class CombatDataReloadListener implements SimpleSynchronousResourceReload
             } else {
                 registerPassiveSkill(stripJson(entry.getKey()), json);
             }
+        }
+    }
+
+    private static void loadCombatExperience(ResourceManager manager) {
+        for (Map.Entry<Identifier, Resource> entry : findJsonResources(
+                manager, "kingdom_come_combat/combat_experience")) {
+            JsonObject json = readJson(entry.getKey(), entry.getValue());
+            CombatExperienceConfig.set(
+                    integer(json, "kill", CombatExperienceConfig.kill()),
+                    integer(json, "perfect_block", CombatExperienceConfig.perfectBlock()),
+                    integer(json, "perfect_counter", CombatExperienceConfig.perfectCounter()),
+                    integer(json, "attack", CombatExperienceConfig.attack()),
+                    integer(json, "master_counter", CombatExperienceConfig.masterCounter()),
+                    integer(json, "combo", CombatExperienceConfig.combo()),
+                    number(json, "vanilla_experience_multiplier",
+                            CombatExperienceConfig.vanillaExperienceMultiplier())
+            );
         }
     }
 
@@ -160,10 +258,8 @@ public class CombatDataReloadListener implements SimpleSynchronousResourceReload
     }
 
     private static void loadBloodSplash(ResourceManager manager) {
-        for (Map.Entry<Identifier, Resource> entry : manager.findResources(
-                "kingdom_come_combat/blood_splash",
-                id -> id.getPath().endsWith(".json")
-        ).entrySet()) {
+        for (Map.Entry<Identifier, Resource> entry : findJsonResources(
+                manager, "kingdom_come_combat/blood_splash")) {
             JsonObject json = readJson(entry.getKey(), entry.getValue());
             BloodSplashConfig.setDefaultMultiplier(number(json, "default_multiplier", 1.0));
             readBloodSplashMultipliers(json.getAsJsonObject("damage_types"), false);
@@ -191,10 +287,8 @@ public class CombatDataReloadListener implements SimpleSynchronousResourceReload
     }
 
     private static void loadSkillBooks(ResourceManager manager) {
-        for (Map.Entry<Identifier, Resource> entry : manager.findResources(
-                "kingdom_come_combat/skill_books",
-                id -> id.getPath().endsWith(".json")
-        ).entrySet()) {
+        for (Map.Entry<Identifier, Resource> entry : findJsonResources(
+                manager, "kingdom_come_combat/skill_books")) {
             JsonObject json = readJson(entry.getKey(), entry.getValue());
             String fallbackId = stripJson(entry.getKey());
             String id = firstString(json, fallbackId, "id", "book_id", "combo", "combo_id");
@@ -213,15 +307,22 @@ public class CombatDataReloadListener implements SimpleSynchronousResourceReload
     }
 
     private static void loadEquipmentDefaults(ResourceManager manager) {
-        for (Map.Entry<Identifier, Resource> entry : manager.findResources(
-                "kingdom_come_combat/defaults",
-                id -> id.getPath().endsWith(".json")
-        ).entrySet()) {
+        for (Map.Entry<Identifier, Resource> entry : findJsonResources(
+                manager, "kingdom_come_combat/defaults")) {
             JsonObject json = readJson(entry.getKey(), entry.getValue());
             JsonObject earlyGlobal = json.getAsJsonObject("global");
             if (earlyGlobal != null) {
                 EquipmentFallbackConfig.setImperfectBlockImpactMitigation(
                         number(earlyGlobal, "imperfect_block_impact_mitigation", EquipmentFallbackConfig.imperfectBlockImpactMitigation())
+                );
+                EquipmentFallbackConfig.setDefaultWeaponToughness(
+                        number(earlyGlobal, "weapon_toughness", EquipmentFallbackConfig.defaultWeaponToughness())
+                );
+                EquipmentFallbackConfig.setDefaultMinimumDurabilityPanelMultiplier(
+                        number(earlyGlobal, "minimum_durability_panel_multiplier", EquipmentFallbackConfig.defaultMinimumDurabilityPanelMultiplier())
+                );
+                EquipmentFallbackConfig.setDefaultHeldMovementSpeedMultiplier(
+                        number(earlyGlobal, "held_movement_speed_multiplier", EquipmentFallbackConfig.defaultHeldMovementSpeedMultiplier())
                 );
             }
             JsonObject weapons = json.getAsJsonObject("weapons");
@@ -229,6 +330,33 @@ public class CombatDataReloadListener implements SimpleSynchronousResourceReload
                 EquipmentFallbackConfig.setConfiguredLongswordItems(identifierSet(weapons.getAsJsonArray("longsword_items")));
                 EquipmentFallbackConfig.setConfiguredShortSwordItems(identifierSet(weapons.getAsJsonArray("short_sword_items")));
                 EquipmentFallbackConfig.setConfiguredHeavyWeaponItems(identifierSet(weapons.getAsJsonArray("heavy_weapon_items")));
+                Set<Identifier> polearmItems = identifierSet(weapons.getAsJsonArray("polearm_items"));
+                EquipmentFallbackConfig.setConfiguredPolearmItems(polearmItems);
+                JsonObject polearm = weapons.getAsJsonObject("polearm");
+                if (polearm != null) {
+                    EquipmentFallbackConfig.setPolearm(damageProfile(polearm, 1.0));
+                    EquipmentFallbackConfig.setPolearmBaseImpact(
+                            firstNumber(polearm, EquipmentFallbackConfig.polearmBaseImpact(), "base_impact", "impact"));
+                    EquipmentFallbackConfig.setPolearmBlockImpactMitigation(
+                            firstNumber(polearm, EquipmentFallbackConfig.polearmBlockImpactMitigation(), "block_impact_mitigation"));
+                    EquipmentFallbackConfig.setPolearmArmorBreakMultiplier(
+                            firstNumber(polearm, EquipmentFallbackConfig.polearmArmorBreakMultiplier(), "armor_break_multiplier", "armor_break_coefficient", "armor_durability_multiplier"));
+                    EquipmentFallbackConfig.setPolearmWeaponToughness(
+                            firstNumber(polearm, EquipmentFallbackConfig.defaultWeaponToughness(), "weapon_toughness"));
+                    EquipmentFallbackConfig.setPolearmMinimumDurabilityPanelMultiplier(
+                            firstNumber(
+                                    polearm,
+                                    EquipmentFallbackConfig.defaultMinimumDurabilityPanelMultiplier(),
+                                    "minimum_durability_panel_multiplier"
+                            ));
+                    EquipmentFallbackConfig.setPolearmHeldMovementSpeedMultiplier(
+                            firstNumber(
+                                    polearm,
+                                    EquipmentFallbackConfig.defaultHeldMovementSpeedMultiplier(),
+                                    "held_movement_speed_multiplier"
+                            ));
+                    loadDefaultWeaponHitbox(polearm, "polearm");
+                }
                 JsonObject defaultWeapon = weapons.getAsJsonObject("default");
                 EquipmentFallbackConfig.setDefaultWeapon(
                         damageProfile(defaultWeapon, 1.0)
@@ -242,6 +370,13 @@ public class CombatDataReloadListener implements SimpleSynchronousResourceReload
                 EquipmentFallbackConfig.setDefaultArmorBreakMultiplier(
                         firstNumber(defaultWeapon, EquipmentFallbackConfig.defaultArmorBreakMultiplier(), "armor_break_multiplier", "armor_break_coefficient", "armor_durability_multiplier")
                 );
+                if (defaultWeapon != null) {
+                    if (defaultWeapon.has("executions")) {
+                        EquipmentFallbackConfig.setDefaultWeaponExecutionMoveIds(stringMap(defaultWeapon.getAsJsonObject("executions")));
+                    } else if (defaultWeapon.has("execution_moves")) {
+                        EquipmentFallbackConfig.setDefaultWeaponExecutionMoveIds(stringMap(defaultWeapon.getAsJsonObject("execution_moves")));
+                    }
+                }
                 loadDefaultWeaponHitbox(defaultWeapon, "default");
                 JsonObject sword = weapons.getAsJsonObject("sword");
                 EquipmentFallbackConfig.setSword(
@@ -548,6 +683,14 @@ public class CombatDataReloadListener implements SimpleSynchronousResourceReload
                 EquipmentFallbackConfig.setLongswordAttackMoveIds(attackMoves);
                 EquipmentFallbackConfig.setLongswordStanceAnimationNames(stanceAnimations);
             }
+            case "polearm" -> {
+                EquipmentFallbackConfig.setPolearmAttackSpeedMultiplier(attackSpeedMultiplier);
+                EquipmentFallbackConfig.setPolearmRealHitboxSizeUnits(size);
+                EquipmentFallbackConfig.setPolearmRealHitboxOffsetUnits(offset);
+                EquipmentFallbackConfig.setPolearmRealHitboxRotationDegrees(rotation);
+                EquipmentFallbackConfig.setPolearmAttackMoveIds(attackMoves);
+                EquipmentFallbackConfig.setPolearmStanceAnimationNames(stanceAnimations);
+            }
             case "pickaxe" -> {
                 EquipmentFallbackConfig.setPickaxeAttackSpeedMultiplier(attackSpeedMultiplier);
                 EquipmentFallbackConfig.setPickaxeRealHitboxSizeUnits(size);
@@ -755,10 +898,8 @@ public class CombatDataReloadListener implements SimpleSynchronousResourceReload
     }
 
     private static void loadCombos(ResourceManager manager) {
-        for (Map.Entry<Identifier, Resource> entry : manager.findResources(
-                "kingdom_come_combat/combos",
-                id -> id.getPath().endsWith(".json")
-        ).entrySet()) {
+        for (Map.Entry<Identifier, Resource> entry : findJsonResources(
+                manager, "kingdom_come_combat/combos")) {
             JsonObject json = readJson(entry.getKey(), entry.getValue());
             if (json.has("combos")) {
                 JsonElement combos = json.get("combos");
@@ -775,6 +916,109 @@ public class CombatDataReloadListener implements SimpleSynchronousResourceReload
                 registerCombo(stripJson(entry.getKey()), json);
             }
         }
+    }
+
+    private static void loadExecutions(ResourceManager manager) {
+        for (Map.Entry<Identifier, Resource> entry : findJsonResources(
+                manager, "kingdom_come_combat/executions")) {
+            JsonObject json = readJson(entry.getKey(), entry.getValue());
+            String fallbackSetId = stripJson(entry.getKey());
+            if (json.has("executions") && json.get("executions").isJsonObject()) {
+                JsonObject executions = json.getAsJsonObject("executions");
+                for (Map.Entry<String, JsonElement> execution : executions.entrySet()) {
+                    registerExecution(fallbackSetId, execution.getKey(), execution.getValue().getAsJsonObject());
+                }
+            } else {
+                for (Map.Entry<String, JsonElement> execution : json.entrySet()) {
+                    if (execution.getValue().isJsonObject() && directionFromKey(execution.getKey()) != null) {
+                        registerExecution(fallbackSetId, execution.getKey(), execution.getValue().getAsJsonObject());
+                    }
+                }
+            }
+        }
+    }
+
+    private static void registerExecution(String fallbackSetId, String directionKey, JsonObject json) {
+        CombatDirection direction = directionFromKey(firstString(json, directionKey, "direction", "stance", "trigger"));
+        if (direction == null) {
+            return;
+        }
+
+        String setId = firstString(json, fallbackSetId, "set", "set_id", "execution_set");
+        String id = string(json, "id", setId + "_" + direction.name().toLowerCase());
+        String animation = string(json, "animation", id);
+        ExecutionMoveConfigs.register(
+                setId,
+                direction,
+                new ComboMoveConfig(
+                        id,
+                        string(json, "display_name", id),
+                        List.of(direction),
+                        damageProfile(json.getAsJsonObject("damage_modifiers"), 1.0),
+                        animation,
+                        hitZoneRules(json.getAsJsonArray("hit_zones")),
+                        impactMultiplier(json, 20.0),
+                        number(json, "stamina_cost", 0.0),
+                        number(json, "horizontal_knockback", CombatControlConfig.DEFAULT_ATTACK_HORIZONTAL_KNOCKBACK),
+                        bool(json, "blade_trail", true),
+                        bool(json, "hit_reaction", false),
+                        true,
+                        bool(json, "lunge", false),
+                        bool(json, "use_real_hitbox", false),
+                        string(json, "injury_type", ""),
+                        (int) number(json, "injury_level", 0.0),
+                        string(json, "required_weapon_tag", ""),
+                        string(json, "hit_reaction_animation", ""),
+                        bool(json, "hit_reaction_interrupts_attack", false),
+                        integer(json, "hit_reaction_movement_lock_ticks", 0),
+                        integer(json, "weapon_clash_tick", -1),
+                        string(json, "weapon_clash_sound", ""),
+                        firstNumber(json, 2.8, "suction_distance", "absorb_distance"),
+                        firstNumber(json, 0.0, "suction_min_distance", "required_suction_distance"),
+                        firstNumber(json, 1.15, "suction_fixed_distance", "suction_after_distance", "fixed_distance"),
+                        firstString(json, "", "victim_animation", "target_animation", "hit_animation"),
+                        comboAttackChain(json.getAsJsonArray("attack_chain")),
+                        integer(json, "level", integer(json, "required_ai_level", integer(json, "combo_level", 0)))
+                )
+        );
+    }
+
+    private static void loadExecutionTargets(ResourceManager manager) {
+        for (Map.Entry<Identifier, Resource> entry : findJsonResources(
+                manager, "kingdom_come_combat/execution_targets")) {
+            JsonObject json = readJson(entry.getKey(), entry.getValue());
+            addExecutionTargetIds(json.getAsJsonArray("entity_types"));
+            addExecutionTargetIds(json.getAsJsonArray("entities"));
+            addExecutionTargetIds(json.getAsJsonArray("values"));
+        }
+    }
+
+    private static void addExecutionTargetIds(JsonArray array) {
+        if (array == null) {
+            return;
+        }
+        for (JsonElement element : array) {
+            if (!element.isJsonPrimitive() || !element.getAsJsonPrimitive().isString()) {
+                continue;
+            }
+            Identifier id = Identifier.tryParse(element.getAsString());
+            if (id != null && Registries.ENTITY_TYPE.containsId(id)) {
+                ExecutionTargetConfig.add(id);
+            }
+        }
+    }
+
+    private static CombatDirection directionFromKey(String key) {
+        if (key == null) {
+            return null;
+        }
+        return switch (key.toLowerCase(java.util.Locale.ROOT)) {
+            case "left", "左", "left_down", "leftdown", "ld" -> CombatDirection.LEFT;
+            case "right", "右", "right_up", "rightup", "ru" -> CombatDirection.RIGHT;
+            case "up", "上", "left_up", "leftup", "lu" -> CombatDirection.UP;
+            case "down", "下", "right_down", "rightdown", "rd" -> CombatDirection.DOWN;
+            default -> null;
+        };
     }
 
     private static void registerCombo(String fallbackId, JsonObject json) {
@@ -848,10 +1092,8 @@ public class CombatDataReloadListener implements SimpleSynchronousResourceReload
     }
 
     private static void loadMoves(ResourceManager manager) {
-        for (Map.Entry<Identifier, Resource> entry : manager.findResources(
-                "kingdom_come_combat/moves",
-                id -> id.getPath().endsWith(".json")
-        ).entrySet()) {
+        for (Map.Entry<Identifier, Resource> entry : findJsonResources(
+                manager, "kingdom_come_combat/moves")) {
             JsonObject json = readJson(entry.getKey(), entry.getValue());
             if (json.has("moves")) {
                 JsonObject moves = json.getAsJsonObject("moves");
@@ -903,7 +1145,12 @@ public class CombatDataReloadListener implements SimpleSynchronousResourceReload
                         number(json, "master_counter_spacing", 1.4),
                         number(json, "horizontal_knockback", CombatControlConfig.DEFAULT_ATTACK_HORIZONTAL_KNOCKBACK),
                         bool(json, "hit_reaction", true),
-                        heightPartRules(json.getAsJsonArray("direct_hit_height_parts"))
+                        heightPartRules(json.getAsJsonArray("direct_hit_height_parts")),
+                        moveDefenseDirection(json),
+                        bool(json, "classic_directional_block", false),
+                        bool(json, "blockable", true),
+                        bool(json, "dodgeable", true),
+                        bool(json, "jump_dodge_legs", false)
                 )
         );
     }
@@ -933,7 +1180,12 @@ public class CombatDataReloadListener implements SimpleSynchronousResourceReload
                         number(json, "master_counter_spacing", 1.4),
                         number(json, "horizontal_knockback", CombatControlConfig.DEFAULT_ATTACK_HORIZONTAL_KNOCKBACK),
                         bool(json, "hit_reaction", true),
-                        heightPartRules(json.getAsJsonArray("direct_hit_height_parts"))
+                        heightPartRules(json.getAsJsonArray("direct_hit_height_parts")),
+                        moveDefenseDirection(json),
+                        bool(json, "classic_directional_block", false),
+                        bool(json, "blockable", true),
+                        bool(json, "dodgeable", true),
+                        bool(json, "jump_dodge_legs", false)
                 )
         );
     }
@@ -949,6 +1201,11 @@ public class CombatDataReloadListener implements SimpleSynchronousResourceReload
         return CombatAnimationNames.isHeavyAttack(id);
     }
 
+    private static CombatDirection moveDefenseDirection(JsonObject json) {
+        String value = firstString(json, "", "defense_direction", "block_direction", "direction_to_block");
+        return value.isBlank() ? null : direction(value);
+    }
+
     private static CombatDirection direction(String text) {
         return switch (text.toLowerCase()) {
             case "left", "左" -> CombatDirection.LEFT;
@@ -960,27 +1217,56 @@ public class CombatDataReloadListener implements SimpleSynchronousResourceReload
     }
 
     private static void loadWeapons(ResourceManager manager) {
-        for (Map.Entry<Identifier, Resource> entry : manager.findResources(
-                "kingdom_come_combat/weapons",
-                id -> id.getPath().endsWith(".json")
-        ).entrySet()) {
+        List<WeaponDefinition> definitions = new ArrayList<>();
+        for (Map.Entry<Identifier, Resource> entry : findJsonResources(
+                manager, "kingdom_come_combat/weapons")) {
             JsonObject json = readJson(entry.getKey(), entry.getValue());
             JsonObject items = json.getAsJsonObject("items");
             if (items != null) {
                 for (Map.Entry<String, JsonElement> item : items.entrySet()) {
-                    registerWeapon(item.getKey(), item.getValue().getAsJsonObject());
+                    definitions.add(new WeaponDefinition(
+                            item.getKey(), item.getValue().getAsJsonObject()));
                 }
             } else {
-                registerWeapon(string(json, "item", ""), json);
+                String selector = string(json, "item", "");
+                if (selector.isBlank()) {
+                    String tag = string(json, "tag", "");
+                    selector = tag.isBlank() ? "" : (tag.startsWith("#") ? tag : "#" + tag);
+                }
+                definitions.add(new WeaponDefinition(selector, json));
             }
         }
+
+        cachedWeaponDefinitions = List.copyOf(definitions);
+        applyWeaponDefinitions(definitions);
+    }
+
+    private static void applyWeaponDefinitions(List<WeaponDefinition> definitions) {
+        // Resolve broad fallbacks before exact entries so every omitted field
+        // inherits deterministically: global defaults -> first matching tag -> item id.
+        definitions.stream().filter(WeaponDefinition::isTag)
+                .forEach(definition -> registerWeaponSelector(definition.selector(), definition.json()));
+        definitions.stream().filter(definition -> !definition.isTag())
+                .forEach(definition -> registerWeaponSelector(definition.selector(), definition.json()));
+    }
+
+    /**
+     * Initial server-data parsing can run before the new item-tag bindings are
+     * installed. Re-expand the cached selectors from the now-bound registries
+     * before players receive the data-driven weapon snapshot.
+     */
+    public static void reapplyWeaponDefinitionsAfterTagsBound() {
+        List<WeaponDefinition> definitions = cachedWeaponDefinitions;
+        if (definitions.isEmpty()) {
+            return;
+        }
+        EquipmentCombatAttributesRegistry.clearWeapons();
+        applyWeaponDefinitions(definitions);
     }
 
     private static void loadRangedWeapons(ResourceManager manager) {
-        for (Map.Entry<Identifier, Resource> entry : manager.findResources(
-                "kingdom_come_combat/ranged_weapons",
-                id -> id.getPath().endsWith(".json")
-        ).entrySet()) {
+        for (Map.Entry<Identifier, Resource> entry : findJsonResources(
+                manager, "kingdom_come_combat/ranged_weapons")) {
             JsonObject json = readJson(entry.getKey(), entry.getValue());
             JsonObject items = json.getAsJsonObject("items");
             if (items != null) {
@@ -1020,40 +1306,131 @@ public class CombatDataReloadListener implements SimpleSynchronousResourceReload
             return;
         }
 
-        EquipmentCombatAttributesRegistry.registerWeapon(
-                itemId,
-                new WeaponCombatAttributes(
-                        damageProfile(json.getAsJsonObject("damage_panel"), 1.0),
-                        firstNumber(json, defaultBlockImpactMitigation(item), "block_impact_mitigation"),
-                        firstNumber(json, defaultWeaponBaseImpact(item), "base_impact", "impact"),
-                        firstNumber(json, defaultArmorBreakMultiplier(item), "armor_break_multiplier", "armor_break_coefficient", "armor_durability_multiplier"),
+        WeaponCombatAttributes defaults = EquipmentCombatAttributesRegistry.getWeapon(item.getDefaultStack());
+        WeaponCombatAttributes attributes = weaponAttributes(json, defaults);
+        EquipmentCombatAttributesRegistry.registerWeapon(itemId, attributes);
+        JsonArray aliases = json.getAsJsonArray("aliases");
+        if (aliases != null) {
+            for (JsonElement alias : aliases) {
+                registerWeaponAlias(alias.getAsString(), attributes);
+            }
+        }
+    }
+
+    private static void registerWeaponSelector(String selector, JsonObject json) {
+        if (selector != null && selector.startsWith("#")) {
+            Identifier tagId = Identifier.tryParse(selector.substring(1));
+            if (tagId == null) return;
+            TagKey<Item> tag = TagKey.of(RegistryKeys.ITEM, tagId);
+            // Materialize the tag per item. A polearm, longsword, axe, etc. has
+            // a different category fallback, so one attributes object built
+            // from ItemStack.EMPTY cannot provide field-by-field inheritance.
+            // Exact item definitions are loaded in the second pass and replace
+            // these expanded entries, preserving default -> tag -> item id.
+            int matchedItems = 0;
+            for (var itemEntry : Registries.ITEM.iterateEntries(tag)) {
+                Item item = itemEntry.value();
+                Identifier itemId = Registries.ITEM.getId(item);
+                WeaponCombatAttributes inherited =
+                        EquipmentCombatAttributesRegistry.getWeapon(item.getDefaultStack());
+                EquipmentCombatAttributesRegistry.registerWeapon(
+                        itemId, weaponAttributes(json, inherited));
+                matchedItems++;
+            }
+            KingdomComeCombat.LOGGER.info("Expanded weapon datapack tag #{} to {} items", tagId, matchedItems);
+            return;
+        }
+        registerWeapon(selector, json);
+    }
+
+    private record WeaponDefinition(String selector, JsonObject json) {
+        private boolean isTag() {
+            return selector != null && selector.startsWith("#");
+        }
+    }
+
+    private static void registerWeaponAlias(String selector, WeaponCombatAttributes attributes) {
+        if (selector != null && selector.startsWith("#")) {
+            Identifier tagId = Identifier.tryParse(selector.substring(1));
+            if (tagId != null) {
+                EquipmentCombatAttributesRegistry.registerWeapon(
+                        TagKey.of(RegistryKeys.ITEM, tagId), attributes);
+            }
+            return;
+        }
+        Identifier aliasId = Identifier.tryParse(selector);
+        if (aliasId != null) EquipmentCombatAttributesRegistry.registerWeapon(aliasId, attributes);
+    }
+
+    private static WeaponCombatAttributes weaponAttributes(
+            JsonObject json,
+            WeaponCombatAttributes defaults
+    ) {
+        JsonObject damagePanel = json.getAsJsonObject("damage_panel");
+
+        return new WeaponCombatAttributes(
+                        damagePanel == null ? defaults.damagePanel() : new DamageTypeProfile(
+                                number(damagePanel, "thrust", defaults.damagePanel().thrust()),
+                                number(damagePanel, "strike", defaults.damagePanel().strike()),
+                                number(damagePanel, "slash", defaults.damagePanel().slash())
+                        ),
+                        firstNumber(json, defaults.blockImpactMitigation(), "block_impact_mitigation"),
+                        firstNumber(json, defaults.baseImpact(), "base_impact", "impact"),
+                        firstNumber(json, defaults.armorBreakMultiplier(), "armor_break_multiplier", "armor_break_coefficient", "armor_durability_multiplier"),
                         firstNumber(
                                 json,
-                                defaultWeaponAttackSpeedMultiplier(item),
+                                defaults.attackSpeedMultiplier(),
                                 "attack_speed_multiplier",
                                 "attack_speed",
                                 "animation_speed_multiplier",
                                 "animation_speed"
                         ),
-                        vector3(json.get("real_hitbox_size_units"), 0.0, 0.0, 0.0),
-                        vector3(json.get("real_hitbox_offset_units"), 0.0, 0.0, 0.0),
-                        vector3(
-                                firstPresent(json, "real_hitbox_rotation_degrees", "real_hitbox_rotation"),
-                                0.0,
-                                0.0,
-                                0.0
+                        json.has("real_hitbox_size_units")
+                                ? vector3(json.get("real_hitbox_size_units"),
+                                        defaults.realHitboxSizeUnits().x,
+                                        defaults.realHitboxSizeUnits().y,
+                                        defaults.realHitboxSizeUnits().z)
+                                : defaults.realHitboxSizeUnits(),
+                        json.has("real_hitbox_offset_units")
+                                ? vector3(json.get("real_hitbox_offset_units"),
+                                        defaults.realHitboxOffsetUnits().x,
+                                        defaults.realHitboxOffsetUnits().y,
+                                        defaults.realHitboxOffsetUnits().z)
+                                : defaults.realHitboxOffsetUnits(),
+                        firstPresent(json, "real_hitbox_rotation_degrees", "real_hitbox_rotation") != null
+                                ? vector3(firstPresent(json, "real_hitbox_rotation_degrees", "real_hitbox_rotation"),
+                                        defaults.realHitboxRotationDegrees().x,
+                                        defaults.realHitboxRotationDegrees().y,
+                                        defaults.realHitboxRotationDegrees().z)
+                                : defaults.realHitboxRotationDegrees(),
+                        json.has("attack_moves")
+                                ? mergeStringMap(defaults.attackMoveIds(), json.getAsJsonObject("attack_moves"))
+                                : defaults.attackMoveIds(),
+                        json.has("stance_animations")
+                                ? mergeStringMap(defaults.stanceAnimationNames(), json.getAsJsonObject("stance_animations"))
+                                : defaults.stanceAnimationNames(),
+                        json.has("executions")
+                                ? mergeStringMap(defaults.executionMoveIds(), json.getAsJsonObject("executions"))
+                                : json.has("execution_moves")
+                                ? mergeStringMap(defaults.executionMoveIds(), json.getAsJsonObject("execution_moves"))
+                                : defaults.executionMoveIds(),
+                        firstNumber(json, defaults.weaponToughness(), "weapon_toughness"),
+                        firstNumber(
+                                json,
+                                defaults.minimumDurabilityPanelMultiplier(),
+                                "minimum_durability_panel_multiplier"
                         ),
-                        stringMap(json.getAsJsonObject("attack_moves")),
-                        stringMap(json.getAsJsonObject("stance_animations"))
-                )
-        );
+                        firstNumber(
+                                json,
+                                defaults.heldMovementSpeedMultiplier(),
+                                "held_movement_speed_multiplier"
+                        )
+                );
     }
 
     private static void loadArmor(ResourceManager manager) {
-        for (Map.Entry<Identifier, Resource> entry : manager.findResources(
-                "kingdom_come_combat/armor",
-                id -> id.getPath().endsWith(".json")
-        ).entrySet()) {
+        for (Map.Entry<Identifier, Resource> entry : findJsonResources(
+                manager, "kingdom_come_combat/armor")) {
             JsonObject json = readJson(entry.getKey(), entry.getValue());
             JsonObject items = json.getAsJsonObject("items");
             if (items != null) {
@@ -1067,10 +1444,8 @@ public class CombatDataReloadListener implements SimpleSynchronousResourceReload
     }
 
     private static void loadShields(ResourceManager manager) {
-        for (Map.Entry<Identifier, Resource> entry : manager.findResources(
-                "kingdom_come_combat/shields",
-                id -> id.getPath().endsWith(".json")
-        ).entrySet()) {
+        for (Map.Entry<Identifier, Resource> entry : findJsonResources(
+                manager, "kingdom_come_combat/shields")) {
             JsonObject json = readJson(entry.getKey(), entry.getValue());
             JsonObject items = json.getAsJsonObject("items");
             if (items != null) {
@@ -1098,17 +1473,25 @@ public class CombatDataReloadListener implements SimpleSynchronousResourceReload
                 itemId,
                 new ShieldCombatAttributes(
                         shieldSize(firstString(json, "small", "type", "size", "shield_type")),
-                        number(json, "block_impact_mitigation", EquipmentFallbackConfig.imperfectBlockImpactMitigation())
+                        number(json, "block_impact_mitigation", EquipmentFallbackConfig.imperfectBlockImpactMitigation()),
+                        number(json, "attack_stamina_cost_multiplier", 1.0),
+                        number(json, "dodge_stamina_cost_multiplier", 1.0),
+                        number(json, "locked_movement_speed_multiplier", 1.0),
+                        number(json, "attack_speed_multiplier", 1.0),
+                        number(json, "attack_lunge_multiplier", 1.0),
+                        integer(json, "exhausted_disable_ticks", 0),
+                        number(json, "blocking_angle_multiplier", 1.0),
+                        number(json, "perfect_window_multiplier", 1.0),
+                        integer(json, "perfect_attacker_disable_bonus_ticks", 0)
                 )
         );
     }
 
     private static void loadProjectiles(ResourceManager manager) {
-        for (Map.Entry<Identifier, Resource> entry : manager.findResources(
-                "kingdom_come_combat/projectiles",
-                id -> id.getPath().endsWith(".json")
-        ).entrySet()) {
+        for (Map.Entry<Identifier, Resource> entry : findJsonResources(
+                manager, "kingdom_come_combat/projectiles")) {
             JsonObject json = readJson(entry.getKey(), entry.getValue());
+            loadAutomaticHumanoidAiCompatibility(json.getAsJsonObject("automatic_compatibility"));
             JsonObject entities = json.getAsJsonObject("entities");
             if (entities != null) {
                 for (Map.Entry<String, JsonElement> projectile : entities.entrySet()) {
@@ -1120,11 +1503,70 @@ public class CombatDataReloadListener implements SimpleSynchronousResourceReload
         }
     }
 
+    private static void loadAutomaticHumanoidAiCompatibility(JsonObject automatic) {
+        if (automatic == null) {
+            return;
+        }
+
+        JsonObject bands = automatic.getAsJsonObject("health_bands");
+        if (bands != null) {
+            registerAutomaticHealthBand(bands, "under_10",
+                    HumanoidCombatAiProfiles.AutoHealthBand.UNDER_10);
+            registerAutomaticHealthBand(bands, "10_to_20",
+                    HumanoidCombatAiProfiles.AutoHealthBand.FROM_10_TO_20);
+            registerAutomaticHealthBand(bands, "20_to_30",
+                    HumanoidCombatAiProfiles.AutoHealthBand.FROM_20_TO_30);
+            registerAutomaticHealthBand(bands, "30_to_40",
+                    HumanoidCombatAiProfiles.AutoHealthBand.FROM_30_TO_40);
+            registerAutomaticHealthBand(bands, "over_40",
+                    HumanoidCombatAiProfiles.AutoHealthBand.OVER_40);
+        }
+
+        readAutomaticEntityTypes(automatic.getAsJsonArray("include_entities"), true);
+        readAutomaticEntityTypes(automatic.getAsJsonArray("exclude_entities"), false);
+    }
+
+    private static void registerAutomaticHealthBand(
+            JsonObject bands,
+            String key,
+            HumanoidCombatAiProfiles.AutoHealthBand band
+    ) {
+        JsonObject profile = bands.getAsJsonObject(key);
+        if (profile != null) {
+            HumanoidCombatAiProfiles.setAutomaticProfileSpec(
+                    band,
+                    HumanoidCombatAiProfileSpec.fromJson(
+                            profile,
+                            HumanoidCombatAiProfiles.defaultHumanoid()
+                    )
+            );
+        }
+    }
+
+    private static void readAutomaticEntityTypes(JsonArray values, boolean include) {
+        if (values == null) {
+            return;
+        }
+        for (JsonElement value : values) {
+            if (!value.isJsonPrimitive() || !value.getAsJsonPrimitive().isString()) {
+                continue;
+            }
+            Identifier id = Identifier.tryParse(value.getAsString());
+            if (id == null || !Registries.ENTITY_TYPE.containsId(id)) {
+                continue;
+            }
+            EntityType<?> type = Registries.ENTITY_TYPE.get(id);
+            if (include) {
+                HumanoidCombatAiProfiles.includeAutomaticType(type);
+            } else {
+                HumanoidCombatAiProfiles.excludeAutomaticType(type);
+            }
+        }
+    }
+
     private static void loadMobAttributes(ResourceManager manager) {
-        for (Map.Entry<Identifier, Resource> entry : manager.findResources(
-                "kingdom_come_combat/mobs",
-                id -> id.getPath().endsWith(".json")
-        ).entrySet()) {
+        for (Map.Entry<Identifier, Resource> entry : findJsonResources(
+                manager, "kingdom_come_combat/mobs")) {
             JsonObject json = readJson(entry.getKey(), entry.getValue());
             JsonObject entities = json.getAsJsonObject("entities");
             if (entities != null) {
@@ -1142,6 +1584,11 @@ public class CombatDataReloadListener implements SimpleSynchronousResourceReload
         if (entityId == null) {
             return;
         }
+        if ("minecraft:ender_dragon".equals(entityName)
+                && !com.kingdomcomecombat.config.CombatServerConfig.enderDragonOverhaulEnabled()) {
+            return;
+        }
+        MobScaleRegistry.register(entityId, number(json, "scale", 1.0));
 
         JsonObject meleeAttack = json.getAsJsonObject("melee_attack");
         MobCombatAttributes.NaturalArmor fallbackArmor = naturalArmor(json, json);
@@ -1164,6 +1611,11 @@ public class CombatDataReloadListener implements SimpleSynchronousResourceReload
                                 ? number(json, "melee_vertical_knockback", 0.0)
                                 : firstNumber(meleeAttack, number(json, "melee_vertical_knockback", 0.0), "vertical_knockback", "launch"),
                         meleeDefenseTier(json, meleeAttack),
+                        meleeAttack == null ? number(json, "true_stamina_damage", 0.0)
+                                : number(meleeAttack, "true_stamina_damage", number(json, "true_stamina_damage", 0.0)),
+                        meleeAttack == null ? number(json, "blocked_attacker_knockback", 0.0)
+                                : number(meleeAttack, "blocked_attacker_knockback", number(json, "blocked_attacker_knockback", 0.0)),
+                        mobAttackBehavior(meleeAttack, meleeDefenseTier(json, meleeAttack)),
                         damageProfile(
                                 meleeAttack == null
                                         ? json.getAsJsonObject("melee_damage_modifiers")
@@ -1177,6 +1629,50 @@ public class CombatDataReloadListener implements SimpleSynchronousResourceReload
         );
     }
 
+    private static MobCombatAttributes.AttackBehavior mobAttackBehavior(
+            JsonObject meleeAttack, MobCombatAttributes.MeleeDefenseTier fallbackDefenseTier) {
+        if (meleeAttack == null) {
+            return MobCombatAttributes.AttackBehavior.vanilla();
+        }
+        String raw = firstString(meleeAttack, "vanilla", "attack_type", "mode", "movement");
+        MobCombatAttributes.AttackBehavior.Mode mode = switch (raw.toLowerCase()) {
+            case "lunge", "rush", "突进" -> MobCombatAttributes.AttackBehavior.Mode.LUNGE;
+            case "jump", "leap", "跳跃" -> MobCombatAttributes.AttackBehavior.Mode.JUMP;
+            case "mixed", "lunge_or_jump", "rush_or_leap", "混合" -> MobCombatAttributes.AttackBehavior.Mode.MIXED;
+            default -> MobCombatAttributes.AttackBehavior.Mode.VANILLA;
+        };
+        return new MobCombatAttributes.AttackBehavior(
+                mode,
+                integer(meleeAttack, "windup_ticks", 0),
+                integer(meleeAttack, "cooldown_ticks", 20),
+                integer(meleeAttack, "active_ticks", 12),
+                number(meleeAttack, "start_distance", 4.0),
+                number(meleeAttack, "movement_speed", mode == MobCombatAttributes.AttackBehavior.Mode.JUMP ? 0.42 : 0.55),
+                number(meleeAttack, "jump_velocity", 0.42),
+                bool(meleeAttack, "airborne_lunge", false),
+                defenseTierValue(firstString(meleeAttack, "", "lunge_defense_tier"), fallbackDefenseTier),
+                defenseTierValue(firstString(meleeAttack, "", "jump_defense_tier"), fallbackDefenseTier)
+        );
+    }
+
+    private static MobCombatAttributes.MeleeDefenseTier defenseTierValue(
+            String value, MobCombatAttributes.MeleeDefenseTier fallback) {
+        if (value == null || value.isBlank()) return fallback;
+        return switch (value.toLowerCase()) {
+            case "1", "block", "blockable", "weapon", "weapon_block", "normal" ->
+                    MobCombatAttributes.MeleeDefenseTier.BLOCKABLE;
+            case "2", "perfect", "perfect_block", "perfect_block_only" ->
+                    MobCombatAttributes.MeleeDefenseTier.PERFECT_BLOCK_ONLY;
+            case "3", "shield", "shield_block", "shield_blockable" ->
+                    MobCombatAttributes.MeleeDefenseTier.SHIELD_BLOCKABLE;
+            case "4", "shield_perfect", "shield_perfect_block", "shield_perfect_block_only" ->
+                    MobCombatAttributes.MeleeDefenseTier.SHIELD_PERFECT_BLOCK_ONLY;
+            case "5", "none", "unblockable", "dodge", "dodgeable", "evade", "evasion" ->
+                    MobCombatAttributes.MeleeDefenseTier.UNBLOCKABLE;
+            default -> fallback;
+        };
+    }
+
     private static MobCombatAttributes.MeleeDefenseTier meleeDefenseTier(
             JsonObject root,
             JsonObject meleeAttack
@@ -1187,23 +1683,27 @@ public class CombatDataReloadListener implements SimpleSynchronousResourceReload
             return switch (value.toLowerCase()) {
                 case "1", "block", "blockable", "weapon", "weapon_block", "normal" ->
                         MobCombatAttributes.MeleeDefenseTier.BLOCKABLE;
-                case "2", "shield", "shield_block", "shield_blockable" ->
+                case "2", "perfect", "perfect_block", "perfect_block_only" ->
+                        MobCombatAttributes.MeleeDefenseTier.PERFECT_BLOCK_ONLY;
+                case "3", "shield", "shield_block", "shield_blockable" ->
                         MobCombatAttributes.MeleeDefenseTier.SHIELD_BLOCKABLE;
-                case "3", "dodge", "dodgeable", "evade", "evasion" ->
-                        MobCombatAttributes.MeleeDefenseTier.DODGEABLE;
+                case "4", "shield_perfect", "shield_perfect_block", "shield_perfect_block_only" ->
+                        MobCombatAttributes.MeleeDefenseTier.SHIELD_PERFECT_BLOCK_ONLY;
+                case "5", "none", "unblockable", "dodge", "dodgeable", "evade", "evasion" ->
+                        MobCombatAttributes.MeleeDefenseTier.UNBLOCKABLE;
                 default -> MobCombatAttributes.MeleeDefenseTier.BLOCKABLE;
             };
         }
 
         if (source.has("tier")) {
             int tier = integer(source, "tier", 1);
-            if (tier >= 3) {
-                return MobCombatAttributes.MeleeDefenseTier.DODGEABLE;
-            }
-            if (tier == 2) {
-                return MobCombatAttributes.MeleeDefenseTier.SHIELD_BLOCKABLE;
-            }
-            return MobCombatAttributes.MeleeDefenseTier.BLOCKABLE;
+            return switch (Math.max(1, Math.min(5, tier))) {
+                case 2 -> MobCombatAttributes.MeleeDefenseTier.PERFECT_BLOCK_ONLY;
+                case 3 -> MobCombatAttributes.MeleeDefenseTier.SHIELD_BLOCKABLE;
+                case 4 -> MobCombatAttributes.MeleeDefenseTier.SHIELD_PERFECT_BLOCK_ONLY;
+                case 5 -> MobCombatAttributes.MeleeDefenseTier.UNBLOCKABLE;
+                default -> MobCombatAttributes.MeleeDefenseTier.BLOCKABLE;
+            };
         }
 
         boolean blockable = meleeAttack == null
@@ -1211,7 +1711,7 @@ public class CombatDataReloadListener implements SimpleSynchronousResourceReload
                 : bool(meleeAttack, "blockable", bool(root, "melee_blockable", true));
         return blockable
                 ? MobCombatAttributes.MeleeDefenseTier.BLOCKABLE
-                : MobCombatAttributes.MeleeDefenseTier.DODGEABLE;
+                : MobCombatAttributes.MeleeDefenseTier.UNBLOCKABLE;
     }
 
     private static MobCombatAttributes.NaturalArmor naturalArmor(
@@ -1243,10 +1743,8 @@ public class CombatDataReloadListener implements SimpleSynchronousResourceReload
     }
 
     private static void loadAiProfiles(ResourceManager manager) {
-        for (Map.Entry<Identifier, Resource> entry : manager.findResources(
-                "kingdom_come_combat/ai",
-                id -> id.getPath().endsWith(".json")
-        ).entrySet()) {
+        for (Map.Entry<Identifier, Resource> entry : findJsonResources(
+                manager, "kingdom_come_combat/ai")) {
             JsonObject json = readJson(entry.getKey(), entry.getValue());
             JsonObject entities = json.getAsJsonObject("entities");
             if (entities == null) {
@@ -1259,10 +1757,10 @@ public class CombatDataReloadListener implements SimpleSynchronousResourceReload
                     continue;
                 }
 
-                var entityType = Registries.ENTITY_TYPE.get(entityId);
-                if (entityType == null) {
+                if (!Registries.ENTITY_TYPE.containsId(entityId)) {
                     continue;
                 }
+                var entityType = Registries.ENTITY_TYPE.get(entityId);
 
                 JsonObject profile = entity.getValue().getAsJsonObject();
                 HumanoidCombatAiProfiles.setProfileSpec(
@@ -1286,10 +1784,8 @@ public class CombatDataReloadListener implements SimpleSynchronousResourceReload
     }
 
     private static void loadBeastAiProfiles(ResourceManager manager) {
-        for (Map.Entry<Identifier, Resource> entry : manager.findResources(
-                "kingdom_come_combat/beast_ai",
-                id -> id.getPath().endsWith(".json")
-        ).entrySet()) {
+        for (Map.Entry<Identifier, Resource> entry : findJsonResources(
+                manager, "kingdom_come_combat/beast_ai")) {
             JsonObject json = readJson(entry.getKey(), entry.getValue());
             JsonObject entities = json.getAsJsonObject("entities");
             if (entities == null) {
@@ -1298,7 +1794,7 @@ public class CombatDataReloadListener implements SimpleSynchronousResourceReload
 
             for (Map.Entry<String, JsonElement> entity : entities.entrySet()) {
                 Identifier entityId = Identifier.tryParse(entity.getKey());
-                if (entityId == null || Registries.ENTITY_TYPE.get(entityId) == null) {
+                if (entityId == null || !Registries.ENTITY_TYPE.containsId(entityId)) {
                     continue;
                 }
 
@@ -1328,6 +1824,7 @@ public class CombatDataReloadListener implements SimpleSynchronousResourceReload
                 rangedNumber(profile, "block_chance", 0.25),
                 rangedNumber(profile, "perfect_block_chance", 0.15),
                 (int) rangedNumber(profile, "combo_level", 0.0),
+                rangedNumber(profile, "combo_plan_chance", 0.0),
                 rangedNumber(profile, "dodge_chance", 0.05),
                 (int) rangedNumber(profile, "ai_level", 1.0),
                 rangedNumber(profile, "stamina_max", 100.0),
@@ -1453,16 +1950,24 @@ public class CombatDataReloadListener implements SimpleSynchronousResourceReload
             }
         }
 
-        EquipmentCombatAttributesRegistry.registerArmor(
-                itemId,
-                new ArmorCombatAttributes(
-                        damageProfile(json.getAsJsonObject("defense"), 0.0),
-                        parts,
-                        number(json, "stamina_cost_increase", 0.0),
-                        number(json, "attack_speed_penalty", 0.0),
-                        number(json, "movement_speed_penalty", 0.0)
-                )
+        ArmorCombatAttributes attributes = new ArmorCombatAttributes(
+                damageProfile(json.getAsJsonObject("defense"), 0.0),
+                parts,
+                number(json, "stamina_cost_increase", 0.0),
+                number(json, "attack_speed_penalty", 0.0),
+                number(json, "movement_speed_penalty", 0.0)
         );
+        EquipmentCombatAttributesRegistry.registerArmor(itemId, attributes);
+
+        JsonArray aliases = json.getAsJsonArray("aliases");
+        if (aliases != null) {
+            for (JsonElement alias : aliases) {
+                Identifier aliasId = Identifier.tryParse(alias.getAsString());
+                if (aliasId != null && Registries.ITEM.get(aliasId) != null) {
+                    EquipmentCombatAttributesRegistry.registerArmor(aliasId, attributes);
+                }
+            }
+        }
     }
 
     private static JsonObject readJson(Identifier id, Resource resource) {
@@ -1506,7 +2011,7 @@ public class CombatDataReloadListener implements SimpleSynchronousResourceReload
             }
 
             rules.add(new AttackMoveConfig.HitZoneRule(
-                    hitZone(string(rule, "hit", "any")),
+                    hitZone(firstString(rule, "any", "hit", "zone")),
                     parts
             ));
         }
@@ -1927,6 +2432,16 @@ public class CombatDataReloadListener implements SimpleSynchronousResourceReload
             result.put(entry.getKey().toLowerCase(), entry.getValue().getAsString());
         }
         return result;
+    }
+
+    private static Map<String, String> mergeStringMap(
+            Map<String, String> inherited,
+            JsonObject overrides
+    ) {
+        Map<String, String> result = new HashMap<>();
+        if (inherited != null) result.putAll(inherited);
+        result.putAll(stringMap(overrides));
+        return Map.copyOf(result);
     }
 
     private static String stripJson(Identifier id) {

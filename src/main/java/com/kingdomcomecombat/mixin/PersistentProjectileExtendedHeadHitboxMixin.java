@@ -1,6 +1,7 @@
 package com.kingdomcomecombat.mixin;
 
 import com.kingdomcomecombat.collision.ServerHitDetectionSystem;
+import com.kingdomcomecombat.projectile.ProjectileGlanceState;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.projectile.PersistentProjectileEntity;
@@ -28,8 +29,12 @@ public abstract class PersistentProjectileExtendedHeadHitboxMixin {
         if (projectile.getWorld().isClient() || start.squaredDistanceTo(end) <= 1.0E-8) {
             return;
         }
-
         EntityHitResult vanillaHit = cir.getReturnValue();
+        if (vanillaHit != null
+                && vanillaHit.getEntity() instanceof LivingEntity living
+                && ProjectileGlanceState.shouldIgnore(projectile, living)) {
+            vanillaHit = null;
+        }
         double bestDistanceSquared = vanillaHit == null
                 ? Double.POSITIVE_INFINITY
                 : start.squaredDistanceTo(vanillaHit.getPos());
@@ -39,7 +44,9 @@ public abstract class PersistentProjectileExtendedHeadHitboxMixin {
         for (LivingEntity target : projectile.getWorld().getEntitiesByClass(
                 LivingEntity.class,
                 searchBox,
-                entity -> entity.isAlive() && canHit(entity)
+                entity -> entity.isAlive()
+                        && canHit(entity)
+                        && !ProjectileGlanceState.shouldIgnore(projectile, entity)
         )) {
             var headHit = ServerHitDetectionSystem.traceProjectileHead(target, start, end);
             if (headHit.isEmpty()) {
@@ -52,8 +59,6 @@ public abstract class PersistentProjectileExtendedHeadHitboxMixin {
             }
         }
 
-        if (bestHit != vanillaHit) {
-            cir.setReturnValue(bestHit);
-        }
+        cir.setReturnValue(bestHit);
     }
 }

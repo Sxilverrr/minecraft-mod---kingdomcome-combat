@@ -1,0 +1,10 @@
+{
+  "_comment": "战斗经验奖励。数据包可在 data/<namespace>/kingdom_come_combat/combat_experience/*.json 中覆盖这些数值。",
+  "kill": 5,
+  "perfect_block": 8,
+  "perfect_counter": 8,
+  "attack": 3,
+  "master_counter": 20,
+  "combo": 20,
+  "vanilla_experience_multiplier": 0.4
+}

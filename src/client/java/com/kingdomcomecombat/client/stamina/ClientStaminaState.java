@@ -20,6 +20,11 @@ public class ClientStaminaState {
         return clamp(current / Math.max(1.0F, max), 0.0F, 1.0F);
     }
 
+    public static void reset() {
+        current = 100.0F;
+        max = 100.0F;
+    }
+
     private static float clamp(float value, float min, float max) {
         return Math.max(min, Math.min(max, value));
     }

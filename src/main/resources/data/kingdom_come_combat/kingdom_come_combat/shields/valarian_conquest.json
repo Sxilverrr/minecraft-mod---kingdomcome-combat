@@ -1,0 +1,28 @@
+{
+  "_comment": "All Valarian faction shields share the large-shield KCC handling profile.",
+  "items": {
+    "valarian_conquest:wooden_shield": {
+      "aliases": [
+        "valarian_conquest:mercenary_shield", "valarian_conquest:neutral_shield",
+        "valarian_conquest:barathian_shield", "valarian_conquest:bohemian_shield",
+        "valarian_conquest:burgundian_shield", "valarian_conquest:caladrian_shield",
+        "valarian_conquest:galician_shield", "valarian_conquest:hospitaller_shield",
+        "valarian_conquest:lancastian_shield", "valarian_conquest:numerian_shield",
+        "valarian_conquest:orleanian_shield", "valarian_conquest:templar_shield",
+        "valarian_conquest:valarian_shield", "valarian_conquest:visgothian_shield",
+        "valarian_conquest:dwarven_shield", "valarian_conquest:elven_shield"
+      ],
+      "type": "large",
+      "block_impact_mitigation": 0.92,
+      "attack_stamina_cost_multiplier": 1.55,
+      "dodge_stamina_cost_multiplier": 1.8,
+      "locked_movement_speed_multiplier": 0.78,
+      "attack_speed_multiplier": 0.88,
+      "attack_lunge_multiplier": 0.68,
+      "exhausted_disable_ticks": 55,
+      "blocking_angle_multiplier": 1.0,
+      "perfect_window_multiplier": 1.7,
+      "perfect_attacker_disable_bonus_ticks": 0
+    }
+  }
+}

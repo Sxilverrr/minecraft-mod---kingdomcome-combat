@@ -1,6 +1,7 @@
 package com.kingdomcomecombat.client.config;
 
 import com.kingdomcomecombat.config.CombatClientConfig;
+import com.kingdomcomecombat.network.UpdatePlayerInterruptConfigPayload;
 import com.kingdomcomecombat.network.UpdateServerConfigPayload;
 import me.shedaniel.clothconfig2.api.ConfigBuilder;
 import me.shedaniel.clothconfig2.api.ConfigCategory;
@@ -51,16 +52,24 @@ public final class KccConfigScreen {
                 CombatClientConfig::setBladeTrailsEnabled);
         addBoolean(category, entries, "armor_physics_compat", CombatClientConfig.armorPhysicsCompat(),
                 CombatClientConfig::setArmorPhysicsCompat);
-        addBoolean(category, entries, "disable_left_handed_mobs", CombatClientConfig.disableVanillaLeftHandedMobs(),
-                CombatClientConfig::setDisableVanillaLeftHandedMobs);
         addBoolean(category, entries, "screen_effects", CombatClientConfig.screenEffectsEnabled(),
                 CombatClientConfig::setScreenEffectsEnabled);
         addBoolean(category, entries, "hurt_camera_movement", CombatClientConfig.hurtCameraMovementEnabled(),
                 CombatClientConfig::setHurtCameraMovementEnabled);
+        addBoolean(category, entries, "dodge_animation", CombatClientConfig.dodgeAnimationEnabled(),
+                CombatClientConfig::setDodgeAnimationEnabled);
+        addBoolean(category, entries, "cauldron_face_wash", CombatClientConfig.cauldronFaceWashEnabled(),
+                CombatClientConfig::setCauldronFaceWashEnabled);
     }
 
     private static void addFirstPersonCategory(ConfigBuilder builder, ConfigEntryBuilder entries) {
         ConfigCategory category = builder.getOrCreateCategory(tr("category.first_person"));
+        addBoolean(category, entries, "first_person.enable_rendering",
+                CombatClientConfig.firstPersonRenderingEnabled(),
+                CombatClientConfig::setFirstPersonRenderingEnabled);
+        addBoolean(category, entries, "first_person.weapon_only",
+                CombatClientConfig.firstPersonWeaponOnly(),
+                CombatClientConfig::setFirstPersonWeaponOnly);
         category.addEntry(entries.startEnumSelector(
                         tr("first_person.mode"),
                         CombatClientConfig.FirstPersonModelMode.class,
@@ -100,8 +109,24 @@ public final class KccConfigScreen {
         ConfigCategory category = builder.getOrCreateCategory(tr("category.lock_on"));
         addBoolean(category, entries, "lock_on.show_crosshair", CombatClientConfig.showLockOnCrosshair(),
                 CombatClientConfig::setShowLockOnCrosshair);
+        addBoolean(category, entries, "lock_on.show_target_stamina_ring", CombatClientConfig.showTargetStaminaRing(),
+                CombatClientConfig::setShowTargetStaminaRing);
+        addDouble(category, entries, "lock_on.target_stamina_ring_scale",
+                CombatClientConfig.targetStaminaRingScale(), 0.5, 2.0,
+                CombatClientConfig::setTargetStaminaRingScale);
+        addDouble(category, entries, "lock_on.crosshair_scale",
+                CombatClientConfig.lockOnCrosshairScale(), 0.5, 2.0,
+                CombatClientConfig::setLockOnCrosshairScale);
         addBoolean(category, entries, "lock_on.auto_on_hit", CombatClientConfig.autoLockOnHit(),
                 CombatClientConfig::setAutoLockOnHit);
+        category.addEntry(entries.startBooleanToggle(
+                        tr("lock_on.third_party_right_click_outside_lock"),
+                        CombatClientConfig.thirdPartyRightClickOutsideLockEnabled()
+                )
+                .setDefaultValue(true)
+                .setSaveConsumer(CombatClientConfig::setThirdPartyRightClickOutsideLockEnabled)
+                .setTooltip(tr("lock_on.third_party_right_click_outside_lock.tooltip"))
+                .build());
         addDouble(category, entries, "lock_on.acquire_angle", CombatClientConfig.lockOnAcquireAngleDegrees(), 10.0, 120.0,
                 CombatClientConfig::setLockOnAcquireAngleDegrees);
         addDouble(category, entries, "lock_on.release_distance", CombatClientConfig.lockOnReleaseDistance(), 3.0, 32.0,
@@ -127,6 +152,9 @@ public final class KccConfigScreen {
         addDouble(category, entries, "lock_on.first_person_forward_offset",
                 CombatClientConfig.lockOnFirstPersonCameraForwardOffset(), -1.0, 1.0,
                 CombatClientConfig::setLockOnFirstPersonCameraForwardOffset);
+        addDouble(category, entries, "lock_on.stance_gesture_sensitivity",
+                CombatClientConfig.stanceGestureSensitivity(), 0.05, 4.0,
+                CombatClientConfig::setStanceGestureSensitivity);
     }
 
     private static void addEffectsCategory(ConfigBuilder builder, ConfigEntryBuilder entries) {
@@ -147,6 +175,8 @@ public final class KccConfigScreen {
                 CombatClientConfig::setSparkParticlePercent);
         addPercent(category, entries, "effects.blood_particle_percent", CombatClientConfig.bloodParticlePercent(), 200,
                 CombatClientConfig::setBloodParticlePercent);
+        addPercent(category, entries, "effects.blood_trace_particle_percent", CombatClientConfig.bloodTraceParticlePercent(), 1000,
+                CombatClientConfig::setBloodTraceParticlePercent);
         addPercent(category, entries, "effects.blood_mist_opacity", CombatClientConfig.bloodMistOpacity(), 300,
                 CombatClientConfig::setBloodMistOpacity);
         addPercent(category, entries, "effects.blood_stain_percent", CombatClientConfig.bloodStainPercent(), 200,
@@ -162,6 +192,26 @@ public final class KccConfigScreen {
     private static void addServerCategory(ConfigBuilder builder, ConfigEntryBuilder entries) {
         ConfigCategory category = builder.getOrCreateCategory(tr(ClientServerConfigState.canEdit()
                 ? "category.server" : "category.server_read_only"));
+        category.addEntry(entries.startBooleanToggle(
+                        tr("server.lightweight_damage_mode"), ClientServerConfigState.lightweightDamageModeEnabled())
+                .setRequirement(ClientServerConfigState::canEdit)
+                .setSaveConsumer(enabled -> {
+                    if (!ClientServerConfigState.canEdit()) return;
+                    ClientServerConfigState.setLightweightDamageModeEnabled(enabled);
+                    sendServerConfigUpdate();
+                })
+                .setTooltip(tr("server.lightweight_damage_mode.tooltip"))
+                .build());
+        category.addEntry(entries.startBooleanToggle(
+                        tr("server.lightweight_blocking_mode"), ClientServerConfigState.lightweightBlockingModeEnabled())
+                .setRequirement(ClientServerConfigState::canEdit)
+                .setSaveConsumer(enabled -> {
+                    if (!ClientServerConfigState.canEdit()) return;
+                    ClientServerConfigState.setLightweightBlockingModeEnabled(enabled);
+                    sendServerConfigUpdate();
+                })
+                .setTooltip(tr("server.lightweight_blocking_mode.tooltip"))
+                .build());
         category.addEntry(entries.startBooleanToggle(
                         tr("server.equipment_generation"),
                         ClientServerConfigState.modEquipmentGenerationEnabled()
@@ -233,6 +283,80 @@ public final class KccConfigScreen {
                     sendServerConfigUpdate();
                 })
                 .setTooltip(tr("server.mob_toughness.tooltip"))
+                .build());
+        category.addEntry(entries.startBooleanToggle(
+                        tr("server.always_player_interrupt"),
+                        ClientServerConfigState.alwaysEnablePlayerInterrupt()
+                )
+                .setRequirement(ClientServerConfigState::canEdit)
+                .setSaveConsumer(enabled -> {
+                    if (!ClientServerConfigState.canEdit()) {
+                        return;
+                    }
+                    ClientServerConfigState.setAlwaysEnablePlayerInterrupt(enabled);
+                    ClientPlayNetworking.send(new UpdatePlayerInterruptConfigPayload(enabled));
+                })
+                .setTooltip(tr("server.always_player_interrupt.tooltip"))
+                .build());
+        category.addEntry(entries.startBooleanToggle(
+                        tr("server.experimental_illager_undead_hostility"),
+                        ClientServerConfigState.experimentalIllagerUndeadHostilityEnabled()
+                )
+                .setRequirement(ClientServerConfigState::canEdit)
+                .setSaveConsumer(enabled -> {
+                    if (!ClientServerConfigState.canEdit()) return;
+                    ClientServerConfigState.setExperimentalIllagerUndeadHostilityEnabled(enabled);
+                    sendServerConfigUpdate();
+                })
+                .setTooltip(tr("server.experimental_illager_undead_hostility.tooltip"))
+                .build());
+        category.addEntry(entries.startBooleanToggle(
+                        tr("server.disable_left_handed_mobs"),
+                        ClientServerConfigState.disableVanillaLeftHandedMobs()
+                )
+                .setRequirement(ClientServerConfigState::canEdit)
+                .setSaveConsumer(disabled -> {
+                    if (!ClientServerConfigState.canEdit()) return;
+                    ClientServerConfigState.setDisableVanillaLeftHandedMobs(disabled);
+                    sendServerConfigUpdate();
+                })
+                .setTooltip(tr("server.permission_tooltip"))
+                .build());
+        category.addEntry(entries.startBooleanToggle(
+                        tr("server.ender_dragon_overhaul"),
+                        ClientServerConfigState.enderDragonOverhaulEnabled()
+                )
+                .setRequirement(ClientServerConfigState::canEdit)
+                .setSaveConsumer(enabled -> {
+                    if (!ClientServerConfigState.canEdit()) return;
+                    ClientServerConfigState.setEnderDragonOverhaulEnabled(enabled);
+                    sendServerConfigUpdate();
+                })
+                .setTooltip(tr("server.permission_tooltip"))
+                .build());
+        category.addEntry(entries.startBooleanToggle(
+                        tr("server.legacy_collision_calculation"),
+                        ClientServerConfigState.legacyCollisionCalculationEnabled()
+                )
+                .setRequirement(ClientServerConfigState::canEdit)
+                .setSaveConsumer(enabled -> {
+                    if (!ClientServerConfigState.canEdit()) return;
+                    ClientServerConfigState.setLegacyCollisionCalculationEnabled(enabled);
+                    sendServerConfigUpdate();
+                })
+                .setTooltip(tr("server.legacy_collision_calculation.tooltip"))
+                .build());
+        category.addEntry(entries.startBooleanToggle(
+                        tr("server.client_projectile_hurtbox"),
+                        ClientServerConfigState.clientProjectileHurtboxEnabled()
+                )
+                .setRequirement(ClientServerConfigState::canEdit)
+                .setSaveConsumer(enabled -> {
+                    if (!ClientServerConfigState.canEdit()) return;
+                    ClientServerConfigState.setClientProjectileHurtboxEnabled(enabled);
+                    sendServerConfigUpdate();
+                })
+                .setTooltip(tr("server.client_projectile_hurtbox.tooltip"))
                 .build());
         category.addEntry(entries.startIntSlider(
                         tr("server.hit_stop_ticks"),
@@ -340,6 +464,22 @@ public final class KccConfigScreen {
                 .setTooltip(tr("server.permission_tooltip"))
                 .build());
         category.addEntry(entries.startIntSlider(
+                        tr("server.unperfect_block_window_ticks"),
+                        ClientServerConfigState.unperfectBlockWindowTicks(),
+                        0,
+                        40
+                )
+                .setRequirement(ClientServerConfigState::canEdit)
+                .setSaveConsumer(ticks -> {
+                    if (!ClientServerConfigState.canEdit()) {
+                        return;
+                    }
+                    ClientServerConfigState.setUnperfectBlockWindowTicks(ticks);
+                    sendServerConfigUpdate();
+                })
+                .setTooltip(tr("server.permission_tooltip"))
+                .build());
+        category.addEntry(entries.startIntSlider(
                         tr("server.combat_min_distance"),
                         (int) Math.round(ClientServerConfigState.combatMinDistance() * 100.0),
                         50,
@@ -367,6 +507,68 @@ public final class KccConfigScreen {
                 })
                 .setTooltip(tr("server.combat_min_distance.tooltip"))
                 .build());
+        category.addEntry(entries.startBooleanToggle(
+                        tr("server.reach_attribute_hitbox_scaling"),
+                        ClientServerConfigState.reachAttributeHitboxScalingEnabled())
+                .setRequirement(ClientServerConfigState::canEdit)
+                .setSaveConsumer(enabled -> {
+                    ClientServerConfigState.setReachAttributeHitboxScalingEnabled(enabled);
+                    sendServerConfigUpdate();
+                })
+                .setTooltip(tr("server.reach_attribute_hitbox_scaling.tooltip"))
+                .build());
+        category.addEntry(entries.startBooleanToggle(
+                        tr("server.blocking_movement_slowdown"),
+                        ClientServerConfigState.blockingMovementSlowdownEnabled())
+                .setRequirement(ClientServerConfigState::canEdit)
+                .setDefaultValue(true)
+                .setSaveConsumer(enabled -> {
+                    ClientServerConfigState.setBlockingMovementSlowdownEnabled(enabled);
+                    sendServerConfigUpdate();
+                })
+                .setTooltip(tr("server.blocking_movement_slowdown.tooltip"))
+                .build());
+        category.addEntry(entries.startBooleanToggle(
+                        tr("server.mounted_kcc_combat"),
+                        ClientServerConfigState.mountedKccCombatEnabled())
+                .setRequirement(ClientServerConfigState::canEdit)
+                .setDefaultValue(false)
+                .setSaveConsumer(enabled -> {
+                    ClientServerConfigState.setMountedKccCombatEnabled(enabled);
+                    sendServerConfigUpdate();
+                })
+                .setTooltip(tr("server.mounted_kcc_combat.tooltip"))
+                .build());
+        category.addEntry(entries.startIntSlider(
+                        tr("server.collision_cache_radius"),
+                        (int) Math.round(ClientServerConfigState.collisionCacheRadius()),
+                        2,
+                        32
+                )
+                .setTextGetter(value -> Text.literal(value + " m"))
+                .setRequirement(ClientServerConfigState::canEdit)
+                .setDefaultValue(8)
+                .setSaveConsumer(value -> {
+                    ClientServerConfigState.setCollisionCacheRadius(value);
+                    sendServerConfigUpdate();
+                })
+                .setTooltip(tr("server.collision_cache_radius.tooltip"))
+                .build());
+        category.addEntry(entries.startIntSlider(
+                        tr("server.reach_attribute_hitbox_scale_per_block"),
+                        (int) Math.round(ClientServerConfigState.reachAttributeHitboxScalePerBlock() * 100.0),
+                        0,
+                        100
+                )
+                .setTextGetter(value -> Text.literal(value + "%"))
+                .setRequirement(ClientServerConfigState::canEdit)
+                .setDefaultValue(20)
+                .setSaveConsumer(value -> {
+                    ClientServerConfigState.setReachAttributeHitboxScalePerBlock(value / 100.0);
+                    sendServerConfigUpdate();
+                })
+                .setTooltip(tr("server.reach_attribute_hitbox_scale_per_block.tooltip"))
+                .build());
         category.addEntry(entries.startStrList(
                         tr("server.vanilla_attack_weapon_ids"),
                         new ArrayList<>(ClientServerConfigState.vanillaAttackWeaponIds())
@@ -393,6 +595,19 @@ public final class KccConfigScreen {
                     sendServerConfigUpdate();
                 })
                 .setTooltip(tr("server.vanilla_attack_weapon_ids.tooltip"))
+                .build());
+        category.addEntry(entries.startStrList(
+                        tr("server.vanilla_attack_entity_ids"),
+                        new ArrayList<>(ClientServerConfigState.vanillaAttackEntityIds()))
+                .setRequirement(ClientServerConfigState::canEdit)
+                .setDefaultValue(new ArrayList<>())
+                .setExpanded(true)
+                .setCellErrorSupplier(KccConfigScreen::validateEntityId)
+                .setSaveConsumer(ids -> {
+                    ClientServerConfigState.setVanillaAttackEntityIds(ids);
+                    sendServerConfigUpdate();
+                })
+                .setTooltip(tr("server.vanilla_attack_entity_ids.tooltip"))
                 .build());
         Identifier noSelection = Identifier.ofVanilla("air");
         java.util.List<Identifier> itemSelections = StreamSupport.stream(
@@ -442,6 +657,8 @@ public final class KccConfigScreen {
 
     private static void sendServerConfigUpdate() {
         ClientPlayNetworking.send(new UpdateServerConfigPayload(
+                ClientServerConfigState.lightweightDamageModeEnabled(),
+                ClientServerConfigState.lightweightBlockingModeEnabled(),
                 ClientServerConfigState.modEquipmentGenerationEnabled(),
                 ClientServerConfigState.zombieLeaderHealthFixEnabled(),
                 ClientServerConfigState.mobToughnessEnabled(),
@@ -449,8 +666,20 @@ public final class KccConfigScreen {
                 ClientServerConfigState.vanillaHurtSoundVolumeMultiplier(),
                 ClientServerConfigState.masterCounterWindowTicks(),
                 ClientServerConfigState.blockWindowTicks(),
+                ClientServerConfigState.unperfectBlockWindowTicks(),
                 ClientServerConfigState.combatMinDistance(),
+                ClientServerConfigState.collisionCacheRadius(),
+                ClientServerConfigState.experimentalIllagerUndeadHostilityEnabled(),
+                ClientServerConfigState.disableVanillaLeftHandedMobs(),
+                ClientServerConfigState.enderDragonOverhaulEnabled(),
+                ClientServerConfigState.legacyCollisionCalculationEnabled(),
+                ClientServerConfigState.clientProjectileHurtboxEnabled(),
+                ClientServerConfigState.reachAttributeHitboxScalingEnabled(),
+                ClientServerConfigState.blockingMovementSlowdownEnabled(),
+                ClientServerConfigState.mountedKccCombatEnabled(),
+                ClientServerConfigState.reachAttributeHitboxScalePerBlock(),
                 ClientServerConfigState.vanillaAttackWeaponIds()
+                ,ClientServerConfigState.vanillaAttackEntityIds()
         ));
     }
 
@@ -520,6 +749,14 @@ public final class KccConfigScreen {
         return Identifier.tryParse(trimmed) == null
                 ? Optional.of(tr("error.invalid_item_id"))
                 : Optional.empty();
+    }
+
+    private static Optional<Text> validateEntityId(String value) {
+        String trimmed = value == null ? "" : value.trim();
+        if (trimmed.isEmpty()) return Optional.of(tr("error.empty_entity_id"));
+        Identifier id = Identifier.tryParse(trimmed);
+        return id == null || !Registries.ENTITY_TYPE.containsId(id)
+                ? Optional.of(tr("error.invalid_entity_id")) : Optional.empty();
     }
 
     private static Text tr(String key) {

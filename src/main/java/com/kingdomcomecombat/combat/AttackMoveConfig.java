@@ -19,7 +19,12 @@ public record AttackMoveConfig(
         double masterCounterSpacing,
         double horizontalKnockback,
         boolean hitReaction,
-        List<HeightPartRule> directHitHeightParts
+        List<HeightPartRule> directHitHeightParts,
+        CombatDirection defenseDirection,
+        boolean classicDirectionalBlock,
+        boolean blockable,
+        boolean dodgeable,
+        boolean jumpDodgeLegs
 
 ) {
     public AttackMoveConfig(
@@ -50,7 +55,12 @@ public record AttackMoveConfig(
                 1.4,
                 CombatControlConfig.DEFAULT_ATTACK_HORIZONTAL_KNOCKBACK,
                 true,
-                List.of()
+                List.of(),
+                null,
+                false,
+                true,
+                true,
+                false
         );
     }
 
@@ -84,7 +94,12 @@ public record AttackMoveConfig(
                 1.4,
                 CombatControlConfig.DEFAULT_ATTACK_HORIZONTAL_KNOCKBACK,
                 true,
-                List.of()
+                List.of(),
+                null,
+                false,
+                true,
+                true,
+                false
         );
     }
 
@@ -117,7 +132,12 @@ public record AttackMoveConfig(
                 1.4,
                 CombatControlConfig.DEFAULT_ATTACK_HORIZONTAL_KNOCKBACK,
                 true,
-                List.of()
+                List.of(),
+                null,
+                false,
+                true,
+                true,
+                false
         );
     }
 
@@ -156,7 +176,12 @@ public record AttackMoveConfig(
                 masterCounterSpacing,
                 horizontalKnockback,
                 hitReaction,
-                List.of()
+                List.of(),
+                null,
+                false,
+                true,
+                true,
+                false
         );
     }
 
@@ -176,6 +201,11 @@ public record AttackMoveConfig(
         masterCounterSpacing = Math.max(0.3, Math.min(3.0, masterCounterSpacing));
         horizontalKnockback = Math.max(0.0, Math.min(1.0, horizontalKnockback));
         directHitHeightParts = directHitHeightParts == null ? List.of() : List.copyOf(directHitHeightParts);
+        defenseDirection = defenseDirection == null ? null : defenseDirection;
+    }
+
+    public CombatDirection defenseDirectionOr(CombatDirection fallback) {
+        return defenseDirection == null ? fallback : defenseDirection;
     }
 
     public record HitZoneRule(

@@ -1,0 +1,9 @@
+{
+  "_comment": "Knights & Heraldry bows, crossbows and black-powder weapons.",
+  "items": {
+    "knightsheraldry:longbow": {"speed": 0.9, "hardness": 1.15, "power": 1.15},
+    "knightsheraldry:heavy_crossbow": {"speed": 0.7, "hardness": 1.4, "power": 1.4},
+    "knightsheraldry:arquebus": {"speed": 1.7, "hardness": 2.0, "power": 1.8},
+    "knightsheraldry:handgonne": {"speed": 1.5, "hardness": 2.2, "power": 2.0}
+  }
+}

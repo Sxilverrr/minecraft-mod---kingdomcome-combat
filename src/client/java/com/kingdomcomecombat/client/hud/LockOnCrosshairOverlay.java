@@ -2,9 +2,12 @@ package com.kingdomcomecombat.client.hud;
 
 import com.kingdomcomecombat.KingdomComeCombat;
 import com.kingdomcomecombat.client.combat.CombatClientState;
+import com.kingdomcomecombat.client.combat.ClientExecutionState;
 import com.kingdomcomecombat.client.game.ClientGameRuleState;
 import com.kingdomcomecombat.client.lockon.LockOnState;
+import com.kingdomcomecombat.client.stamina.ClientEntityStaminaState;
 import com.kingdomcomecombat.combat.CombatDirection;
+import com.kingdomcomecombat.combat.CombatItemUtil;
 import com.kingdomcomecombat.config.CombatClientConfig;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
@@ -16,8 +19,6 @@ import net.minecraft.client.render.RenderTickCounter;
 import net.minecraft.entity.Entity;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.Vec3d;
-import org.joml.Matrix4f;
-import org.joml.Vector4f;
 
 public class LockOnCrosshairOverlay {
     private static final Identifier CROSS_BASE =
@@ -34,15 +35,26 @@ public class LockOnCrosshairOverlay {
 
     private static final Identifier CROSS_DOWN =
             Identifier.of(KingdomComeCombat.MOD_ID, "textures/gui/cross_down.png");
+    private static final Identifier CROSS_WITHOUT_UP =
+            Identifier.of(KingdomComeCombat.MOD_ID, "textures/gui/cross_without_up.png");
     private static final Identifier ATTACK_WARNING =
             Identifier.of(KingdomComeCombat.MOD_ID, "textures/gui/defend.png");
+    private static final Identifier DIRECTIONAL_BLOCK_WARNING =
+            Identifier.of(KingdomComeCombat.MOD_ID, "textures/gui/direction_block.png");
     private static final Identifier CANNOT_BLOCK_WARNING =
             Identifier.of(KingdomComeCombat.MOD_ID, "textures/gui/cant_block.png");
     private static final Identifier PERFECT_BLOCK_WARNING =
             Identifier.of(KingdomComeCombat.MOD_ID, "textures/gui/perfect_block.png");
+    private static final Identifier PERFECT_COUNTER_ATTACK =
+            Identifier.of(KingdomComeCombat.MOD_ID, "textures/gui/attack.png");
+    private static final Identifier EXECUTE_READY =
+            Identifier.of(KingdomComeCombat.MOD_ID, "textures/gui/execute.png");
+    private static final Identifier HARDCORE_LOCK_POINT =
+            Identifier.of(KingdomComeCombat.MOD_ID, "textures/gui/hardcore_lock_point.png");
 
     private static final int CROSS_SIZE = 32;
     private static final float LOCKED_BASE_CROSS_SCALE = 0.60F;
+    private static final int TARGET_STAMINA_RING_COLOR = 0xFFFFD94A;
     private static final double DISTANCE_SCALE_START = 4.0;
     private static final double DISTANCE_SCALE_RANGE = 12.0;
     private static final float MIN_DISTANCE_CROSS_SCALE = 0.32F;
@@ -101,42 +113,44 @@ public class LockOnCrosshairOverlay {
     private static void projectWorldToScreen(MinecraftClient client, Vec3d worldPos) {
         Camera camera = client.gameRenderer.getCamera();
         Vec3d cameraPos = camera.getPos();
-
         Vec3d relative = worldPos.subtract(cameraPos);
 
-        Matrix4f projectionMatrix = client.gameRenderer.getBasicProjectionMatrix(
-                client.options.getFov().getValue()
-        );
+        // Use Minecraft's yaw/pitch convention directly. Camera quaternion
+        // orientation changed between the legacy and render-state pipelines,
+        // while yaw 0 always looks south (+Z) and positive yaw turns west.
+        double yaw = Math.toRadians(camera.getYaw());
+        double pitch = Math.toRadians(camera.getPitch());
+        double sinYaw = Math.sin(yaw);
+        double cosYaw = Math.cos(yaw);
+        double sinPitch = Math.sin(pitch);
+        double cosPitch = Math.cos(pitch);
 
-        Matrix4f viewMatrix = new Matrix4f()
-                .rotateX((float) Math.toRadians(camera.getPitch()))
-                .rotateY((float) Math.toRadians(camera.getYaw() + 180.0F));
-
-        Vector4f clip = new Vector4f(
-                (float) relative.x,
-                (float) relative.y,
-                (float) relative.z,
-                1.0F
-        );
-
-        clip.mul(viewMatrix);
-        clip.mul(projectionMatrix);
-
-        if (clip.w <= 0.0F) {
-            hasScreenPosition = false;
-            return;
-        }
-
-        float ndcX = clip.x / clip.w;
-        float ndcY = clip.y / clip.w;
-
-        if (ndcX < -1.2F || ndcX > 1.2F || ndcY < -1.2F || ndcY > 1.2F) {
+        float cameraX = (float) (-cosYaw * relative.x - sinYaw * relative.z);
+        float cameraY = (float) (
+                -sinYaw * sinPitch * relative.x
+                        + cosPitch * relative.y
+                        + cosYaw * sinPitch * relative.z);
+        float depth = (float) (
+                -sinYaw * cosPitch * relative.x
+                        - sinPitch * relative.y
+                        + cosYaw * cosPitch * relative.z);
+        if (depth <= 0.01F) {
             hasScreenPosition = false;
             return;
         }
 
         int width = client.getWindow().getScaledWidth();
         int height = client.getWindow().getScaledHeight();
+        float tanHalfFov = (float) Math.tan(Math.toRadians(
+                client.options.getFov().getValue() * 0.5));
+        float aspect = width / (float) Math.max(1, height);
+        float ndcX = cameraX / (depth * tanHalfFov * aspect);
+        float ndcY = cameraY / (depth * tanHalfFov);
+
+        if (ndcX < -1.2F || ndcX > 1.2F || ndcY < -1.2F || ndcY > 1.2F) {
+            hasScreenPosition = false;
+            return;
+        }
 
         screenX = (ndcX * 0.5F + 0.5F) * width;
         screenY = (1.0F - (ndcY * 0.5F + 0.5F)) * height;
@@ -165,7 +179,17 @@ public class LockOnCrosshairOverlay {
             DrawContext context,
             RenderTickCounter tickCounter
     ) {
-        if (!LockOnState.locked || ClientGameRuleState.hardcoreMode()) {
+        updateTargetScreenPosition();
+        if (!LockOnState.locked) {
+            return;
+        }
+
+        if (ClientGameRuleState.hardcoreMode()) {
+            if (!ClientExecutionState.shouldHideCrosshair()) {
+                int x = (context.getScaledWindowWidth() - CROSS_SIZE) / 2;
+                int y = (context.getScaledWindowHeight() - CROSS_SIZE) / 2;
+                drawTexture(context, HARDCORE_LOCK_POINT, x, y, CROSS_SIZE);
+            }
             return;
         }
 
@@ -177,24 +201,34 @@ public class LockOnCrosshairOverlay {
             return;
         }
 
-        int drawSize = Math.max(8, Math.round(CROSS_SIZE * crossScale));
+        if (ClientExecutionState.shouldHideCrosshair()) {
+            return;
+        }
+
+        int drawSize = Math.max(4, Math.round(
+                CROSS_SIZE * crossScale * (float) CombatClientConfig.lockOnCrosshairScale()));
         int x = Math.round(screenX - drawSize / 2.0F);
         int y = Math.round(screenY - drawSize / 2.0F);
 
-        drawTexture(context, CROSS_BASE, x, y, drawSize);
+        MinecraftClient client = MinecraftClient.getInstance();
+        drawTargetStaminaRing(context, x, y, drawSize);
+        boolean polearm = client.player != null
+                && CombatItemUtil.isPolearm(client.player.getMainHandStack());
+        drawTexture(context, polearm ? CROSS_WITHOUT_UP : CROSS_BASE, x, y, drawSize);
 
         Identifier stanceTexture = getStanceTexture(CombatClientState.currentDirection);
-
-        if (stanceTexture != null) {
+        if (stanceTexture != null && !(polearm && CombatClientState.currentDirection == CombatDirection.UP)) {
             drawTexture(context, stanceTexture, x, y, drawSize);
         }
 
-        if (IncomingAttackWarningState.active()) {
+        if (IncomingAttackWarningState.active()
+                && !CombatClientState.isPerfectCounterIndicatorActive()) {
             int warningSize = Math.round(drawSize * 1.35F);
             Identifier warningTexture = switch (IncomingAttackWarningState.warningType()) {
                 case 1 -> CANNOT_BLOCK_WARNING;
                 case 2 -> PERFECT_BLOCK_WARNING;
-                default -> ATTACK_WARNING;
+                case 3 -> ATTACK_WARNING;
+                default -> DIRECTIONAL_BLOCK_WARNING;
             };
             drawTexture(
                     context,
@@ -204,6 +238,81 @@ public class LockOnCrosshairOverlay {
                     warningSize
             );
         }
+        if (CombatClientState.isPerfectCounterIndicatorActive()) {
+            int indicatorSize = Math.round(drawSize * 1.35F);
+            drawTexture(
+                    context,
+                    PERFECT_COUNTER_ATTACK,
+                    Math.round(screenX - indicatorSize / 2.0F),
+                    Math.round(screenY - indicatorSize / 2.0F),
+                    indicatorSize
+            );
+        }
+        if (ClientExecutionState.canExecuteTarget(LockOnState.targetEntityId)) {
+            int indicatorSize = Math.round(drawSize * 1.35F);
+            drawTexture(
+                    context,
+                    EXECUTE_READY,
+                    Math.round(screenX - indicatorSize / 2.0F),
+                    Math.round(screenY - indicatorSize / 2.0F),
+                    indicatorSize
+            );
+        }
+    }
+
+    private static void drawTargetStaminaRing(
+            DrawContext context,
+            int crossX,
+            int crossY,
+            int crossDrawSize
+    ) {
+        if (!CombatClientConfig.showTargetStaminaRing()
+                || LockOnState.isSoftLocked()
+                || LockOnState.targetEntityId < 0) {
+            return;
+        }
+
+        float progress = ClientEntityStaminaState.progressOrFull(LockOnState.targetEntityId);
+        if (progress <= 0.01F) {
+            return;
+        }
+
+        float textureCenter = (CROSS_SIZE - 1.0F) * 0.5F;
+        float radius = (CROSS_SIZE * (float) CombatClientConfig.targetStaminaRingScale() - 1.0F) * 0.5F;
+        float minDistance = Math.max(0.0F, radius - 0.55F);
+        float maxDistance = radius + 0.55F;
+        float minDistanceSq = minDistance * minDistance;
+        float maxDistanceSq = maxDistance * maxDistance;
+        int minPixel = (int) Math.floor(textureCenter - maxDistance);
+        int maxPixel = (int) Math.ceil(textureCenter + maxDistance);
+
+        for (int texturePixelY = minPixel; texturePixelY <= maxPixel; texturePixelY++) {
+            for (int texturePixelX = minPixel; texturePixelX <= maxPixel; texturePixelX++) {
+                float dx = texturePixelX - textureCenter;
+                float dy = texturePixelY - textureCenter;
+                float distanceSq = dx * dx + dy * dy;
+                if (distanceSq < minDistanceSq || distanceSq > maxDistanceSq) {
+                    continue;
+                }
+
+                double angle = Math.atan2(dy, dx);
+                float normalized = (float) ((angle + Math.PI * 0.5 + Math.PI * 2.0) % (Math.PI * 2.0)
+                        / (Math.PI * 2.0));
+                if (normalized > progress) {
+                    continue;
+                }
+
+                int x0 = texturePixelToScreen(crossX, crossDrawSize, texturePixelX);
+                int y0 = texturePixelToScreen(crossY, crossDrawSize, texturePixelY);
+                int x1 = texturePixelToScreen(crossX, crossDrawSize, texturePixelX + 1);
+                int y1 = texturePixelToScreen(crossY, crossDrawSize, texturePixelY + 1);
+                context.fill(x0, y0, Math.max(x0 + 1, x1), Math.max(y0 + 1, y1), TARGET_STAMINA_RING_COLOR);
+            }
+        }
+    }
+
+    private static int texturePixelToScreen(int origin, int drawSize, int texturePixel) {
+        return origin + Math.round(texturePixel * drawSize / (float) CROSS_SIZE);
     }
 
     private static Identifier getStanceTexture(CombatDirection direction) {

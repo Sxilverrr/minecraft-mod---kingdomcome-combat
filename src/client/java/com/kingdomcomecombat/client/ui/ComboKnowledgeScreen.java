@@ -3,6 +3,7 @@ package com.kingdomcomecombat.client.ui;
 import com.kingdomcomecombat.KingdomComeCombat;
 import com.kingdomcomecombat.client.combat.ClientComboUnlockState;
 import com.kingdomcomecombat.client.passive.ClientPassiveSkillUnlockState;
+import com.kingdomcomecombat.client.passive.ClientPassiveSkillConfigState;
 import com.kingdomcomecombat.combat.CombatDirection;
 import com.kingdomcomecombat.combat.ComboMoveConfig;
 import com.kingdomcomecombat.combat.ComboMoveConfigs;
@@ -75,10 +76,10 @@ public class ComboKnowledgeScreen extends Screen {
         super.render(context, mouseX, mouseY, deltaTicks);
         context.drawCenteredTextWithShadow(textRenderer, title, width / 2, 12, 0xFFFFFFFF);
 
-        int panelX = width / 2 - 210;
-        int panelY = 56;
-        int panelW = 420;
-        int panelH = height - 76;
+        int panelW = Math.min(420, Math.max(120, width - 20));
+        int panelX = (width - panelW) / 2;
+        int panelY = 94;
+        int panelH = Math.max(80, height - 114);
         Text experienceText = Text.translatable(
                 "screen.kingdom_come_combat.skills.current_experience",
                 currentExperience()
@@ -86,10 +87,23 @@ public class ComboKnowledgeScreen extends Screen {
         context.drawTextWithShadow(
                 textRenderer,
                 experienceText,
-                panelX + panelW - textRenderer.getWidth(experienceText),
-                13,
+                Math.max(4, Math.min(width - textRenderer.getWidth(experienceText) - 4,
+                        panelX + panelW - textRenderer.getWidth(experienceText))),
+                panelY - 14,
                 0xFFE0B45E
         );
+        Text experienceHelp = Text.translatable(
+                "screen.kingdom_come_combat.skills.experience_sources",
+                ClientPassiveSkillUnlockState.killReward(),
+                ClientPassiveSkillUnlockState.perfectBlockReward(),
+                ClientPassiveSkillUnlockState.perfectCounterReward(),
+                ClientPassiveSkillUnlockState.attackReward(),
+                ClientPassiveSkillUnlockState.masterCounterReward(),
+                ClientPassiveSkillUnlockState.comboReward(),
+                Math.round(ClientPassiveSkillUnlockState.vanillaExperienceMultiplier() * 100.0)
+        );
+        drawWrapped(context, experienceHelp.getString(), panelX + 4, panelY - 38,
+                panelW - 8, 0xFFB8AD9B, 2);
         context.fill(panelX, panelY, panelX + panelW, panelY + panelH, 0xCC161616);
         context.drawBorder(panelX, panelY, panelW, panelH, 0xFF6B5A43);
 
@@ -289,9 +303,9 @@ public class ComboKnowledgeScreen extends Screen {
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
         int panelX = width / 2 - 210;
-        int panelY = 56;
+        int panelY = 94;
         int panelW = 420;
-        int panelH = height - 76;
+        int panelH = height - 114;
         if (mouseX < panelX || mouseX > panelX + panelW || mouseY < panelY || mouseY > panelY + panelH) {
             return false;
         }
@@ -363,7 +377,7 @@ public class ComboKnowledgeScreen extends Screen {
 
     private List<PassiveSkillConfig> passiveSkills() {
         List<PassiveSkillConfig> skills = new ArrayList<>();
-        for (PassiveSkillConfig skill : PassiveSkillConfigs.all()) {
+        for (PassiveSkillConfig skill : clientPassiveSkills()) {
             if (ClientPassiveSkillUnlockState.isUnlocked(skill.id())) {
                 skills.add(skill);
             }
@@ -374,7 +388,7 @@ public class ComboKnowledgeScreen extends Screen {
 
     private List<PassiveSkillConfig> learnableSkills() {
         List<PassiveSkillConfig> skills = new ArrayList<>();
-        for (PassiveSkillConfig skill : PassiveSkillConfigs.all()) {
+        for (PassiveSkillConfig skill : clientPassiveSkills()) {
             if (skill.source() == PassiveSkillConfig.Source.EXPERIENCE
                     && !ClientPassiveSkillUnlockState.isUnlocked(skill.id())) {
                 skills.add(skill);
@@ -386,9 +400,9 @@ public class ComboKnowledgeScreen extends Screen {
 
     private PassiveSkillConfig learnableSkillAt(double mouseX, double mouseY) {
         int panelX = width / 2 - 210;
-        int panelY = 56;
+        int panelY = 94;
         int panelW = 420;
-        int panelH = height - 76;
+        int panelH = height - 114;
         int contentTop = panelY + 8;
         int contentBottom = panelY + panelH - 8;
         if (mouseX < panelX + 12 || mouseX > panelX + panelW - 12 || mouseY < contentTop || mouseY > contentBottom) {
@@ -399,6 +413,11 @@ public class ComboKnowledgeScreen extends Screen {
         int rowY = relativeY % LEARNABLE_ROW_HEIGHT;
         List<PassiveSkillConfig> skills = learnableSkills();
         return index >= 0 && index < skills.size() && rowY <= 78 ? skills.get(index) : null;
+    }
+
+    private List<PassiveSkillConfig> clientPassiveSkills() {
+        List<PassiveSkillConfig> synced = ClientPassiveSkillConfigState.all();
+        return synced.isEmpty() ? PassiveSkillConfigs.all() : synced;
     }
 
     private void maybeCompleteHeldSkill() {
@@ -417,11 +436,11 @@ public class ComboKnowledgeScreen extends Screen {
     }
 
     private boolean hasEnoughExperience(PassiveSkillConfig skill) {
-        return client != null && client.player != null && client.player.totalExperience >= skill.experienceCost();
+        return ClientPassiveSkillUnlockState.combatExperience() >= skill.experienceCost();
     }
 
     private int currentExperience() {
-        return client == null || client.player == null ? 0 : client.player.totalExperience;
+        return ClientPassiveSkillUnlockState.combatExperience();
     }
 
     private void clearHold() {

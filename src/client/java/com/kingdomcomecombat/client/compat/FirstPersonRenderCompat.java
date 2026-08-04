@@ -1,6 +1,6 @@
 package com.kingdomcomecombat.client.compat;
 
-import com.kingdomcomecombat.platform.PlatformServices;
+import net.fabricmc.loader.api.FabricLoader;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -13,8 +13,6 @@ public final class FirstPersonRenderCompat {
             ThreadLocal.withInitial(() -> 0);
     private static final Method IS_RENDERING_PLAYER = findApiMethod("isRenderingPlayer");
     private static final Method IS_ENABLED = findApiMethod("isEnabled");
-    private static final Object IRIS_API = findIrisApi();
-    private static final Method IS_RENDERING_SHADOW_PASS = findIrisMethod();
 
     private FirstPersonRenderCompat() {
     }
@@ -51,12 +49,24 @@ public final class FirstPersonRenderCompat {
         return invokeBoolean(IS_ENABLED);
     }
 
+    public static boolean isFirstPersonModelLoaded() {
+        // Merely being present is not enough to hand first-person rendering over
+        // to the external mod. It may be disabled in its own config, or a newer
+        // Minecraft build may load the mod while exposing an incompatible API.
+        // In both cases KCC must keep its own body renderer as a safe fallback.
+        return FabricLoader.getInstance().isModLoaded(FIRST_PERSON_MOD_ID)
+                && IS_ENABLED != null
+                && invokeBoolean(IS_ENABLED);
+    }
+
     public static boolean isRenderingShadowPass() {
-        if (IRIS_API == null || IS_RENDERING_SHADOW_PASS == null) {
+        Object irisApi = IrisCompat.IRIS_API;
+        Method shadowPassMethod = IrisCompat.IS_RENDERING_SHADOW_PASS;
+        if (irisApi == null || shadowPassMethod == null) {
             return false;
         }
         try {
-            return Boolean.TRUE.equals(IS_RENDERING_SHADOW_PASS.invoke(IRIS_API));
+            return Boolean.TRUE.equals(shadowPassMethod.invoke(irisApi));
         } catch (IllegalAccessException | InvocationTargetException | LinkageError ignored) {
             return false;
         }
@@ -71,19 +81,19 @@ public final class FirstPersonRenderCompat {
         }
     }
 
-    private static Method findIrisMethod() {
-        if (IRIS_API == null) {
+    private static Method findIrisMethod(Object irisApi) {
+        if (irisApi == null) {
             return null;
         }
         try {
-            return IRIS_API.getClass().getMethod("isRenderingShadowPass");
+            return irisApi.getClass().getMethod("isRenderingShadowPass");
         } catch (NoSuchMethodException | LinkageError ignored) {
             return null;
         }
     }
 
     private static Method findApiMethod(String name) {
-        if (!PlatformServices.loader().isModLoaded(FIRST_PERSON_MOD_ID)) {
+        if (!FabricLoader.getInstance().isModLoaded(FIRST_PERSON_MOD_ID)) {
             return null;
         }
         try {
@@ -102,5 +112,11 @@ public final class FirstPersonRenderCompat {
         } catch (IllegalAccessException | InvocationTargetException | LinkageError ignored) {
             return false;
         }
+    }
+
+    /** Defers Iris class initialization until an actual world render pass. */
+    private static final class IrisCompat {
+        private static final Object IRIS_API = findIrisApi();
+        private static final Method IS_RENDERING_SHADOW_PASS = findIrisMethod(IRIS_API);
     }
 }

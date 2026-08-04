@@ -41,14 +41,18 @@ public class CombatHitFeedbackClient {
     }
 
     public static void startHitFeedback(CombatDirection direction, boolean penetratedArmor) {
+        startHitFeedback(direction, penetratedArmor, 1.0F);
+    }
+
+    public static void startHitFeedback(CombatDirection direction, boolean penetratedArmor, float feedbackScale) {
         boolean confirmsPrediction = predictedHitTicks > 0 && hitDirection == direction;
         hitDirection = direction;
-        hitFeedbackStrength = penetratedArmor ? 0.92F : 0.55F;
+        hitFeedbackStrength = (penetratedArmor ? 0.92F : 0.55F) * MathHelper.clamp(feedbackScale, 0.1F, 3.0F);
         int stopTicks = confirmsPrediction ? Math.min(1, ClientServerConfigState.hitStopTicks()) : ClientServerConfigState.hitStopTicks();
         hitStopTicks = confirmsPrediction ? Math.max(hitStopTicks, stopTicks) : stopTicks;
         shakeTicks = confirmsPrediction ? Math.max(shakeTicks, 5) : SHAKE_TOTAL_TICKS;
         customHitSlowTicks = Math.max(customHitSlowTicks, CUSTOM_HIT_SLOW_TICKS);
-        if (penetratedArmor) {
+        if (penetratedArmor && feedbackScale <= 1.0F) {
             redFlashTicks = Math.max(redFlashTicks, RED_FLASH_TOTAL_TICKS);
         }
         cameraRecoilTicks = Math.max(cameraRecoilTicks, 10);

@@ -12,6 +12,7 @@ public class ModParticles {
     public static final SimpleParticleType BLOOD_SPARK = FabricParticleTypes.simple();
     public static final SimpleParticleType BLOOD_DROP = FabricParticleTypes.simple();
     public static final SimpleParticleType BLOOD_MIST = FabricParticleTypes.simple();
+    public static final SimpleParticleType BLOOD_TRACE = FabricParticleTypes.simple();
 
     private ModParticles() {
     }
@@ -36,6 +37,11 @@ public class ModParticles {
                 Registries.PARTICLE_TYPE,
                 Identifier.of(KingdomComeCombat.MOD_ID, "blood_mist"),
                 BLOOD_MIST
+        );
+        Registry.register(
+                Registries.PARTICLE_TYPE,
+                Identifier.of(KingdomComeCombat.MOD_ID, "blood_trace"),
+                BLOOD_TRACE
         );
     }
 }

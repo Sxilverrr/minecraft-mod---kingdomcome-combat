@@ -11,6 +11,11 @@ public record IncomingAttackWarningPayload(
         int directionOrdinal,
         int warningType
 ) implements CustomPayload {
+    public static final int DIRECTIONAL_BLOCK = 0;
+    public static final int UNBLOCKABLE = 1;
+    public static final int PERFECT_BLOCKED = 2;
+    public static final int DIRECTION_FREE_BLOCK = 3;
+
     public static final Id<IncomingAttackWarningPayload> ID =
             new Id<>(Identifier.of(KingdomComeCombat.MOD_ID, "incoming_attack_warning"));
 

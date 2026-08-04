@@ -1,10 +1,13 @@
 package com.kingdomcomecombat.client.render;
 
 import com.kingdomcomecombat.client.animation.CombatAnimationClient;
+import com.kingdomcomecombat.client.animation.ClientEntityGeckoAnimationState;
 import com.kingdomcomecombat.client.animation.GeckoLikeAnimationLibrary;
 import com.kingdomcomecombat.client.collision.ClientItemHitboxCache;
 import com.kingdomcomecombat.config.CombatClientConfig;
 import com.kingdomcomecombat.collision.AnimatedAttackHitboxLibrary;
+import com.kingdomcomecombat.combat.ComboMoveConfigs;
+import com.kingdomcomecombat.combat.CombatItemUtil;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
 import net.minecraft.client.MinecraftClient;
@@ -12,15 +15,20 @@ import net.minecraft.client.render.RenderLayer;
 import net.minecraft.client.render.VertexConsumer;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.entity.LivingEntity;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 public class BladeTrailRenderer {
     private static final int MAX_POINTS = 10;
     private static final double PIXEL_TO_BLOCK = 1.0 / 16.0;
     private static final double TRAIL_WIDTH = 0.18;
-    private static final Deque<Vec3d> POINTS = new ArrayDeque<>();
+    private static final Map<Integer, Deque<Vec3d>> POINTS = new HashMap<>();
 
     private BladeTrailRenderer() {
     }
@@ -31,22 +39,33 @@ public class BladeTrailRenderer {
 
     private static void render(WorldRenderContext context) {
         MinecraftClient client = MinecraftClient.getInstance();
-        if (client.player == null
-                || !CombatClientConfig.bladeTrailsEnabled()
-                || !CombatAnimationClient.isBladeTrailActive()) {
+        if (client.player == null || client.world == null || !CombatClientConfig.bladeTrailsEnabled()) {
             POINTS.clear();
             return;
         }
 
-        Vec3d tip = sampleWeaponTip(client);
-        if (POINTS.isEmpty() || POINTS.getLast().squaredDistanceTo(tip) > 0.0025) {
-            POINTS.addLast(tip);
-            while (POINTS.size() > MAX_POINTS) {
-                POINTS.removeFirst();
-            }
+        Set<Integer> active = new HashSet<>();
+        if (CombatAnimationClient.isBladeTrailActive()) {
+            active.add(client.player.getId());
+            updatePoints(client.player, sampleWeaponTip(client));
         }
 
-        if (POINTS.size() < 2 || context.consumers() == null) {
+        for (int entityId : ClientEntityGeckoAnimationState.getActiveAttackEntityIds()) {
+            if (entityId == client.player.getId()
+                    || !(client.world.getEntityById(entityId) instanceof LivingEntity entity)) {
+                continue;
+            }
+            ClientEntityGeckoAnimationState.ActiveAnimation animation =
+                    ClientEntityGeckoAnimationState.getAttackLayer(entityId);
+            if (animation == null || !hasBladeTrail(entity, animation)) {
+                continue;
+            }
+            active.add(entityId);
+            sampleRenderedWeaponTip(entity).ifPresent(tip -> updatePoints(entity, tip));
+        }
+        POINTS.keySet().removeIf(id -> !active.contains(id));
+
+        if (POINTS.isEmpty() || context.consumers() == null) {
             return;
         }
 
@@ -56,14 +75,38 @@ public class BladeTrailRenderer {
         matrices.translate(-camera.x, -camera.y, -camera.z);
 
         VertexConsumer consumer = context.consumers().getBuffer(RenderLayer.getDebugQuads());
-        Vec3d[] points = POINTS.toArray(Vec3d[]::new);
-        for (int i = 1; i < points.length; i++) {
-            float fromProgress = (i - 1) / (float) (points.length - 1);
-            float toProgress = i / (float) (points.length - 1);
-            drawSegment(matrices, consumer, points[i - 1], points[i], camera, fromProgress, toProgress);
+        for (Deque<Vec3d> trail : POINTS.values()) {
+            Vec3d[] points = trail.toArray(Vec3d[]::new);
+            for (int i = 1; i < points.length; i++) {
+                float fromProgress = (i - 1) / (float) (points.length - 1);
+                float toProgress = i / (float) (points.length - 1);
+                drawSegment(matrices, consumer, points[i - 1], points[i], camera, fromProgress, toProgress);
+            }
         }
 
         matrices.pop();
+    }
+
+    private static boolean hasBladeTrail(
+            LivingEntity entity,
+            ClientEntityGeckoAnimationState.ActiveAnimation animation
+    ) {
+        if (CombatItemUtil.hasSweepingEdge(entity.getMainHandStack())) {
+            return true;
+        }
+        String animationName = animation.customAnimationName();
+        return animationName != null && !animationName.isBlank()
+                && ComboMoveConfigs.findByAnimationName(animationName)
+                .map(config -> config.bladeTrail())
+                .orElse(false);
+    }
+
+    private static void updatePoints(LivingEntity entity, Vec3d tip) {
+        Deque<Vec3d> trail = POINTS.computeIfAbsent(entity.getId(), ignored -> new ArrayDeque<>());
+        if (trail.isEmpty() || trail.getLast().squaredDistanceTo(tip) > 0.0025) {
+            trail.addLast(tip);
+            while (trail.size() > MAX_POINTS) trail.removeFirst();
+        }
     }
 
     private static Vec3d sampleWeaponTip(MinecraftClient client) {
@@ -74,8 +117,19 @@ public class BladeTrailRenderer {
         return ClientItemHitboxCache.get(client.player.getId()).map(box -> renderedBladeTip(client, box));
     }
 
+    private static java.util.Optional<Vec3d> sampleRenderedWeaponTip(LivingEntity entity) {
+        return ClientItemHitboxCache.get(entity.getId()).map(box -> renderedBladeTip(entity, box));
+    }
+
     private static Vec3d renderedBladeTip(
             MinecraftClient client,
+            AnimatedAttackHitboxLibrary.OrientedBox box
+    ) {
+        return renderedBladeTip(client.player, box);
+    }
+
+    private static Vec3d renderedBladeTip(
+            LivingEntity entity,
             AnimatedAttackHitboxLibrary.OrientedBox box
     ) {
         Vec3d[] axes = new Vec3d[] {box.axisX(), box.axisY(), box.axisZ()};
@@ -94,7 +148,7 @@ public class BladeTrailRenderer {
 
         Vec3d positiveTip = box.center().add(axes[bladeAxis].multiply(extents[bladeAxis]));
         Vec3d negativeTip = box.center().subtract(axes[bladeAxis].multiply(extents[bladeAxis]));
-        Vec3d shoulder = client.player.getPos().add(0.0, client.player.getHeight() * 0.72, 0.0);
+        Vec3d shoulder = entity.getPos().add(0.0, entity.getHeight() * 0.72, 0.0);
         return positiveTip.squaredDistanceTo(shoulder) >= negativeTip.squaredDistanceTo(shoulder)
                 ? positiveTip
                 : negativeTip;

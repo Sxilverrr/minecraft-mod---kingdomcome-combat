@@ -1,0 +1,23 @@
+{
+  "replace": false,
+  "values": [
+    {"id":"valarian_conquest:common_spear","required":false},
+    {"id":"valarian_conquest:soldiers_spear","required":false},
+    {"id":"valarian_conquest:soldiers_halberd","required":false},
+    {"id":"valarian_conquest:common_halberd","required":false},
+    {"id":"valarian_conquest:elven_spear","required":false},
+    {"id":"valarian_conquest:undead_spear","required":false},
+    {"id":"valarian_conquest:barathian_spearman_item","required":false},
+    {"id":"valarian_conquest:bohemian_spearman_item","required":false},
+    {"id":"valarian_conquest:burgundian_spearman","required":false},
+    {"id":"valarian_conquest:caladrian_spearman_item","required":false},
+    {"id":"valarian_conquest:galician_spearman_item","required":false},
+    {"id":"valarian_conquest:hospitaller_spearman_item","required":false},
+    {"id":"valarian_conquest:lancastian_spearman_item","required":false},
+    {"id":"valarian_conquest:numerian_spearman_item","required":false},
+    {"id":"valarian_conquest:orleanian_spearman_item","required":false},
+    {"id":"valarian_conquest:templar_spearman_item","required":false},
+    {"id":"valarian_conquest:valarian_spearman_item","required":false},
+    {"id":"valarian_conquest:visgothian_spearman_item","required":false}
+  ]
+}

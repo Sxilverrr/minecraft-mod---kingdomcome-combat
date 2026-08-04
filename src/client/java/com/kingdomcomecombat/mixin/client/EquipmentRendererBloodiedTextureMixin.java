@@ -1,6 +1,10 @@
 package com.kingdomcomecombat.mixin.client;
 
 import com.kingdomcomecombat.client.render.BloodiedTextureCache;
+import com.kingdomcomecombat.client.animation.CombatAnimationClient;
+import com.kingdomcomecombat.client.compat.FirstPersonRenderCompat;
+import com.kingdomcomecombat.client.render.ArmorEntityRenderContext;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.entity.equipment.EquipmentRenderer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.Identifier;
@@ -16,7 +20,8 @@ public class EquipmentRendererBloodiedTextureMixin {
 
     @Inject(
             method = "render(Lnet/minecraft/client/render/entity/equipment/EquipmentModel$LayerType;Lnet/minecraft/registry/RegistryKey;Lnet/minecraft/client/model/Model;Lnet/minecraft/item/ItemStack;Lnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/VertexConsumerProvider;ILnet/minecraft/util/Identifier;)V",
-            at = @At("HEAD")
+            at = @At("HEAD"),
+            cancellable = true
     )
     private void kingdomcomecombat$captureArmorStack(
             net.minecraft.client.render.entity.equipment.EquipmentModel.LayerType layerType,
@@ -29,7 +34,25 @@ public class EquipmentRendererBloodiedTextureMixin {
             Identifier texture,
             CallbackInfo ci
     ) {
+        if (kingdomcomecombat$shouldHideFirstPersonHelmet(stack)) {
+            ci.cancel();
+            return;
+        }
         kingdomcomecombat$renderedArmorStack.set(stack);
+    }
+
+    private static boolean kingdomcomecombat$shouldHideFirstPersonHelmet(ItemStack stack) {
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (client.player == null
+                || !ArmorEntityRenderContext.isRendering(client.player.getId())
+                || client.currentScreen != null
+                || !client.options.getPerspective().isFirstPerson()
+                || !(FirstPersonRenderCompat.isExternalBodyRender()
+                || CombatAnimationClient.isKccSpecialFirstPersonActive())) {
+            return false;
+        }
+        ItemStack helmet = client.player.getEquippedStack(net.minecraft.entity.EquipmentSlot.HEAD);
+        return !helmet.isEmpty() && stack.getItem() == helmet.getItem();
     }
 
     @ModifyArg(
@@ -40,6 +63,14 @@ public class EquipmentRendererBloodiedTextureMixin {
             )
     )
     private Identifier kingdomcomecombat$useBloodiedArmorTexture(Identifier texture) {
+        // Inventory and other GUI entity previews render armor through a
+        // separate immediate-buffer/glint path. Registering and substituting a
+        // dynamic equipment texture there can re-enter armor buffer selection
+        // (ItemRenderer#getArmorGlintConsumer on 1.21.8). Keep GUI previews on
+        // the vanilla texture; world rendering still receives blood and holes.
+        if (MinecraftClient.getInstance().currentScreen != null) {
+            return texture;
+        }
         ItemStack stack = kingdomcomecombat$renderedArmorStack.get();
         if (!BloodiedTextureCache.shouldUseEquipmentTexture(stack)) {
             return texture;

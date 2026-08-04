@@ -35,6 +35,7 @@ run-*/
 
 # generated release artifacts
 releases/*.jar
+releases/**/*.jar
 
 # java
 

@@ -1,0 +1,10 @@
+{
+  "replace": false,
+  "values": [
+    "kingdom_come_combat:copper_fighting_mace",
+    "kingdom_come_combat:golden_fighting_mace",
+    "kingdom_come_combat:iron_fighting_mace",
+    "kingdom_come_combat:diamond_fighting_mace",
+    "kingdom_come_combat:netherite_fighting_mace"
+  ]
+}

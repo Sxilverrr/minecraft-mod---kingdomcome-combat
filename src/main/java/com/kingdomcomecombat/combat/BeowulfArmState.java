@@ -2,6 +2,7 @@ package com.kingdomcomecombat.combat;
 
 import com.kingdomcomecombat.passive.PlayerPassiveSkillProgress;
 import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.server.network.ServerPlayerEntity;
 
 public final class BeowulfArmState {
@@ -26,6 +27,9 @@ public final class BeowulfArmState {
 
         if (entity instanceof ServerPlayerEntity player) {
             return PlayerPassiveSkillProgress.isUnlocked(player, SKILL_ID);
+        }
+        if (entity instanceof MobEntity) {
+            return true;
         }
         return entity.getWorld().isClient() && clientUnlocked;
     }

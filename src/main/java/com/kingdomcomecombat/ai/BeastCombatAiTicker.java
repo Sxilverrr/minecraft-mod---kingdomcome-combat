@@ -4,11 +4,13 @@ import com.kingdomcomecombat.combat.ActiveServerAttack;
 import com.kingdomcomecombat.combat.AttackMoveConfig;
 import com.kingdomcomecombat.combat.AttackMoveConfigs;
 import com.kingdomcomecombat.combat.CombatAttackTiming;
+import com.kingdomcomecombat.combat.CombatControlConfig;
 import com.kingdomcomecombat.combat.CombatDirection;
 import com.kingdomcomecombat.combat.ServerCombatControlState;
 import com.kingdomcomecombat.combat.ServerCombatState;
 import com.kingdomcomecombat.game.ModGameRules;
 import com.kingdomcomecombat.network.EntityAttackAnimationPayload;
+import com.kingdomcomecombat.network.CombatNetworkBroadcaster;
 import com.kingdomcomecombat.stamina.ServerStaminaState;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
@@ -272,7 +274,8 @@ public final class BeastCombatAiTicker {
             return false;
         }
 
-        double staminaCost = moveConfig.staminaCost();
+        double staminaCost = moveConfig.staminaCost()
+                * CombatControlConfig.MOB_ATTACK_STAMINA_COST_MULTIPLIER;
         if (!ServerStaminaState.hasAtLeast(mob, staminaCost)) {
             return false;
         }
@@ -380,11 +383,7 @@ public final class BeastCombatAiTicker {
                 0.0F,
                 moveConfig.animationName()
         );
-        for (ServerPlayerEntity player : world.getPlayers()) {
-            if (player.squaredDistanceTo(mob) <= 96.0 * 96.0) {
-                ServerPlayNetworking.send(player, payload);
-            }
-        }
+        CombatNetworkBroadcaster.sendTrackingAndSelf(mob, payload);
     }
 
     private static void holdDistance(MobEntity mob, LivingEntity target, BeastCombatAiProfile profile) {
@@ -484,6 +483,10 @@ public final class BeastCombatAiTicker {
     }
 
     private static void faceTarget(MobEntity mob, LivingEntity target) {
+        if (target instanceof net.minecraft.entity.player.PlayerEntity
+                && ServerCombatControlState.isDodging(target)) {
+            return;
+        }
         double dx = target.getX() - mob.getX();
         double dz = target.getZ() - mob.getZ();
         float yaw = (float) (Math.toDegrees(Math.atan2(dz, dx)) - 90.0);

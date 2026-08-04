@@ -7,6 +7,10 @@
     "kingdom_come_combat:golden_longsword",
     "kingdom_come_combat:iron_longsword",
     "kingdom_come_combat:diamond_longsword",
-    "kingdom_come_combat:netherite_longsword"
+    "kingdom_come_combat:netherite_longsword",
+    "#kingdom_come_combat:epic_knights_longswords",
+    "#kingdom_come_combat:knights_heraldry_swords",
+    "#kingdom_come_combat:valarian_swords",
+    "#kingdom_come_combat:simply_swords_longswords"
   ]
 }

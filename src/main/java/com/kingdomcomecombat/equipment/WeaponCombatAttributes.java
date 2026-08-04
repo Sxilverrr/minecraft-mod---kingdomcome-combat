@@ -14,8 +14,92 @@ public record WeaponCombatAttributes(
         Vec3d realHitboxOffsetUnits,
         Vec3d realHitboxRotationDegrees,
         Map<String, String> attackMoveIds,
-        Map<String, String> stanceAnimationNames
+        Map<String, String> stanceAnimationNames,
+        Map<String, String> executionMoveIds,
+        double weaponToughness,
+        double minimumDurabilityPanelMultiplier,
+        double heldMovementSpeedMultiplier
 ) {
+    public WeaponCombatAttributes(
+            DamageTypeProfile damagePanel,
+            double blockImpactMitigation,
+            double baseImpact,
+            double armorBreakMultiplier,
+            double attackSpeedMultiplier,
+            Vec3d realHitboxSizeUnits,
+            Vec3d realHitboxOffsetUnits,
+            Vec3d realHitboxRotationDegrees,
+            Map<String, String> attackMoveIds,
+            Map<String, String> stanceAnimationNames,
+            double weaponToughness,
+            double minimumDurabilityPanelMultiplier,
+            double heldMovementSpeedMultiplier
+    ) {
+        this(
+                damagePanel,
+                blockImpactMitigation,
+                baseImpact,
+                armorBreakMultiplier,
+                attackSpeedMultiplier,
+                realHitboxSizeUnits,
+                realHitboxOffsetUnits,
+                realHitboxRotationDegrees,
+                attackMoveIds,
+                stanceAnimationNames,
+                Map.of(),
+                weaponToughness,
+                minimumDurabilityPanelMultiplier,
+                heldMovementSpeedMultiplier
+        );
+    }
+
+    public WeaponCombatAttributes(
+            DamageTypeProfile damagePanel,
+            double blockImpactMitigation,
+            double baseImpact,
+            double armorBreakMultiplier,
+            double attackSpeedMultiplier,
+            Vec3d realHitboxSizeUnits,
+            Vec3d realHitboxOffsetUnits,
+            Vec3d realHitboxRotationDegrees,
+            Map<String, String> attackMoveIds,
+            Map<String, String> stanceAnimationNames,
+            double weaponToughness,
+            double minimumDurabilityPanelMultiplier
+    ) {
+        this(
+                damagePanel, blockImpactMitigation, baseImpact, armorBreakMultiplier,
+                attackSpeedMultiplier, realHitboxSizeUnits, realHitboxOffsetUnits,
+                realHitboxRotationDegrees, attackMoveIds, stanceAnimationNames,
+                Map.of(),
+                weaponToughness, minimumDurabilityPanelMultiplier,
+                EquipmentFallbackConfig.defaultHeldMovementSpeedMultiplier()
+        );
+    }
+
+    public WeaponCombatAttributes(
+            DamageTypeProfile damagePanel,
+            double blockImpactMitigation,
+            double baseImpact,
+            double armorBreakMultiplier,
+            double attackSpeedMultiplier,
+            Vec3d realHitboxSizeUnits,
+            Vec3d realHitboxOffsetUnits,
+            Vec3d realHitboxRotationDegrees,
+            Map<String, String> attackMoveIds,
+            Map<String, String> stanceAnimationNames
+    ) {
+        this(
+                damagePanel, blockImpactMitigation, baseImpact, armorBreakMultiplier,
+                attackSpeedMultiplier, realHitboxSizeUnits, realHitboxOffsetUnits,
+                realHitboxRotationDegrees, attackMoveIds, stanceAnimationNames,
+                Map.of(),
+                EquipmentFallbackConfig.defaultWeaponToughness(),
+                EquipmentFallbackConfig.defaultMinimumDurabilityPanelMultiplier(),
+                EquipmentFallbackConfig.defaultHeldMovementSpeedMultiplier()
+        );
+    }
+
     public WeaponCombatAttributes(DamageTypeProfile damagePanel) {
         this(damagePanel, EquipmentFallbackConfig.defaultWeaponBlockImpactMitigation(), EquipmentFallbackConfig.defaultWeaponBaseImpact());
     }
@@ -68,6 +152,10 @@ public record WeaponCombatAttributes(
         realHitboxRotationDegrees = realHitboxRotationDegrees == null ? Vec3d.ZERO : realHitboxRotationDegrees;
         attackMoveIds = attackMoveIds == null ? Map.of() : Map.copyOf(attackMoveIds);
         stanceAnimationNames = stanceAnimationNames == null ? Map.of() : Map.copyOf(stanceAnimationNames);
+        executionMoveIds = executionMoveIds == null ? Map.of() : Map.copyOf(executionMoveIds);
+        weaponToughness = Math.max(0.0, weaponToughness);
+        minimumDurabilityPanelMultiplier = Math.max(0.0, Math.min(1.0, minimumDurabilityPanelMultiplier));
+        heldMovementSpeedMultiplier = Math.max(0.0, Math.min(1.0, heldMovementSpeedMultiplier));
     }
 
     public static WeaponCombatAttributes defaultWeapon() {
@@ -94,5 +182,9 @@ public record WeaponCombatAttributes(
 
     public String stanceAnimationName(String directionKey) {
         return stanceAnimationNames.getOrDefault(directionKey, "");
+    }
+
+    public String executionMoveId(String directionKey) {
+        return executionMoveIds.getOrDefault(directionKey, "");
     }
 }

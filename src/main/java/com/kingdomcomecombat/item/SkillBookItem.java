@@ -172,7 +172,7 @@ public class SkillBookItem extends WrittenBookItem {
 
     private static void applyBookContent(ItemStack stack, SkillBookTexts.Entry text, String language) {
         stack.set(DataComponentTypes.WRITTEN_BOOK_CONTENT, bookContent(text, language));
-        stack.set(DataComponentTypes.ITEM_NAME, Text.literal(text.title(language)));
+        stack.set(DataComponentTypes.ITEM_NAME, Text.literal(text.title(language)).formatted(net.minecraft.util.Formatting.WHITE));
         NbtComponent.set(DataComponentTypes.CUSTOM_DATA, stack, nbt ->
                 nbt.putString(BOOK_LANGUAGE_KEY, normalizeLanguage(language))
         );
@@ -260,12 +260,6 @@ public class SkillBookItem extends WrittenBookItem {
             player.sendMessage(Text.literal("技能书记录的被动技能不存在：" + passiveId), false);
             return false;
         }
-        if (passive.source() != PassiveSkillConfig.Source.BOOK) {
-            String source = passive.source() == PassiveSkillConfig.Source.EXPERIENCE ? "消耗经验学习" : "通过成就领会";
-            player.sendMessage(Text.literal("这个被动技能需要" + source + "：" + passive.name()), false);
-            return false;
-        }
-
         boolean changed = PlayerPassiveSkillProgress.unlock(player, passiveId);
         player.sendMessage(
                 Text.literal(changed

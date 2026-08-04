@@ -4,6 +4,8 @@ import com.kingdomcomecombat.combat.CombatItemUtil;
 import com.kingdomcomecombat.combat.BeowulfArmState;
 import com.kingdomcomecombat.equipment.EquipmentCombatAttributesRegistry;
 import com.kingdomcomecombat.injury.ModStatusEffects;
+import com.kingdomcomecombat.hardship.HardshipConfig;
+import com.kingdomcomecombat.hardship.HardshipSelectionState;
 import com.kingdomcomecombat.stamina.ServerStaminaState;
 import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.LivingEntity;
@@ -12,6 +14,8 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.registry.tag.ItemTags;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.world.ServerWorld;
+import net.minecraft.particle.ParticleTypes;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -21,6 +25,13 @@ public final class PassiveSkillPerks {
     private static final Map<UUID, TimedStacks> TARGET_REGEN_PENALTIES = new HashMap<>();
     private static final Map<UUID, Long> KILL_REGEN_BUFFS = new HashMap<>();
     private static final Map<UUID, RapidAttackState> RAPID_ATTACKS = new HashMap<>();
+    private static final Map<UUID, Long> COMBO_EFFICIENCY_BUFFS = new HashMap<>();
+    private static final Map<UUID, Long> PERFECT_BLOCK_PENALTIES = new HashMap<>();
+    private static final Map<UUID, DamageThresholdState> FORTRESS_DAMAGE = new HashMap<>();
+    private static final Map<UUID, TimedMultiplier> WAR_CRY_REGEN_PENALTIES = new HashMap<>();
+    private static final Map<UUID, TimedMultiplier> EXECUTION_DAMAGE_PENALTIES = new HashMap<>();
+    private static final Map<UUID, Long> WAR_CRY_COOLDOWNS = new HashMap<>();
+    private static final Map<UUID, Long> EXECUTION_COOLDOWNS = new HashMap<>();
 
     private PassiveSkillPerks() {
     }
@@ -32,10 +43,11 @@ public final class PassiveSkillPerks {
             boolean masterCounter,
             String detailedPart
     ) {
-        if (!(attacker instanceof ServerPlayerEntity player)) {
-            return 1.0;
-        }
         double bonus = 0.0;
+        if (!(attacker instanceof ServerPlayerEntity player)) {
+            return Math.max(0.0, 1.0 + bonus);
+        }
+        bonus += hardshipMultiplier(player, "damage_multiplier") - 1.0;
         for (PassiveSkillConfig skill : unlocked(player)) {
             if (!matches(skill, player, weapon, combo, masterCounter, detailedPart)) {
                 continue;
@@ -65,6 +77,9 @@ public final class PassiveSkillPerks {
             return 1.0;
         }
         double bonus = 0.0;
+        bonus += hardshipMultiplier(player, "stamina_cost_multiplier") - 1.0;
+        if (dodge) bonus += hardshipMultiplier(player, "dodge_stamina_cost_multiplier") - 1.0;
+        if (attack) bonus += hardshipMultiplier(player, "attack_stamina_cost_multiplier") - 1.0;
         for (PassiveSkillConfig skill : unlocked(player)) {
             if (!matches(skill, player, weapon, false, false, "")) {
                 continue;
@@ -77,14 +92,47 @@ public final class PassiveSkillPerks {
                 bonus += skill.perk("attack_stamina_cost_multiplier", 1.0) - 1.0;
             }
         }
+        Long comboBuff = COMBO_EFFICIENCY_BUFFS.get(player.getUuid());
+        if (attack && comboBuff != null) {
+            if (comboBuff > player.getWorld().getTime()) {
+                bonus += summedPerk(player, "combo_buff_stamina_cost_multiplier") - 1.0;
+            } else {
+                COMBO_EFFICIENCY_BUFFS.remove(player.getUuid());
+            }
+        }
         return Math.max(0.0, 1.0 + bonus);
     }
 
-    public static double staminaRegenMultiplier(LivingEntity entity) {
-        if (!(entity instanceof ServerPlayerEntity player)) {
-            return 1.0;
-        }
+    public static double comboStaminaCostMultiplier(LivingEntity entity) {
+        if (!(entity instanceof ServerPlayerEntity player)) return 1.0;
+        return combine(summedPerk(player, "combo_stamina_cost_multiplier"), hardshipMultiplier(player, "combo_stamina_cost_multiplier"));
+    }
+
+    public static double maxStaminaBonus(LivingEntity entity) {
+        if (!(entity instanceof ServerPlayerEntity player)) return 0.0;
         double bonus = 0.0;
+        bonus += hardshipBonus(player, "max_stamina_bonus");
+        for (PassiveSkillConfig skill : unlocked(player)) {
+            if (matches(skill, player, player.getMainHandStack(), false, false, "")) {
+                bonus += skill.perk("max_stamina_bonus", 0.0);
+            }
+        }
+        return bonus;
+    }
+
+    public static double impactMultiplier(LivingEntity attacker, LivingEntity target) {
+        if (!(attacker instanceof ServerPlayerEntity player)
+                || com.kingdomcomecombat.combat.ServerCombatState.getAttack(target.getUuid()) == null) return 1.0;
+        return combine(summedPerk(player, "attacking_target_impact_multiplier"),
+                hardshipMultiplier(player, "attacking_target_impact_multiplier"));
+    }
+
+    public static double staminaRegenMultiplier(LivingEntity entity) {
+        double bonus = timedMultiplier(WAR_CRY_REGEN_PENALTIES, entity) - 1.0;
+        if (!(entity instanceof ServerPlayerEntity player)) {
+            return Math.max(0.0, 1.0 + bonus);
+        }
+        bonus += hardshipMultiplier(player, "stamina_regen_multiplier") - 1.0;
         for (PassiveSkillConfig skill : unlocked(player)) {
             if (matches(skill, player, player.getMainHandStack(), false, false, "")) {
                 bonus += skill.perk("stamina_regen_multiplier", 1.0) - 1.0;
@@ -110,11 +158,16 @@ public final class PassiveSkillPerks {
         return Math.max(0.0, 1.0 + bonus);
     }
 
+    public static double outgoingDamageDebuffMultiplier(LivingEntity entity) {
+        return timedMultiplier(EXECUTION_DAMAGE_PENALTIES, entity);
+    }
+
     public static double armorPenaltyMultiplier(LivingEntity entity) {
         if (!(entity instanceof ServerPlayerEntity player)) {
             return 1.0;
         }
         double bonus = 0.0;
+        bonus += hardshipMultiplier(player, "armor_penalty_multiplier") - 1.0;
         for (PassiveSkillConfig skill : unlocked(player)) {
             if (matches(skill, player, player.getMainHandStack(), false, false, "")) {
                 bonus += skill.perk("armor_penalty_multiplier", 1.0) - 1.0;
@@ -128,6 +181,7 @@ public final class PassiveSkillPerks {
             return 1.0;
         }
         double bonus = 0.0;
+        bonus += hardshipMultiplier(player, "attack_speed_multiplier") - 1.0;
         for (PassiveSkillConfig skill : unlocked(player)) {
             if (BeowulfArmState.SKILL_ID.equals(skill.id())) {
                 continue;
@@ -166,6 +220,21 @@ public final class PassiveSkillPerks {
                     ModStatusEffects.applyInjury(target, injuryType(detailedPart), injuryLevels);
                 }
                 applyTargetRegenPenalty(skill, target);
+                int duration = (int) skill.perk("combo_buff_duration_ticks", 0.0);
+                if (duration > 0 && skill.hasPerk("combo_buff_stamina_cost_multiplier")) {
+                    COMBO_EFFICIENCY_BUFFS.put(player.getUuid(), player.getWorld().getTime() + duration);
+                }
+            }
+        }
+    }
+
+    public static void onComboStarted(LivingEntity attacker) {
+        if (!(attacker instanceof ServerPlayerEntity player)) return;
+        for (PassiveSkillConfig skill : unlocked(player)) {
+            if (!matches(skill, player, player.getMainHandStack(), true, false, "")) continue;
+            int duration = (int) skill.perk("combo_buff_duration_ticks", 0.0);
+            if (duration > 0 && skill.hasPerk("combo_buff_stamina_cost_multiplier")) {
+                COMBO_EFFICIENCY_BUFFS.put(player.getUuid(), player.getWorld().getTime() + duration);
             }
         }
     }
@@ -215,30 +284,154 @@ public final class PassiveSkillPerks {
         }
     }
 
+    public static boolean onWarCry(ServerPlayerEntity player) {
+        long now = player.getWorld().getTime();
+        if (WAR_CRY_COOLDOWNS.getOrDefault(player.getUuid(), 0L) > now) return false;
+        for (PassiveSkillConfig skill : unlocked(player)) {
+            if (!skill.hasPerk("war_cry_enemy_stamina_regen_multiplier")) continue;
+            int duration = Math.max(1, (int) skill.perk("war_cry_debuff_duration_ticks", 400.0));
+            int cooldown = Math.max(1, (int) skill.perk("war_cry_cooldown_ticks", 600.0));
+            double multiplier = skill.perk("war_cry_enemy_stamina_regen_multiplier", 0.8);
+            applyAreaDebuff(player, 10.0, target ->
+                    WAR_CRY_REGEN_PENALTIES.put(target.getUuid(), new TimedMultiplier(now + duration, multiplier)));
+            WAR_CRY_COOLDOWNS.put(player.getUuid(), now + cooldown);
+            return true;
+        }
+        return false;
+    }
+
+    public static void clearPlayerRuntimeState(UUID playerUuid) {
+        TARGET_REGEN_PENALTIES.remove(playerUuid);
+        KILL_REGEN_BUFFS.remove(playerUuid);
+        RAPID_ATTACKS.remove(playerUuid);
+        COMBO_EFFICIENCY_BUFFS.remove(playerUuid);
+        PERFECT_BLOCK_PENALTIES.remove(playerUuid);
+        FORTRESS_DAMAGE.remove(playerUuid);
+        WAR_CRY_REGEN_PENALTIES.remove(playerUuid);
+        EXECUTION_DAMAGE_PENALTIES.remove(playerUuid);
+        WAR_CRY_COOLDOWNS.remove(playerUuid);
+        EXECUTION_COOLDOWNS.remove(playerUuid);
+    }
+
+    public static void onExecutionStarted(ServerPlayerEntity player) {
+        long now = player.getWorld().getTime();
+        if (EXECUTION_COOLDOWNS.getOrDefault(player.getUuid(), 0L) > now) return;
+        for (PassiveSkillConfig skill : unlocked(player)) {
+            if (!skill.hasPerk("execution_enemy_damage_multiplier")) continue;
+            int duration = Math.max(1, (int) skill.perk("execution_debuff_duration_ticks", 600.0));
+            int cooldown = Math.max(1, (int) skill.perk("execution_debuff_cooldown_ticks", 1200.0));
+            double radius = Math.max(0.0, skill.perk("execution_debuff_radius", 10.0));
+            double multiplier = skill.perk("execution_enemy_damage_multiplier", 0.9);
+            applyAreaDebuff(player, radius, target ->
+                    EXECUTION_DAMAGE_PENALTIES.put(target.getUuid(), new TimedMultiplier(now + duration, multiplier)));
+            EXECUTION_COOLDOWNS.put(player.getUuid(), now + cooldown);
+            return;
+        }
+    }
+
+    private static void applyAreaDebuff(ServerPlayerEntity player, double radius,
+                                        java.util.function.Consumer<LivingEntity> effect) {
+        if (!(player.getWorld() instanceof ServerWorld world)) return;
+        double radiusSquared = radius * radius;
+        for (LivingEntity target : world.getEntitiesByClass(
+                LivingEntity.class,
+                player.getBoundingBox().expand(radius),
+                target -> target != player && target.isAlive() && !player.isTeammate(target)
+                        && target.squaredDistanceTo(player) <= radiusSquared)) {
+            effect.accept(target);
+            world.spawnParticles(ParticleTypes.ANGRY_VILLAGER,
+                    target.getX(), target.getBodyY(0.8), target.getZ(),
+                    5, 0.25, 0.25, 0.25, 0.01);
+        }
+    }
+
+    private static double timedMultiplier(Map<UUID, TimedMultiplier> effects, LivingEntity entity) {
+        TimedMultiplier effect = effects.get(entity.getUuid());
+        if (effect == null) return 1.0;
+        if (effect.expiresAt() <= entity.getWorld().getTime()) {
+            effects.remove(entity.getUuid());
+            return 1.0;
+        }
+        return effect.multiplier();
+    }
+
     public static int bleedingIntervalTicks(LivingEntity entity) {
         if (!(entity instanceof ServerPlayerEntity player)) {
             return 200;
         }
-        return Math.max(1, (int) Math.round(200.0 * summedPerk(player, "bleeding_interval_multiplier")));
+        return Math.max(1, (int) Math.round(200.0 * combine(
+                summedPerk(player, "bleeding_interval_multiplier"),
+                hardshipMultiplier(player, "bleeding_interval_multiplier"))));
     }
 
     public static double projectileSpreadMultiplier(LivingEntity shooter, ItemStack weapon) {
-        return summedMatchingPerk(shooter, weapon, "projectile_spread_multiplier");
+        if (!(shooter instanceof ServerPlayerEntity player)) return 1.0;
+        return combine(summedMatchingPerk(shooter, weapon, "projectile_spread_multiplier"), hardshipMultiplier(player, "projectile_spread_multiplier"));
     }
 
     public static double projectileSpeedMultiplier(LivingEntity shooter, ItemStack weapon) {
-        return summedMatchingPerk(shooter, weapon, "projectile_speed_multiplier");
+        if (!(shooter instanceof ServerPlayerEntity player)) return 1.0;
+        return combine(summedMatchingPerk(shooter, weapon, "projectile_speed_multiplier"), hardshipMultiplier(player, "projectile_speed_multiplier"));
     }
 
-    public static void afterMasterCounter(LivingEntity attacker, ItemStack weapon) {
+    public static void afterMasterCounter(LivingEntity attacker, LivingEntity counteredTarget, ItemStack weapon) {
         if (!(attacker instanceof ServerPlayerEntity player)) {
             return;
         }
         for (PassiveSkillConfig skill : unlocked(player)) {
             if (matches(skill, player, weapon, false, true, "")) {
                 restoreStamina(player, skill.perk("master_counter_stamina_restore", 0.0));
+                if (counteredTarget != null) {
+                    var targetAttack = com.kingdomcomecombat.combat.ServerCombatState.getAttack(counteredTarget.getUuid());
+                    if (targetAttack != null && targetAttack.perfectCounterSlow) {
+                        restoreStamina(player, skill.perk("counter_perfect_counter_stamina_restore", 0.0));
+                    }
+                }
             }
         }
+    }
+
+    public static void applyPerfectBlockChancePenalty(LivingEntity attacker, LivingEntity target) {
+        if (!(attacker instanceof ServerPlayerEntity player) || !(target instanceof net.minecraft.entity.mob.MobEntity)) return;
+        double penalty = summedPerk(player, "target_perfect_block_chance_penalty");
+        if (penalty < 1.0) PERFECT_BLOCK_PENALTIES.put(target.getUuid(), target.getWorld().getTime() + 100);
+    }
+
+    public static double perfectBlockChancePenalty(LivingEntity entity) {
+        Long expires = PERFECT_BLOCK_PENALTIES.get(entity.getUuid());
+        if (expires == null || expires <= entity.getWorld().getTime()) {
+            PERFECT_BLOCK_PENALTIES.remove(entity.getUuid());
+            return 0.0;
+        }
+        return 0.05;
+    }
+
+    public static void recordDamageTaken(LivingEntity entity, double damage) {
+        // Fortress is block-count driven now; retained for existing damage call sites.
+    }
+
+    public static void recordBlockedAttack(LivingEntity entity) {
+        if (!(entity instanceof ServerPlayerEntity player)) return;
+        int duration = 0;
+        for (PassiveSkillConfig skill : unlocked(player)) {
+            if (skill.hasPerk("fortress_damage_threshold")
+                    && matches(skill, player, player.getMainHandStack(), false, false, "")) {
+                duration = (int) skill.perk("fortress_duration_ticks", 100.0);
+                break;
+            }
+        }
+        if (duration <= 0) return;
+        long now = player.getWorld().getTime();
+        DamageThresholdState state = FORTRESS_DAMAGE.getOrDefault(player.getUuid(), new DamageThresholdState(0.0, 0L));
+        double total = state.damage() + 1.0;
+        long activeUntil = state.activeUntil();
+        if (total >= 3.0) { total = 0.0; activeUntil = now + Math.max(1, duration); }
+        FORTRESS_DAMAGE.put(player.getUuid(), new DamageThresholdState(total, activeUntil));
+    }
+
+    public static boolean ignoresFullyBlockedImpact(LivingEntity entity) {
+        DamageThresholdState state = FORTRESS_DAMAGE.get(entity.getUuid());
+        return state != null && state.activeUntil() > entity.getWorld().getTime();
     }
 
     private static Iterable<PassiveSkillConfig> unlocked(ServerPlayerEntity player) {
@@ -286,6 +479,28 @@ public final class PassiveSkillPerks {
             bonus += skill.perk(key, 1.0) - 1.0;
         }
         return Math.max(0.0, 1.0 + bonus);
+    }
+
+    private static double hardshipMultiplier(ServerPlayerEntity player, String key) {
+        double bonus = 0.0;
+        if (player.getServer() == null) return 1.0;
+        for (HardshipConfig hardship : HardshipSelectionState.selected(player)) {
+            bonus += hardship.prek(key, 1.0) - 1.0;
+        }
+        return Math.max(0.0, 1.0 + bonus);
+    }
+
+    private static double hardshipBonus(ServerPlayerEntity player, String key) {
+        double result = 0.0;
+        if (player.getServer() == null) return result;
+        for (HardshipConfig hardship : HardshipSelectionState.selected(player)) {
+            result += hardship.prek(key, 0.0);
+        }
+        return result;
+    }
+
+    private static double combine(double first, double second) {
+        return Math.max(0.0, 1.0 + (first - 1.0) + (second - 1.0));
     }
 
     private static double rapidAttackBonus(ServerPlayerEntity player, PassiveSkillConfig skill) {
@@ -358,7 +573,13 @@ public final class PassiveSkillPerks {
         if (skill.hasPerk("condition_armor_below") && vanillaArmor(player) >= skill.perk("condition_armor_below", 0.0)) {
             return false;
         }
+        if (skill.hasPerk("condition_armor_above") && vanillaArmor(player) < skill.perk("condition_armor_above", 0.0)) {
+            return false;
+        }
         if (skill.hasPerk("condition_health_below") && healthRatio(player) >= skill.perk("condition_health_below", 0.0)) {
+            return false;
+        }
+        if (skill.hasPerk("condition_health_above") && healthRatio(player) <= skill.perk("condition_health_above", 1.0)) {
             return false;
         }
         if (skill.hasPerk("condition_head_hit") && asBool(skill.perk("condition_head_hit", 0.0)) != isHeadPart(detailedPart)) {
@@ -425,5 +646,9 @@ public final class PassiveSkillPerks {
     }
 
     private record RapidAttackState(int stacks, long lastHitTick, long lastStackTick) {
+    }
+    private record DamageThresholdState(double damage, long activeUntil) {
+    }
+    private record TimedMultiplier(long expiresAt, double multiplier) {
     }
 }

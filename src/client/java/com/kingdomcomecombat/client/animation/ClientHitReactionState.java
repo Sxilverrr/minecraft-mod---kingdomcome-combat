@@ -17,6 +17,10 @@ public class ClientHitReactionState {
     private ClientHitReactionState() {
     }
 
+    public static boolean hasActive(int entityId) {
+        return REACTIONS.containsKey(entityId);
+    }
+
     public static void start(
             int entityId,
             HumanoidHurtboxLibrary.Part part,

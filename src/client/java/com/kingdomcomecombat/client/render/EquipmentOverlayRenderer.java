@@ -18,6 +18,9 @@ import net.minecraft.util.Identifier;
 import java.util.List;
 
 public final class EquipmentOverlayRenderer {
+    private static final ThreadLocal<Boolean> ITEM_REPLACEMENT_ACTIVE =
+            ThreadLocal.withInitial(() -> false);
+
     private EquipmentOverlayRenderer() {
     }
 
@@ -71,41 +74,47 @@ public final class EquipmentOverlayRenderer {
         ItemStack stack = EquipmentOverlayRenderContext.currentStack();
         if (stack.isEmpty()
                 || !BloodiedEquipment.canShowOverlay(stack)
-                || !BloodiedTextureCache.shouldUseEquipmentTexture(stack)
-                || quads.isEmpty()) {
+                || !BloodiedTextureCache.shouldUseItemTexture(stack)
+                || quads.isEmpty()
+                || ITEM_REPLACEMENT_ACTIVE.get()) {
             return false;
         }
 
-        boolean rendered = false;
-        MatrixStack.Entry entry = matrices.peek();
-        for (BakedQuad quad : quads) {
-            Sprite sprite = quad.sprite();
-            Identifier sourceTexture = sprite.getContents().getId();
-            Identifier texture = BloodiedTextureCache.getBloodiedTexture(sourceTexture, stack);
-            if (texture.equals(sourceTexture)) {
-                continue;
-            }
-            float red = 1.0F;
-            float green = 1.0F;
-            float blue = 1.0F;
-            if (quad.hasTint()) {
-                int tintIndex = quad.tintIndex();
-                if (tintIndex >= 0 && tintIndex < tints.length) {
-                    int tint = tints[tintIndex];
-                    red = ((tint >> 16) & 255) / 255.0F;
-                    green = ((tint >> 8) & 255) / 255.0F;
-                    blue = (tint & 255) / 255.0F;
+        ITEM_REPLACEMENT_ACTIVE.set(true);
+        try {
+            boolean rendered = false;
+            MatrixStack.Entry entry = matrices.peek();
+            for (BakedQuad quad : quads) {
+                Sprite sprite = quad.sprite();
+                Identifier sourceTexture = sprite.getContents().getId();
+                Identifier texture = BloodiedTextureCache.getBloodiedTexture(sourceTexture, stack);
+                if (texture.equals(sourceTexture)) {
+                    continue;
                 }
+                float red = 1.0F;
+                float green = 1.0F;
+                float blue = 1.0F;
+                if (quad.hasTint()) {
+                    int tintIndex = quad.tintIndex();
+                    if (tintIndex >= 0 && tintIndex < tints.length) {
+                        int tint = tints[tintIndex];
+                        red = ((tint >> 16) & 255) / 255.0F;
+                        green = ((tint >> 8) & 255) / 255.0F;
+                        blue = (tint & 255) / 255.0F;
+                    }
+                }
+                RenderLayer layer = RenderLayer.getEntityTranslucent(texture);
+                VertexConsumer consumer = new SpriteUvRemappingVertexConsumer(
+                        itemConsumer(displayContext, matrices, vertexConsumers, layer, glint),
+                        sprite
+                );
+                consumer.quad(entry, quad, red, green, blue, 1.0F, light, overlay);
+                rendered = true;
             }
-            RenderLayer layer = RenderLayer.getEntityTranslucent(texture);
-            VertexConsumer consumer = new SpriteUvRemappingVertexConsumer(
-                    itemConsumer(displayContext, matrices, vertexConsumers, layer, glint),
-                    sprite
-            );
-            consumer.quad(entry, quad, red, green, blue, 1.0F, light, overlay);
-            rendered = true;
+            return rendered;
+        } finally {
+            ITEM_REPLACEMENT_ACTIVE.remove();
         }
-        return rendered;
     }
 
     private static VertexConsumer itemConsumer(

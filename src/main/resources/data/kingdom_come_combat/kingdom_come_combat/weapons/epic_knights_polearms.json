@@ -1,0 +1,9 @@
+{
+  "_comment": "Epic Knights polearms use the same real-hitbox orientation as spears while inheriting their existing combat attributes.",
+  "tag": "kingdom_come_combat:epic_knights_polearms",
+  "real_hitbox_rotation_degrees": {
+    "x": 0.0,
+    "y": 0.0,
+    "z": 45.0
+  }
+}

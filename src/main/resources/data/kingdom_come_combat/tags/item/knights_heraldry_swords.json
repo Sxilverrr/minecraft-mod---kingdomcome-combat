@@ -1,0 +1,12 @@
+{
+  "replace": false,
+  "values": [
+    {"id":"knightsheraldry:arming_sword","required":false}, {"id":"knightsheraldry:sword","required":false},
+    {"id":"knightsheraldry:v_sword","required":false}, {"id":"knightsheraldry:longsword","required":false},
+    {"id":"knightsheraldry:v_longsword","required":false}, {"id":"knightsheraldry:greatsword","required":false},
+    {"id":"knightsheraldry:claymore","required":false}, {"id":"knightsheraldry:flamberge","required":false},
+    {"id":"knightsheraldry:zweihander","required":false}, {"id":"knightsheraldry:falchion","required":false},
+    {"id":"knightsheraldry:scimitar","required":false}, {"id":"knightsheraldry:rapier","required":false},
+    {"id":"knightsheraldry:dagger","required":false}, {"id":"knightsheraldry:stiletto","required":false}
+  ]
+}

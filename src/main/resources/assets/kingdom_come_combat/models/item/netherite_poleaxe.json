@@ -1,0 +1,4 @@
+{
+  "parent": "kingdom_come_combat:item/poleaxe",
+  "textures": {"0": "kingdom_come_combat:item/netherite_poleaxe", "particle": "kingdom_come_combat:item/netherite_poleaxe"}
+}

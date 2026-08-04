@@ -2,10 +2,12 @@ package com.kingdomcomecombat.mixin.client;
 
 import com.kingdomcomecombat.combat.CombatItemUtil;
 import com.kingdomcomecombat.client.combat.MountedAttackCooldown;
+import com.kingdomcomecombat.client.lockon.LockOnState;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
+import net.minecraft.entity.decoration.ArmorStandEntity;
 import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.hit.HitResult;
 import org.spongepowered.asm.mixin.Mixin;
@@ -69,9 +71,14 @@ public class MinecraftClientAttackMixin {
             return;
         }
 
-        if (hit instanceof EntityHitResult entityHit
-                && CombatItemUtil.shouldUseVanillaEntityAttack(client.player, entityHit.getEntity())) {
-            return;
+        if (hit instanceof EntityHitResult entityHit) {
+            if (entityHit.getEntity() instanceof ArmorStandEntity) {
+                if (!LockOnState.locked) {
+                    return;
+                }
+            } else if (CombatItemUtil.shouldUseVanillaEntityAttack(client.player, entityHit.getEntity())) {
+                return;
+            }
         }
 
         // 对着方块时不拦截，保留长按挖掘功能。

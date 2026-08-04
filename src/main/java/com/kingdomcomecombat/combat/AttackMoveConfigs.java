@@ -193,6 +193,14 @@ public class AttackMoveConfigs {
         return BY_ID.get(id);
     }
 
+    public static Map<CombatDirection, AttackMoveConfig> directionSnapshot() {
+        return Map.copyOf(BY_DIRECTION);
+    }
+
+    public static Map<String, AttackMoveConfig> namedSnapshot() {
+        return Map.copyOf(BY_ID);
+    }
+
     public static void clear() {
         BY_DIRECTION.clear();
         BY_ID.clear();

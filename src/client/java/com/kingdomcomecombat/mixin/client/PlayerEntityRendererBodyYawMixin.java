@@ -2,7 +2,6 @@ package com.kingdomcomecombat.mixin.client;
 
 import com.kingdomcomecombat.client.combat.CombatClientState;
 import com.kingdomcomecombat.client.animation.CombatAnimationClient;
-import com.kingdomcomecombat.client.compat.FirstPersonRenderCompat;
 import com.kingdomcomecombat.client.lockon.LockOnState;
 import com.kingdomcomecombat.client.lockon.LockOnTargetSelector;
 import com.kingdomcomecombat.combat.CombatItemUtil;
@@ -58,8 +57,7 @@ public class PlayerEntityRendererBodyYawMixin {
     ) {
         MinecraftClient client = MinecraftClient.getInstance();
 
-        if (client.player == null || player != client.player
-                || FirstPersonRenderCompat.isExternalBodyRenderOrPreparing()) {
+        if (client.player == null || player != client.player) {
             return;
         }
 
@@ -76,6 +74,17 @@ public class PlayerEntityRendererBodyYawMixin {
         state.bodyYaw = viewYaw + bodyOffset * LOCKED_BODY_YAW_FACTOR;
 
         if (tryLockHeadToTarget(client, player, state, tickDelta)) {
+            return;
+        }
+
+        if (LockOnState.isSoftLocked()) {
+            float animatedBodyYaw = CombatAnimationClient.getLocalStanceBodyYawOffsetDegrees();
+            state.relativeHeadYaw = MathHelper.clamp(
+                    MathHelper.wrapDegrees(player.getYaw(tickDelta) - state.bodyYaw - animatedBodyYaw),
+                    -85.0F,
+                    85.0F
+            );
+            state.pitch = MathHelper.clamp(player.getPitch(tickDelta), -70.0F, 70.0F);
             return;
         }
 

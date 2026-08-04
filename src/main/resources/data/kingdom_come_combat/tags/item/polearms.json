@@ -1,0 +1,22 @@
+{
+  "replace": false,
+  "values": [
+    "minecraft:trident",
+    {"id": "minecraft:wooden_spear", "required": false},
+    {"id": "minecraft:stone_spear", "required": false},
+    {"id": "minecraft:copper_spear", "required": false},
+    {"id": "minecraft:iron_spear", "required": false},
+    {"id": "minecraft:golden_spear", "required": false},
+    {"id": "minecraft:diamond_spear", "required": false},
+    {"id": "minecraft:netherite_spear", "required": false},
+    "kingdom_come_combat:copper_poleaxe",
+    "kingdom_come_combat:golden_poleaxe",
+    "kingdom_come_combat:iron_poleaxe",
+    "kingdom_come_combat:diamond_poleaxe",
+    "kingdom_come_combat:netherite_poleaxe",
+    "#kingdom_come_combat:epic_knights_polearms",
+    "#kingdom_come_combat:knights_heraldry_polearms",
+    "#kingdom_come_combat:valarian_polearms",
+    "#kingdom_come_combat:simply_swords_polearms"
+  ]
+}

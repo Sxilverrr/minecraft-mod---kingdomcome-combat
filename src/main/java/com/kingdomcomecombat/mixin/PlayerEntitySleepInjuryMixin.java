@@ -19,6 +19,7 @@ public class PlayerEntitySleepInjuryMixin {
         PlayerEntity player = (PlayerEntity) (Object) this;
         if (player instanceof ServerPlayerEntity serverPlayer) {
             InjuryTicker.healLowTierWoundsFromSleep(serverPlayer);
+            com.kingdomcomecombat.hardship.HardshipEffects.teleportAfterSleep(serverPlayer);
         }
     }
 }

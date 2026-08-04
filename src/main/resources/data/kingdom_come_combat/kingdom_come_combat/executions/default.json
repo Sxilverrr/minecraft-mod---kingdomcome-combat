@@ -1,0 +1,112 @@
+{
+  "_comment": "处决配置复用连招字段，但不需要 sequence；会被强制视为 suction 吸附连招。每个 set 只需要 right/left 两个配置：右或上架势调用 right，下或左架势调用 left。",
+  "executions": {
+    "right": {
+      "set": "base",
+      "id": "execution_base_right_or_up",
+      "display_name": "处决",
+      "animation": "execution_base",
+      "victim_animation": "execution_base_hit",
+      "damage_modifiers": {"thrust": 1.35, "strike": 0.35, "slash": 1.45},
+      "hit_zones": [{"zone": "any", "parts": ["chest"]}],
+      "impact": 35.0,
+      "stamina_cost": 0.0,
+      "suction_distance": 3.0,
+      "suction_fixed_distance": 1.8,
+      "blade_trail": true,
+      "use_real_hitbox": true,
+      "attack_chain": [
+        {
+          "tick": 4,
+          "hit_zones": [{"zone": "any", "parts": ["chest"]}],
+          "damage_modifiers": {"thrust": 0.8, "strike": 0.35, "slash": 0.8}
+        },
+        {
+          "tick": 24,
+          "hit_zones": [{"zone": "any", "parts": ["chest"]}],
+          "damage_modifiers": {"thrust": 2.0, "strike": 0.35, "slash": 2.0}
+        }
+      ]
+    },
+    "left": {
+      "set": "base",
+      "id": "execution_base_left_or_down",
+      "display_name": "处决",
+      "animation": "execution_base",
+      "victim_animation": "execution_base_hit",
+      "damage_modifiers": {"thrust": 1.35, "strike": 0.35, "slash": 1.45},
+      "hit_zones": [{"zone": "any", "parts": ["chest"]}],
+      "impact": 35.0,
+      "stamina_cost": 0.0,
+      "suction_distance": 3.0,
+      "suction_fixed_distance": 1.8,
+      "blade_trail": true,
+      "use_real_hitbox": true,
+      "attack_chain": [
+        {
+          "tick": 4,
+          "hit_zones": [{"zone": "any", "parts": ["chest"]}],
+          "damage_modifiers": {"thrust": 0.8, "strike": 0.35, "slash": 0.8}
+        },
+        {
+          "tick": 24,
+          "hit_zones": [{"zone": "any", "parts": ["chest"]}],
+          "damage_modifiers": {"thrust": 2.0, "strike": 0.35, "slash": 2.0}
+        }
+      ]
+    },
+    "shortsword_right": {
+      "set": "shortsword",
+      "direction": "right",
+      "id": "execution_shortsword_right_or_up",
+      "display_name": "短剑处决",
+      "animation": "execution_short_sword_1",
+      "victim_animation": "execution_short_sword_hit_1",
+      "damage_modifiers": {"thrust": 1.60, "strike": 0.20, "slash": 1.10},
+      "hit_zones": [{"zone": "any", "parts": ["neck"]}],
+      "impact": 28.0,
+      "stamina_cost": 0.0,
+      "suction_distance": 2.4,
+      "suction_fixed_distance": 1.2,
+      "blade_trail": true,
+      "use_real_hitbox": true,
+      "required_weapon_tag": "short_sword",
+      "attack_chain": [
+        {
+          "tick": 5,
+          "hit_zones": [{"zone": "any", "parts": ["neck"]}],
+          "damage_modifiers": {"thrust": 0.7, "strike": 0.20, "slash": 0.2}
+        },
+        {
+          "tick": 23,
+          "hit_zones": [{"zone": "any", "parts": ["neck"]}],
+          "damage_modifiers": {"thrust": 1.0, "strike": 0.20, "slash": 0.2}
+        }
+      ]
+    },
+    "shortsword_left": {
+      "set": "shortsword",
+      "direction": "left",
+      "id": "execution_shortsword_left_or_down",
+      "display_name": "短剑处决",
+      "animation": "execution_short_sword_1",
+      "victim_animation": "execution_short_sword_hit_1",
+      "damage_modifiers": {"thrust": 1.60, "strike": 0.20, "slash": 1.10},
+      "hit_zones": [{"zone": "any", "parts": ["neck"]}],
+      "impact": 28.0,
+      "stamina_cost": 0.0,
+      "suction_distance": 2.7,
+      "suction_fixed_distance": 1.2,
+      "blade_trail": true,
+      "use_real_hitbox": true,
+      "required_weapon_tag": "short_sword",
+      "attack_chain": [
+        {
+          "tick": 16,
+          "hit_zones": [{"zone": "any", "parts": ["neck"]}],
+          "damage_modifiers": {"thrust": 1.60, "strike": 0.20, "slash": 1.10}
+        }
+      ]
+    }
+  }
+}

@@ -26,6 +26,7 @@ public class ModelPartHeadTrackingMixin {
             CallbackInfo ci
     ) {
         FirstPersonHeadPoseTracker.capture((ModelPart) (Object) this, matrices);
+        ClientGenericModelTracker.applyPendingCombatAnimation();
         if (FirstPersonRenderCompat.isExternalBodyRender()) {
             return;
         }

@@ -8,6 +8,7 @@ public record HumanoidCombatAiProfile(
         double blockChance,
         double perfectBlockChance,
         int comboLevel,
+        double comboPlanChance,
         double dodgeChance,
         int aiLevel,
         double staminaMax,
@@ -32,6 +33,7 @@ public record HumanoidCombatAiProfile(
         blockChance = clamp01(blockChance);
         perfectBlockChance = clamp01(perfectBlockChance);
         comboLevel = Math.max(0, comboLevel);
+        comboPlanChance = clamp01(comboPlanChance);
         dodgeChance = clamp01(dodgeChance);
         aiLevel = Math.max(0, aiLevel);
         staminaMax = Math.max(1.0, staminaMax);
@@ -56,6 +58,7 @@ public record HumanoidCombatAiProfile(
                 0.25,
                 0.35,
                 0,
+                0.0,
                 0.06,
                 1,
                 100.0,
@@ -83,6 +86,7 @@ public record HumanoidCombatAiProfile(
                 0.45,
                 0.20,
                 1,
+                0.40,
                 0.08,
                 2,
                 120.0,
@@ -111,6 +115,7 @@ public record HumanoidCombatAiProfile(
                 0.0,
                 0,
                 0.0,
+                0.0,
                 0,
                 100.0,
                 0.26,
@@ -137,6 +142,7 @@ public record HumanoidCombatAiProfile(
                 0.82,
                 0.08,
                 1,
+                0.40,
                 0.03,
                 2,
                 140.0,
@@ -164,6 +170,7 @@ public record HumanoidCombatAiProfile(
                 0.55,
                 0.18,
                 0,
+                0.0,
                 0.04,
                 1,
                 100.0,

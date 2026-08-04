@@ -60,6 +60,9 @@ public class HeldItemFeatureRendererItemBoneMixin {
         if (arm == state.mainArm) {
             ClientItemHitboxCache.beginCapture(access.kingdomcomecombat$getEntityId());
         }
+        if (stack.isOf(Items.TRIDENT)) {
+            matrices.scale(1.2F, 1.2F, 1.2F);
+        }
     }
 
     @Unique

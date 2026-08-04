@@ -2,6 +2,8 @@ package com.kingdomcomecombat.mixin.client;
 
 import com.kingdomcomecombat.client.animation.ClientEntityGeckoAnimationState;
 import com.kingdomcomecombat.client.animation.LegacyBipedAnimationApplier;
+import com.kingdomcomecombat.client.animation.LegacyCombatFeedbackApplier;
+import com.kingdomcomecombat.client.animation.LegacyMobStanceHeadTargeting;
 import net.minecraft.client.render.entity.model.SkeletonEntityModel;
 import net.minecraft.entity.mob.MobEntity;
 import org.spongepowered.asm.mixin.Mixin;
@@ -24,7 +26,14 @@ public class LegacySkeletonEntityModelAnimationMixin {
         if (!ClientEntityGeckoAnimationState.hasActiveCombatLayer(entity.getId())) {
             return;
         }
-        LegacyBipedAnimationApplier.apply(
-                (net.minecraft.client.render.entity.model.BipedEntityModel) (Object) this, entity);
+        net.minecraft.client.render.entity.model.BipedEntityModel model =
+                (net.minecraft.client.render.entity.model.BipedEntityModel) (Object) this;
+        LegacyBipedAnimationApplier.apply(model, entity);
+        if (ClientEntityGeckoAnimationState.isStanceOnly(entity.getId())) {
+            LegacyMobStanceHeadTargeting.apply(
+                    entity, headYaw, headPitch, model.head, model.body);
+        }
+        LegacyCombatFeedbackApplier.applyBipedExtra(entity.getId(), model.body, model.head,
+                model.rightArm, model.leftArm, model.rightLeg, model.leftLeg);
     }
 }

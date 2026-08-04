@@ -3,6 +3,7 @@ package com.kingdomcomecombat.client.debug;
 import com.kingdomcomecombat.client.animation.ClientEntityGeckoAnimationState;
 import com.kingdomcomecombat.client.animation.GeckoLikeAnimationLibrary;
 import com.kingdomcomecombat.client.collision.ClientItemHitboxCache;
+import com.kingdomcomecombat.client.collision.ClientHumanoidHurtboxResolver;
 import com.kingdomcomecombat.client.collision.ClientModelHurtboxCache;
 import com.kingdomcomecombat.client.combat.CombatClientState;
 import com.kingdomcomecombat.collision.AnimatedAttackHitboxLibrary;
@@ -27,13 +28,6 @@ import net.minecraft.util.math.Vec3d;
 import java.util.Optional;
 
 public class CombatCollisionDebugRenderer {
-    private static final double HURTBOX_RENDER_DISTANCE = 48.0;
-    private static final double HURTBOX_RENDER_DISTANCE_SQUARED =
-            HURTBOX_RENDER_DISTANCE * HURTBOX_RENDER_DISTANCE;
-    private static final double ATTACK_BOX_RENDER_DISTANCE = 64.0;
-    private static final double ATTACK_BOX_RENDER_DISTANCE_SQUARED =
-            ATTACK_BOX_RENDER_DISTANCE * ATTACK_BOX_RENDER_DISTANCE;
-
     private CombatCollisionDebugRenderer() {
     }
 
@@ -59,11 +53,13 @@ public class CombatCollisionDebugRenderer {
         matrices.push();
         matrices.translate(-cameraPos.x, -cameraPos.y, -cameraPos.z);
 
+        double renderDistance = com.kingdomcomecombat.client.collision.ClientCollisionTrackingPolicy.radius();
+        double renderDistanceSquared = renderDistance * renderDistance;
         Box debugBounds = Box.of(
-                cameraPos,
-                ATTACK_BOX_RENDER_DISTANCE * 2.0,
-                ATTACK_BOX_RENDER_DISTANCE * 2.0,
-                ATTACK_BOX_RENDER_DISTANCE * 2.0
+                client.player.getPos(),
+                renderDistance * 2.0,
+                renderDistance * 2.0,
+                renderDistance * 2.0
         );
         for (Entity entity : client.world.getEntitiesByClass(
                 Entity.class,
@@ -74,12 +70,12 @@ public class CombatCollisionDebugRenderer {
                 continue;
             }
 
-            double distanceSquared = livingEntity.squaredDistanceTo(cameraPos);
-            if (distanceSquared <= HURTBOX_RENDER_DISTANCE_SQUARED
+            double distanceSquared = livingEntity.squaredDistanceTo(client.player);
+            if (distanceSquared <= renderDistanceSquared
                     && context.frustum().isVisible(livingEntity.getBoundingBox().expand(0.75))) {
                 renderHurtboxes(matrices, lines, livingEntity);
             }
-            if (distanceSquared <= ATTACK_BOX_RENDER_DISTANCE_SQUARED) {
+            if (distanceSquared <= renderDistanceSquared) {
                 renderAttackHitbox(matrices, lines, livingEntity);
             }
         }
@@ -100,42 +96,7 @@ public class CombatCollisionDebugRenderer {
     }
 
     private static Iterable<HumanoidHurtboxLibrary.PartBox> animatedHurtboxes(LivingEntity entity) {
-        MinecraftClient client = MinecraftClient.getInstance();
-        if (entity == client.player) {
-            return ClientModelHurtboxCache.simulateLocalPlayer(entity);
-        }
-
-        Optional<java.util.List<HumanoidHurtboxLibrary.PartBox>> modelBoxes =
-                ClientModelHurtboxCache.get(entity);
-        if (modelBoxes.isPresent()) {
-            return modelBoxes.get();
-        }
-
-        ClientEntityGeckoAnimationState.ActiveAnimation animation =
-                ClientEntityGeckoAnimationState.get(entity.getId());
-        if (animation == null) {
-            return HumanoidHurtboxLibrary.getHurtboxes(entity);
-        }
-
-        if (animation.kind() == GeckoLikeAnimationLibrary.Kind.ATTACK) {
-            return HumanoidHurtboxLibrary.getAnimatedHurtboxes(
-                    entity,
-                    HumanoidAnimationPoseLibrary.Kind.ATTACK,
-                    animation.direction(),
-                    animation.elapsedSeconds()
-            );
-        }
-
-        if (animation.kind() == GeckoLikeAnimationLibrary.Kind.STANCE) {
-            return HumanoidHurtboxLibrary.getAnimatedHurtboxes(
-                    entity,
-                    HumanoidAnimationPoseLibrary.Kind.STANCE,
-                    animation.direction(),
-                    animation.elapsedSeconds()
-            );
-        }
-
-        return HumanoidHurtboxLibrary.getHurtboxes(entity);
+        return ClientHumanoidHurtboxResolver.resolve(entity);
     }
 
     private static void renderAttackHitbox(
@@ -143,6 +104,16 @@ public class CombatCollisionDebugRenderer {
             VertexConsumer lines,
             LivingEntity entity
     ) {
+        // Vanilla's hitbox debug toggle is also the real-hitbox editor. Keep
+        // the weapon-attached box visible outside the short attack window so
+        // datapack overrides on third-party weapons can be inspected.
+        Optional<AnimatedAttackHitboxLibrary.OrientedBox> renderedItemBox =
+                ClientItemHitboxCache.get(entity.getId());
+        if (renderedItemBox.isPresent()) {
+            drawOrientedBox(matrices, lines, renderedItemBox.get(), 1.0F, 0.0F, 0.0F, 1.0F);
+            return;
+        }
+
         Optional<AnimatedAttackHitboxLibrary.OrientedBox> localPlayerHitbox =
                 sampleLocalPlayerAttack(entity);
         if (localPlayerHitbox.isPresent()) {
@@ -216,6 +187,7 @@ public class CombatCollisionDebugRenderer {
                     CombatClientState.currentAttackElapsedSeconds(),
                     useRealHitbox,
                     EquipmentCombatAttributesRegistry.realHitboxSizeUnits(
+                            entity,
                             entity.getMainHandStack(),
                             AnimatedAttackHitboxLibrary.getRealHitboxSizeUnits()
                     ),

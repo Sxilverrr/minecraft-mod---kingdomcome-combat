@@ -6,7 +6,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.kingdomcomecombat.KingdomComeCombat;
-import com.kingdomcomecombat.platform.PlatformServices;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.item.ItemStack;
 import net.minecraft.registry.Registries;
 import net.minecraft.util.Identifier;
@@ -38,6 +38,9 @@ public final class CombatClientConfig {
     private static boolean bladeTrailsEnabled = true;
     private static boolean armorPhysicsCompat = false;
     private static boolean showLockOnCrosshair = true;
+    private static boolean showTargetStaminaRing = true;
+    private static double targetStaminaRingScale = 0.65;
+    private static double lockOnCrosshairScale = 1.0;
     private static boolean autoLockOnHit = false;
     private static double lockOnAcquireAngleDegrees = 70.0;
     private static double lockOnReleaseDistance = 10.0;
@@ -51,19 +54,25 @@ public final class CombatClientConfig {
     private static double lockOnCameraPitchFollowSpeed = 10.0;
     private static double lockOnCameraTransitionSpeed = 12.0;
     private static double lockOnFirstPersonCameraForwardOffset = 0.0;
+    private static double stanceGestureSensitivity = 1.0;
     private static double sparkParticlePercent = 1.0;
     private static double bloodParticlePercent = 1.0;
+    private static double bloodTraceParticlePercent = 1.0;
     private static double bloodMistOpacity = 1.0;
     private static double bloodStainPercent = 1.0;
     private static boolean showDebugMessages = false;
-    private static boolean disableVanillaLeftHandedMobs = true;
     private static boolean screenEffectsEnabled = true;
     private static boolean hurtCameraMovementEnabled = true;
+    private static boolean dodgeAnimationEnabled = true;
+    private static boolean cauldronFaceWashEnabled = true;
+    private static boolean thirdPartyRightClickOutsideLockEnabled = true;
     private static double screenRedEffectStrength = 1.0;
     private static double screenBlueEffectStrength = 1.0;
     private static double hitReactionAnimationStrength = 1.0;
     private static int hitReactionReturnTicks = 8;
     private static FirstPersonModelMode firstPersonModelMode = FirstPersonModelMode.WHEN_NEEDED;
+    private static boolean firstPersonRenderingEnabled = true;
+    private static boolean firstPersonWeaponOnly = false;
     private static final Set<Identifier> firstPersonModelDisabledItems = new LinkedHashSet<>();
     private static double firstPersonBodyForwardOffset = 0.0;
     private static double firstPersonCameraForwardOffset = 0.0;
@@ -89,11 +98,6 @@ public final class CombatClientConfig {
             playerBloodOverlayCompat = bool(rendering, "player_blood_overlay_compat", playerBloodOverlayCompat);
             renderArmorHoles = bool(rendering, "enable_armor_holes", renderArmorHoles);
             bladeTrailsEnabled = bool(rendering, "enable_blade_trails", bladeTrailsEnabled);
-            disableVanillaLeftHandedMobs = bool(
-                    rendering,
-                    "disable_vanilla_left_handed_mobs",
-                    disableVanillaLeftHandedMobs
-            );
             armorPhysicsCompat = bool(rendering, "enable_armor_physics_compat", armorPhysicsCompat);
             screenEffectsEnabled = bool(rendering, "enable_screen_effects", screenEffectsEnabled);
             hurtCameraMovementEnabled = bool(
@@ -101,8 +105,23 @@ public final class CombatClientConfig {
                     "enable_hurt_camera_movement",
                     hurtCameraMovementEnabled
             );
+            dodgeAnimationEnabled = bool(rendering, "enable_dodge_animation", dodgeAnimationEnabled);
+            cauldronFaceWashEnabled = bool(rendering, "enable_cauldron_face_wash", cauldronFaceWashEnabled);
+
+            JsonObject interaction = object(root, "interaction", root);
+            thirdPartyRightClickOutsideLockEnabled = bool(
+                    interaction,
+                    "enable_third_party_right_click_outside_lock",
+                    thirdPartyRightClickOutsideLockEnabled
+            );
 
             JsonObject firstPerson = object(root, "first_person", root);
+            firstPersonRenderingEnabled = bool(
+                    firstPerson, "enable_rendering", firstPersonRenderingEnabled
+            );
+            firstPersonWeaponOnly = bool(
+                    firstPerson, "weapon_only", firstPersonWeaponOnly
+            );
             firstPersonModelMode = FirstPersonModelMode.fromConfigName(
                     string(firstPerson, "model_mode", firstPersonModelMode.configName())
             );
@@ -158,6 +177,15 @@ public final class CombatClientConfig {
 
             JsonObject lockOn = object(root, "lock_on", root);
             showLockOnCrosshair = bool(lockOn, "show_crosshair", showLockOnCrosshair);
+            showTargetStaminaRing = bool(lockOn, "show_target_stamina_ring", showTargetStaminaRing);
+            targetStaminaRingScale = clampedNumber(
+                    lockOn,
+                    "target_stamina_ring_scale",
+                    targetStaminaRingScale,
+                    0.5,
+                    2.0
+            );
+            lockOnCrosshairScale = clampedNumber(lockOn, "crosshair_scale", lockOnCrosshairScale, 0.5, 2.0);
             autoLockOnHit = bool(lockOn, "auto_lock_on_hit", autoLockOnHit);
             lockOnAcquireAngleDegrees = positiveNumber(lockOn, "crosshair_target_angle_degrees", lockOnAcquireAngleDegrees);
             lockOnReleaseDistance = positiveNumber(lockOn, "crosshair_release_distance", lockOnReleaseDistance);
@@ -177,10 +205,18 @@ public final class CombatClientConfig {
                     -1.0,
                     1.0
             );
+            stanceGestureSensitivity = clampedNumber(
+                    lockOn,
+                    "stance_gesture_sensitivity",
+                    stanceGestureSensitivity,
+                    0.05,
+                    4.0
+            );
 
             JsonObject particles = object(root, "particles", root);
             sparkParticlePercent = percentNumber(particles, "spark_percent", sparkParticlePercent);
             bloodParticlePercent = percentNumber(particles, "blood_percent", bloodParticlePercent);
+            bloodTraceParticlePercent = percentNumber(particles, "blood_trace_percent", bloodTraceParticlePercent);
             bloodMistOpacity = clampedNumber(particles, "blood_mist_opacity", bloodMistOpacity, 0.0, 3.0);
 
             JsonObject feedback = object(root, "feedback", root);
@@ -272,14 +308,6 @@ public final class CombatClientConfig {
         playerBloodOverlayCompat = value;
     }
 
-    public static boolean disableVanillaLeftHandedMobs() {
-        return disableVanillaLeftHandedMobs;
-    }
-
-    public static void setDisableVanillaLeftHandedMobs(boolean value) {
-        disableVanillaLeftHandedMobs = value;
-    }
-
     public static boolean armorPhysicsCompat() {
         return armorPhysicsCompat;
     }
@@ -311,6 +339,25 @@ public final class CombatClientConfig {
     public static void setShowLockOnCrosshair(boolean value) {
         showLockOnCrosshair = value;
     }
+
+    public static boolean showTargetStaminaRing() {
+        return showTargetStaminaRing;
+    }
+
+    public static void setShowTargetStaminaRing(boolean value) {
+        showTargetStaminaRing = value;
+    }
+
+    public static double targetStaminaRingScale() {
+        return targetStaminaRingScale;
+    }
+
+    public static void setTargetStaminaRingScale(double value) {
+        targetStaminaRingScale = clamp(value, 0.5, 2.0);
+    }
+
+    public static double lockOnCrosshairScale() { return lockOnCrosshairScale; }
+    public static void setLockOnCrosshairScale(double value) { lockOnCrosshairScale = clamp(value, 0.5, 2.0); }
 
     public static boolean autoLockOnHit() {
         return autoLockOnHit;
@@ -416,6 +463,14 @@ public final class CombatClientConfig {
         lockOnFirstPersonCameraForwardOffset = clamp(value, -1.0, 1.0);
     }
 
+    public static double stanceGestureSensitivity() {
+        return stanceGestureSensitivity;
+    }
+
+    public static void setStanceGestureSensitivity(double value) {
+        stanceGestureSensitivity = clamp(value, 0.05, 4.0);
+    }
+
     public static double sparkParticlePercent() {
         return sparkParticlePercent;
     }
@@ -430,6 +485,14 @@ public final class CombatClientConfig {
 
     public static void setBloodParticlePercent(double value) {
         bloodParticlePercent = Math.max(0.0, value);
+    }
+
+    public static double bloodTraceParticlePercent() {
+        return bloodTraceParticlePercent;
+    }
+
+    public static void setBloodTraceParticlePercent(double value) {
+        bloodTraceParticlePercent = Math.max(0.0, value);
     }
 
     public static double bloodMistOpacity() {
@@ -472,6 +535,30 @@ public final class CombatClientConfig {
         hurtCameraMovementEnabled = enabled;
     }
 
+    public static boolean dodgeAnimationEnabled() {
+        return dodgeAnimationEnabled;
+    }
+
+    public static void setDodgeAnimationEnabled(boolean enabled) {
+        dodgeAnimationEnabled = enabled;
+    }
+
+    public static boolean cauldronFaceWashEnabled() {
+        return cauldronFaceWashEnabled;
+    }
+
+    public static void setCauldronFaceWashEnabled(boolean enabled) {
+        cauldronFaceWashEnabled = enabled;
+    }
+
+    public static boolean thirdPartyRightClickOutsideLockEnabled() {
+        return thirdPartyRightClickOutsideLockEnabled;
+    }
+
+    public static void setThirdPartyRightClickOutsideLockEnabled(boolean enabled) {
+        thirdPartyRightClickOutsideLockEnabled = enabled;
+    }
+
     public static double screenRedEffectStrength() {
         return screenRedEffectStrength;
     }
@@ -506,6 +593,22 @@ public final class CombatClientConfig {
 
     public static FirstPersonModelMode firstPersonModelMode() {
         return firstPersonModelMode;
+    }
+
+    public static boolean firstPersonRenderingEnabled() {
+        return firstPersonRenderingEnabled;
+    }
+
+    public static void setFirstPersonRenderingEnabled(boolean enabled) {
+        firstPersonRenderingEnabled = enabled;
+    }
+
+    public static boolean firstPersonWeaponOnly() {
+        return firstPersonWeaponOnly;
+    }
+
+    public static void setFirstPersonWeaponOnly(boolean enabled) {
+        firstPersonWeaponOnly = enabled;
     }
 
     public static void setFirstPersonModelMode(FirstPersonModelMode mode) {
@@ -565,7 +668,7 @@ public final class CombatClientConfig {
     }
 
     private static Path configPath() {
-        return PlatformServices.loader().configDirectory().resolve(FILE_NAME);
+        return FabricLoader.getInstance().getConfigDir().resolve(FILE_NAME);
     }
 
     private static void write(Path path) {
@@ -577,12 +680,22 @@ public final class CombatClientConfig {
         rendering.addProperty("enable_armor_holes", renderArmorHoles);
         rendering.addProperty("enable_blade_trails", bladeTrailsEnabled);
         rendering.addProperty("enable_armor_physics_compat", armorPhysicsCompat);
-        rendering.addProperty("disable_vanilla_left_handed_mobs", disableVanillaLeftHandedMobs);
         rendering.addProperty("enable_screen_effects", screenEffectsEnabled);
         rendering.addProperty("enable_hurt_camera_movement", hurtCameraMovementEnabled);
+        rendering.addProperty("enable_dodge_animation", dodgeAnimationEnabled);
+        rendering.addProperty("enable_cauldron_face_wash", cauldronFaceWashEnabled);
         root.add("rendering", rendering);
 
+        JsonObject interaction = new JsonObject();
+        interaction.addProperty(
+                "enable_third_party_right_click_outside_lock",
+                thirdPartyRightClickOutsideLockEnabled
+        );
+        root.add("interaction", interaction);
+
         JsonObject firstPerson = new JsonObject();
+        firstPerson.addProperty("enable_rendering", firstPersonRenderingEnabled);
+        firstPerson.addProperty("weapon_only", firstPersonWeaponOnly);
         firstPerson.addProperty("model_mode", firstPersonModelMode.configName());
         firstPerson.addProperty("body_forward_offset", firstPersonBodyForwardOffset);
         firstPerson.addProperty("camera_forward_offset", firstPersonCameraForwardOffset);
@@ -608,6 +721,9 @@ public final class CombatClientConfig {
 
         JsonObject lockOn = new JsonObject();
         lockOn.addProperty("show_crosshair", showLockOnCrosshair);
+        lockOn.addProperty("show_target_stamina_ring", showTargetStaminaRing);
+        lockOn.addProperty("target_stamina_ring_scale", targetStaminaRingScale);
+        lockOn.addProperty("crosshair_scale", lockOnCrosshairScale);
         lockOn.addProperty("auto_lock_on_hit", autoLockOnHit);
         lockOn.addProperty("crosshair_target_angle_degrees", lockOnAcquireAngleDegrees);
         lockOn.addProperty("crosshair_release_distance", lockOnReleaseDistance);
@@ -621,11 +737,13 @@ public final class CombatClientConfig {
         lockOn.addProperty("camera_pitch_follow_speed", lockOnCameraPitchFollowSpeed);
         lockOn.addProperty("camera_transition_speed", lockOnCameraTransitionSpeed);
         lockOn.addProperty("first_person_camera_forward_offset", lockOnFirstPersonCameraForwardOffset);
+        lockOn.addProperty("stance_gesture_sensitivity", stanceGestureSensitivity);
         root.add("lock_on", lockOn);
 
         JsonObject particles = new JsonObject();
         particles.addProperty("spark_percent", sparkParticlePercent);
         particles.addProperty("blood_percent", bloodParticlePercent);
+        particles.addProperty("blood_trace_percent", bloodTraceParticlePercent);
         particles.addProperty("blood_mist_opacity", bloodMistOpacity);
         root.add("particles", particles);
 

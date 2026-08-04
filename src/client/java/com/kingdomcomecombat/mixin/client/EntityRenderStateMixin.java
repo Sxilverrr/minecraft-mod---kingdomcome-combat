@@ -9,6 +9,7 @@ import org.spongepowered.asm.mixin.Unique;
 
 @Mixin(EntityRenderState.class)
 public class EntityRenderStateMixin implements EntityRenderStateKccAccess {
+    private boolean kingdomcomecombat$dragonArmorBroken;
     @Unique
     private int kingdomcomecombat$entityId = -1;
     @Unique
@@ -72,5 +73,15 @@ public class EntityRenderStateMixin implements EntityRenderStateKccAccess {
     @Override
     public double kingdomcomecombat$getBodyBloodPercent() {
         return kingdomcomecombat$bodyBloodPercent;
+    }
+
+    @Override
+    public void kingdomcomecombat$setDragonArmorBroken(boolean broken) {
+        kingdomcomecombat$dragonArmorBroken = broken;
+    }
+
+    @Override
+    public boolean kingdomcomecombat$isDragonArmorBroken() {
+        return kingdomcomecombat$dragonArmorBroken;
     }
 }

@@ -1,0 +1,15 @@
+{
+  "display": {
+    "icon": {"id": "minecraft:crying_obsidian"},
+    "title": {"translate": "advancement.kingdom_come_combat.godforsaken_child.title"},
+    "description": {"translate": "advancement.kingdom_come_combat.godforsaken_child.description"},
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": true,
+    "background": "minecraft:textures/gui/advancements/backgrounds/stone.png"
+  },
+  "criteria": {
+    "all_hardships": {"trigger": "minecraft:impossible"}
+  }
+}

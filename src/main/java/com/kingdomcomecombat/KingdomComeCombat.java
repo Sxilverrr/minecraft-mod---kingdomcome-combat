@@ -2,6 +2,7 @@ package com.kingdomcomecombat;
 
 import com.kingdomcomecombat.ai.HumanoidCombatAiTicker;
 import com.kingdomcomecombat.ai.BeastCombatAiTicker;
+import com.kingdomcomecombat.ai.ExperimentalFactionHostility;
 import com.kingdomcomecombat.command.CombatCommands;
 import com.kingdomcomecombat.combat.PlayerComboProgress;
 import com.kingdomcomecombat.config.CombatServerConfig;
@@ -15,10 +16,15 @@ import com.kingdomcomecombat.item.SkillBookAcquisition;
 import com.kingdomcomecombat.item.SkillBookItem;
 import com.kingdomcomecombat.entity.ModEntities;
 import com.kingdomcomecombat.game.ModGameRules;
+import com.kingdomcomecombat.hardship.HardshipSelectionState;
+import com.kingdomcomecombat.hardship.HardshipEffects;
 import com.kingdomcomecombat.item.HandCannonProjectileTracker;
 import com.kingdomcomecombat.particle.ModParticles;
 import com.kingdomcomecombat.potion.PotionCoatingHandler;
+import com.kingdomcomecombat.recipe.ModRecipes;
 import com.kingdomcomecombat.sound.ModSounds;
+import com.kingdomcomecombat.boss.EnderDragonBossHandler;
+import com.kingdomcomecombat.boss.WitherBossHandler;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
@@ -38,13 +44,16 @@ public class KingdomComeCombat implements ModInitializer {
 		ModSounds.registerAll();
 		ModParticles.registerAll();
 		ModEntities.register();
+		ModRecipes.register();
 		CombatNetworking.registerCommon();
 		ResourceManagerHelper.get(ResourceType.SERVER_DATA)
 				.registerReloadListener(new CombatDataReloadListener());
 		ServerCombatTicker.register();
 		HumanoidCombatAiTicker.register();
 		BeastCombatAiTicker.register();
+		ExperimentalFactionHostility.register();
 		InjuryTicker.register();
+		HardshipEffects.register();
 		PotionCoatingHandler.register();
 		PlayerComboProgress.register();
 		PlayerPassiveSkillProgress.register();
@@ -52,10 +61,28 @@ public class KingdomComeCombat implements ModInitializer {
 		ModItems.registerModItems();
 		SkillBookItem.registerHeldLocalization();
 		HandCannonProjectileTracker.register();
+		EnderDragonBossHandler.register();
+		WitherBossHandler.register();
 		SkillBookAcquisition.register();
 		ServerLifecycleEvents.SERVER_STARTING.register(server -> clearPlayerProgressCaches());
-		ServerLifecycleEvents.SERVER_STARTED.register(ModGameRules::initializeForServer);
-		ServerLifecycleEvents.SERVER_STOPPED.register(server -> clearPlayerProgressCaches());
+		ServerLifecycleEvents.SERVER_STARTED.register(server -> {
+			CombatDataReloadListener.reapplyWeaponDefinitionsAfterTagsBound();
+			ModGameRules.initializeForServer(server);
+		});
+		ServerLifecycleEvents.END_DATA_PACK_RELOAD.register((server, manager, success) -> {
+			if (success) {
+				CombatDataReloadListener.reapplyWeaponDefinitionsAfterTagsBound();
+				server.getPlayerManager().getPlayerList().forEach(player -> {
+					CombatNetworking.syncDataDrivenClientState(player);
+					PlayerPassiveSkillProgress.sync(player);
+					HardshipSelectionState.onJoin(player);
+				});
+			}
+		});
+		ServerLifecycleEvents.SERVER_STOPPED.register(server -> {
+			clearPlayerProgressCaches();
+			HardshipSelectionState.clear(server);
+		});
 
 		LOGGER.info("Kingdom Come Combat initialized.");
 	}

@@ -1,0 +1,9 @@
+{
+  "_comment": "Keep spear real-hitbox orientation aligned with the global default weapon orientation while inheriting all other polearm or item-specific attributes.",
+  "tag": "minecraft:spears",
+  "real_hitbox_rotation_degrees": {
+    "x": 0.0,
+    "y": 0.0,
+    "z": 45.0
+  }
+}

@@ -12,17 +12,22 @@ import com.kingdomcomecombat.combat.CombatWeaponUtil;
 import com.kingdomcomecombat.combat.ComboMoveConfig;
 import com.kingdomcomecombat.combat.DodgeDirection;
 import com.kingdomcomecombat.combat.CombatItemUtil;
+import com.kingdomcomecombat.combat.ExecutionTargetConfig;
 import com.kingdomcomecombat.combat.PlayerComboProgress;
 import com.kingdomcomecombat.combat.ServerBlockState;
 import com.kingdomcomecombat.combat.ServerComboState;
 import com.kingdomcomecombat.combat.ServerCombatControlState;
 import com.kingdomcomecombat.combat.ServerCombatState;
 import com.kingdomcomecombat.combat.ServerCombatStanceState;
+import com.kingdomcomecombat.combat.ServerExecutionState;
 import com.kingdomcomecombat.config.CombatServerConfig;
 import com.kingdomcomecombat.ai.HumanoidCombatAiTicker;
 import com.kingdomcomecombat.collision.ServerHitDetectionSystem;
 import com.kingdomcomecombat.equipment.EquipmentCombatAttributesRegistry;
 import com.kingdomcomecombat.game.ModGameRules;
+import com.kingdomcomecombat.hardship.HardshipSelectionState;
+import com.kingdomcomecombat.injury.ModStatusEffects;
+import com.kingdomcomecombat.interaction.CauldronWashHandler;
 import com.kingdomcomecombat.item.SkillBookItem;
 import com.kingdomcomecombat.network.PassiveSkillUnlocksSyncPayload;
 import com.kingdomcomecombat.passive.PlayerPassiveSkillProgress;
@@ -35,8 +40,12 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.mob.MobEntity;
+import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.particle.ParticleTypes;
+import net.minecraft.sound.SoundCategory;
+import net.minecraft.sound.SoundEvents;
 import net.minecraft.registry.Registries;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.Vec3d;
@@ -56,12 +65,24 @@ public class CombatNetworking {
                 StartDodgePayload.CODEC
         );
         PayloadTypeRegistry.playC2S().register(
+                SubmitHardshipSelectionPayload.ID,
+                SubmitHardshipSelectionPayload.CODEC
+        );
+        PayloadTypeRegistry.playC2S().register(
+                StartExecutionPayload.ID,
+                StartExecutionPayload.CODEC
+        );
+        PayloadTypeRegistry.playC2S().register(
                 UpdateCombatStancePayload.ID,
                 UpdateCombatStancePayload.CODEC
         );
         PayloadTypeRegistry.playC2S().register(
                 ClientAttackHitPayload.ID,
                 ClientAttackHitPayload.CODEC
+        );
+        PayloadTypeRegistry.playC2S().register(
+                ClientProjectileHitPayload.ID,
+                ClientProjectileHitPayload.CODEC
         );
         PayloadTypeRegistry.playC2S().register(
                 LearnSkillBookPayload.ID,
@@ -79,13 +100,27 @@ public class CombatNetworking {
                 UpdateServerConfigPayload.ID,
                 UpdateServerConfigPayload.CODEC
         );
+        PayloadTypeRegistry.playC2S().register(
+                UpdatePlayerInterruptConfigPayload.ID,
+                UpdatePlayerInterruptConfigPayload.CODEC
+        );
+        PayloadTypeRegistry.playC2S().register(WashFacePayload.ID, WashFacePayload.CODEC);
+        PayloadTypeRegistry.playC2S().register(WarCryPayload.ID, WarCryPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(
                 HitFeedbackPayload.ID,
                 HitFeedbackPayload.CODEC
         );
+        PayloadTypeRegistry.playS2C().register(ScaledHitFeedbackPayload.ID, ScaledHitFeedbackPayload.CODEC);
+        PayloadTypeRegistry.playS2C().register(EntityDodgeAnimationPayload.ID, EntityDodgeAnimationPayload.CODEC);
+        PayloadTypeRegistry.playS2C().register(EntityExecutionStunPayload.ID, EntityExecutionStunPayload.CODEC);
+        PayloadTypeRegistry.playS2C().register(ConfirmedBloodTracePayload.ID, ConfirmedBloodTracePayload.CODEC);
         PayloadTypeRegistry.playS2C().register(
                 StaminaSyncPayload.ID,
                 StaminaSyncPayload.CODEC
+        );
+        PayloadTypeRegistry.playS2C().register(
+                EntityStaminaSyncPayload.ID,
+                EntityStaminaSyncPayload.CODEC
         );
         PayloadTypeRegistry.playS2C().register(
                 ComboUnlocksSyncPayload.ID,
@@ -96,12 +131,21 @@ public class CombatNetworking {
                 PassiveSkillUnlocksSyncPayload.CODEC
         );
         PayloadTypeRegistry.playS2C().register(
+                PassiveSkillConfigsSyncPayload.ID,
+                PassiveSkillConfigsSyncPayload.CODEC
+        );
+        PayloadTypeRegistry.playS2C().register(SkillUiDataSyncPayload.ID, SkillUiDataSyncPayload.CODEC);
+        PayloadTypeRegistry.playS2C().register(
                 EntityAttackAnimationPayload.ID,
                 EntityAttackAnimationPayload.CODEC
         );
         PayloadTypeRegistry.playS2C().register(
                 EntityComboAttackAnimationPayload.ID,
                 EntityComboAttackAnimationPayload.CODEC
+        );
+        PayloadTypeRegistry.playS2C().register(
+                EntityCinematicVictimAnimationPayload.ID,
+                EntityCinematicVictimAnimationPayload.CODEC
         );
         PayloadTypeRegistry.playS2C().register(
                 EntityCombatStancePayload.ID,
@@ -139,21 +183,51 @@ public class CombatNetworking {
                 HardcoreModeSyncPayload.ID,
                 HardcoreModeSyncPayload.CODEC
         );
+        PayloadTypeRegistry.playS2C().register(HardshipSelectionPromptPayload.ID, HardshipSelectionPromptPayload.CODEC);
+        PayloadTypeRegistry.playS2C().register(HardshipSelectionSyncPayload.ID, HardshipSelectionSyncPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(
                 ServerConfigSyncPayload.ID,
                 ServerConfigSyncPayload.CODEC
         );
+        PayloadTypeRegistry.playS2C().register(
+                PlayerInterruptConfigSyncPayload.ID,
+                PlayerInterruptConfigSyncPayload.CODEC
+        );
 
-        ServerPlayConnectionEvents.JOIN.register((handler, sender, server) ->
-                syncServerConfig(handler.player));
+        ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
+            syncServerConfig(handler.player);
+            ServerPlayNetworking.send(handler.player, SkillUiDataSyncPayload.current());
+            HardshipSelectionState.onJoin(handler.player);
+        });
+        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
+            var uuid = handler.player.getUuid();
+            ServerCombatState.removeAttack(uuid);
+            ServerBlockState.clearAll(uuid);
+            ServerComboState.clear(uuid);
+            ServerCombatControlState.clear(uuid);
+            ServerCombatStanceState.clear(uuid);
+            ServerExecutionState.clear(uuid);
+            ServerStaminaState.clear(uuid);
+            ServerHitDetectionSystem.clearPlayerState(uuid);
+            ServerHorseControlState.clear(uuid);
+            com.kingdomcomecombat.hardship.HardshipEffects.clearPlayer(uuid);
+            PassiveSkillPerks.clearPlayerRuntimeState(uuid);
+        });
+
+        ServerPlayNetworking.registerGlobalReceiver(
+                SubmitHardshipSelectionPayload.ID,
+                (payload, context) -> HardshipSelectionState.submit(context.player(), payload.ids())
+        );
 
         ServerPlayNetworking.registerGlobalReceiver(
                 UpdateServerConfigPayload.ID,
                 (payload, context) -> {
-                    if (!context.player().hasPermissionLevel(2)) {
+                    if (!canEditServerConfig(context.player())) {
                         syncServerConfig(context.player());
                         return;
                     }
+                    CombatServerConfig.setLightweightDamageModeEnabled(payload.lightweightDamageModeEnabled());
+                    CombatServerConfig.setLightweightBlockingModeEnabled(payload.lightweightBlockingModeEnabled());
                     CombatServerConfig.setModEquipmentGenerationEnabled(payload.modEquipmentGenerationEnabled());
                     CombatServerConfig.setZombieLeaderHealthFixEnabled(payload.zombieLeaderHealthFixEnabled());
                     CombatServerConfig.setMobToughnessEnabled(payload.mobToughnessEnabled());
@@ -163,8 +237,24 @@ public class CombatNetworking {
                     );
                     CombatServerConfig.setMasterCounterWindowTicks(payload.masterCounterWindowTicks());
                     CombatServerConfig.setBlockWindowTicks(payload.blockWindowTicks());
+                    CombatServerConfig.setUnperfectBlockWindowTicks(payload.unperfectBlockWindowTicks());
                     CombatServerConfig.setCombatMinDistance(payload.combatMinDistance());
+                    CombatServerConfig.setCollisionCacheRadius(payload.collisionCacheRadius());
+                    CombatServerConfig.setExperimentalIllagerUndeadHostilityEnabled(
+                            payload.experimentalIllagerUndeadHostilityEnabled()
+                    );
+                    CombatServerConfig.setDisableVanillaLeftHandedMobs(
+                            payload.disableVanillaLeftHandedMobs()
+                    );
+                    CombatServerConfig.setEnderDragonOverhaulEnabled(payload.enderDragonOverhaulEnabled());
+                    CombatServerConfig.setLegacyCollisionCalculationEnabled(payload.legacyCollisionCalculationEnabled());
+                    CombatServerConfig.setClientProjectileHurtboxEnabled(payload.clientProjectileHurtboxEnabled());
+                    CombatServerConfig.setReachAttributeHitboxScalingEnabled(payload.reachAttributeHitboxScalingEnabled());
+                    CombatServerConfig.setBlockingMovementSlowdownEnabled(payload.blockingMovementSlowdownEnabled());
+                    CombatServerConfig.setMountedKccCombatEnabled(payload.mountedKccCombatEnabled());
+                    CombatServerConfig.setReachAttributeHitboxScalePerBlock(payload.reachAttributeHitboxScalePerBlock());
                     CombatServerConfig.setVanillaAttackWeaponIds(payload.vanillaAttackWeaponIds());
+                    CombatServerConfig.setVanillaAttackEntityIds(payload.vanillaAttackEntityIds());
                     CombatServerConfig.save();
                     for (ServerPlayerEntity player : context.server().getPlayerManager().getPlayerList()) {
                         syncServerConfig(player);
@@ -173,33 +263,92 @@ public class CombatNetworking {
         );
 
         ServerPlayNetworking.registerGlobalReceiver(
+                UpdatePlayerInterruptConfigPayload.ID,
+                (payload, context) -> {
+                    if (!canEditServerConfig(context.player())) {
+                        syncServerConfig(context.player());
+                        return;
+                    }
+                    CombatServerConfig.setAlwaysEnablePlayerInterrupt(payload.enabled());
+                    CombatServerConfig.save();
+                    for (ServerPlayerEntity player : context.server().getPlayerManager().getPlayerList()) {
+                        syncServerConfig(player);
+                    }
+                }
+        );
+
+        ServerPlayNetworking.registerGlobalReceiver(
+                WarCryPayload.ID,
+                (payload, context) -> {
+                    if (!PassiveSkillPerks.onWarCry(context.player())) {
+                        return;
+                    }
+                    ServerWorld world = (ServerWorld) context.player().getWorld();
+                    world.playSound(
+                            null,
+                            context.player().getX(),
+                            context.player().getY(),
+                            context.player().getZ(),
+                            SoundEvents.ENTITY_VILLAGER_NO,
+                            SoundCategory.PLAYERS,
+                            1.0F,
+                            0.82F + context.player().getRandom().nextFloat() * 0.10F
+                    );
+                    world.spawnParticles(
+                            ParticleTypes.ANGRY_VILLAGER,
+                            context.player().getX(),
+                            context.player().getBodyY(0.92),
+                            context.player().getZ(),
+                            12,
+                            0.35,
+                            0.30,
+                            0.35,
+                            0.02
+                    );
+                }
+        );
+
+        ServerPlayNetworking.registerGlobalReceiver(
                 ClientAttackHitPayload.ID,
-                (payload, context) -> ServerHitDetectionSystem.handleClientReportedHit(
-                        context.player(),
-                        payload.attackerEntityId(),
-                        payload.targetEntityId(),
-                        payload.partOrdinal(),
-                        new Vec3d(payload.hitX(), payload.hitY(), payload.hitZ()),
-                        payload.extraHeadHit(),
-                        payload.attackInstanceId()
+                (payload, context) -> context.server().execute(() ->
+                        ServerHitDetectionSystem.handleClientReportedHit(
+                                context.player(),
+                                payload.attackerEntityId(),
+                                payload.targetEntityId(),
+                                payload.partOrdinal(),
+                                new Vec3d(payload.hitX(), payload.hitY(), payload.hitZ()),
+                                payload.extraHeadHit(),
+                                payload.attackInstanceId()
+                        )
+                )
+        );
+
+        ServerPlayNetworking.registerGlobalReceiver(
+                ClientProjectileHitPayload.ID,
+                (payload, context) -> context.server().execute(() ->
+                        ServerHitDetectionSystem.handleClientReportedProjectileHit(
+                                context.player(),
+                                payload.projectileEntityId(),
+                                payload.targetEntityId(),
+                                new Vec3d(payload.hitX(), payload.hitY(), payload.hitZ())
+                        )
                 )
         );
 
         ServerPlayNetworking.registerGlobalReceiver(
                 LearnSkillBookPayload.ID,
-                (payload, context) -> SkillBookItem.learnFromBookScreen(
-                        context.player(),
-                        payload.comboId(),
-                        payload.passiveId()
-                )
+                (payload, context) -> context.server().execute(() ->
+                        SkillBookItem.learnFromHeldBook(
+                                context.player(), payload.comboId(), payload.passiveId()
+                        ))
         );
 
         ServerPlayNetworking.registerGlobalReceiver(
                 LearnExperiencePassiveSkillPayload.ID,
-                (payload, context) -> PlayerPassiveSkillProgress.learnWithExperience(
-                        context.player(),
-                        payload.passiveId()
-                )
+                (payload, context) -> context.server().execute(() ->
+                        PlayerPassiveSkillProgress.learnWithExperience(
+                                context.player(), payload.passiveId()
+                        ))
         );
 
         ServerPlayNetworking.registerGlobalReceiver(
@@ -215,28 +364,55 @@ public class CombatNetworking {
         );
 
         ServerPlayNetworking.registerGlobalReceiver(
+                WashFacePayload.ID,
+                (payload, context) -> context.server().execute(() ->
+                        CauldronWashHandler.wash(context.player(), payload.pos()))
+        );
+
+        ServerPlayNetworking.registerGlobalReceiver(
                 UpdateCombatStancePayload.ID,
-                (payload, context) -> ServerCombatStanceState.set(
-                        context.player().getUuid(),
-                        CombatDirection.fromOrdinalSafe(payload.directionOrdinal()),
-                        payload.locked()
-                )
+                (payload, context) -> context.server().execute(() -> {
+                    var playerUuid = context.player().getUuid();
+                    CombatDirection direction = ServerCombatControlState.isPerfectCounterWindowActive(playerUuid)
+                            ? ServerCombatStanceState.get(playerUuid)
+                            : CombatDirection.fromOrdinalSafe(payload.directionOrdinal());
+                    if (direction == CombatDirection.UP && CombatItemUtil.isPolearm(context.player().getMainHandStack())) {
+                        direction = ServerCombatStanceState.get(playerUuid);
+                    }
+                    ServerCombatStanceState.set(playerUuid, direction, payload.locked());
+                    EntityCombatStancePayload sync = new EntityCombatStancePayload(
+                            context.player().getId(), -1,
+                            payload.locked() ? direction.ordinal() : -1,
+                            1.0F, ""
+                    );
+                    CombatNetworkBroadcaster.sendTracking(context.player(), sync);
+                })
         );
 
         ServerPlayNetworking.registerGlobalReceiver(
                 StartAttackPayload.ID,
-                (payload, context) -> {
+                (payload, context) -> context.server().execute(() -> {
+                    if (!ServerCombatControlState.canAttack(context.player())) {
+                        syncAttackRejected(context.player());
+                        return;
+                    }
                     if (!CombatItemUtil.canUseCustomCombat(context.player())) {
+                        syncAttackRejected(context.player());
                         return;
                     }
 
-                    if (!context.player().isOnGround()) {
+                    if (!context.player().isOnGround()
+                            && !context.player().isTouchingWater()
+                            && !CombatItemUtil.canUseMountedKccCombat(context.player().getVehicle())) {
                         return;
                     }
 
                     CombatDirection direction = CombatDirection.fromOrdinalSafe(
                             payload.directionOrdinal()
                     );
+                    if (direction == CombatDirection.UP && CombatItemUtil.isPolearm(context.player().getMainHandStack())) {
+                        return;
+                    }
                     ServerCombatStanceState.set(context.player().getUuid(), direction);
 
                     long startWorldTick = context.player().getWorld().getTime();
@@ -281,8 +457,15 @@ public class CombatNetworking {
                     int attackTargetEntityId = payload.targetEntityId();
                     boolean lockedLunge = payload.lockedLunge();
 
+                    Entity requestedTarget = context.player().getWorld().getEntityById(attackTargetEntityId);
+                    if (requestedTarget instanceof ServerPlayerEntity
+                            && !serverPvpEnabled(context.player())) {
+                        attackTargetEntityId = -1;
+                        lockedLunge = false;
+                    }
+
                     if (comboMove != null && comboMove.suctionCombo()) {
-                        suctionTarget = resolveComboTarget(context.player(), payload.targetEntityId());
+                        suctionTarget = resolveComboTarget(context.player(), attackTargetEntityId);
                         if (suctionTarget == null) {
                             comboMove = null;
                         } else if (!canPlaySuctionVictimAnimation(suctionTarget)) {
@@ -318,8 +501,11 @@ public class CombatNetworking {
                             false,
                             true
                     );
+                    if (comboMove != null) {
+                        staminaCost *= PassiveSkillPerks.comboStaminaCostMultiplier(context.player());
+                    }
                     if (hasLockedLargeShield(context.player())) {
-                        staminaCost *= CombatControlConfig.LARGE_SHIELD_ATTACK_STAMINA_COST_MULTIPLIER;
+                        staminaCost *= EquipmentCombatAttributesRegistry.getShield(context.player().getOffHandStack()).attackStaminaCostMultiplier();
                     }
 
                     if (!ServerCombatControlState.canAttack(context.player())) {
@@ -327,9 +513,13 @@ public class CombatNetworking {
                         return;
                     }
 
-                    if (!ServerStaminaState.consume(context.player(), staminaCost)) {
+                    if (!CombatServerConfig.attacksDoNotConsumeStamina()
+                            && !ServerStaminaState.consume(context.player(), staminaCost)) {
                         syncAttackRejected(context.player());
                         return;
+                    }
+                    if (comboMove != null) {
+                        PassiveSkillPerks.onComboStarted(context.player());
                     }
 
                     double attackSpeedMultiplier =
@@ -347,7 +537,7 @@ public class CombatNetworking {
                         attackSpeedMultiplier *= BeowulfArmState.ATTACK_SPEED_MULTIPLIER;
                     }
                     if (hasLargeShield(context.player())) {
-                        attackSpeedMultiplier *= CombatControlConfig.LARGE_SHIELD_ATTACK_SPEED_MULTIPLIER;
+                        attackSpeedMultiplier *= EquipmentCombatAttributesRegistry.getShield(context.player().getOffHandStack()).attackSpeedMultiplier();
                     }
                     if (comboMove == null) {
                         attackSpeedMultiplier *= ModGameRules.combatSpeed(context.player());
@@ -361,6 +551,7 @@ public class CombatNetworking {
 
                     if (suctionTarget != null) {
                         ServerCombatState.removeAttack(suctionTarget.getUuid());
+                        ServerBlockState.clearAll(suctionTarget.getUuid());
                         ServerComboState.clear(context.player().getUuid());
                         ServerComboState.clear(suctionTarget.getUuid());
                         if (suctionTarget instanceof MobEntity mob) {
@@ -377,6 +568,7 @@ public class CombatNetworking {
                                 suctionTarget.getUuid(),
                                 totalTicks + CombatControlConfig.COMBO_HIT_REACTION_ATTACK_DISABLE_EXTRA_TICKS
                         );
+                        ServerCombatControlState.disableBlock(suctionTarget.getUuid(), totalTicks);
                     }
 
                     boolean perfectCounterSlow =
@@ -423,12 +615,12 @@ public class CombatNetworking {
                                 (float) attackSpeedMultiplier
                         );
                         if (suctionTarget != null && !comboMove.victimAnimationName().isBlank()) {
-                            syncComboAttackAnimation(
+                            syncVictimAnimation(
                                     suctionTarget,
                                     direction,
                                     comboMove.victimAnimationName(),
                                     (float) attackSpeedMultiplier,
-                                false
+                                    false
                             );
                         }
                     } else {
@@ -441,13 +633,29 @@ public class CombatNetworking {
                         );
                     }
 
-                }
+                    syncPlayerAttackWarning(
+                            context.player(), attackTargetEntityId, direction, comboMove != null
+                    );
+
+                })
         );
 
         ServerPlayNetworking.registerGlobalReceiver(
                 StartBlockPayload.ID,
                 (payload, context) -> {
+                    ServerBlockState.updateHeld(context.player().getUuid(), payload.holding());
+                    if (!payload.holding()) {
+                        ServerBlockState.releaseClassicHold(context.player().getUuid());
+                        return;
+                    }
                     if (!CombatItemUtil.canUseCustomCombat(context.player())) {
+                        return;
+                    }
+
+                    if (context.player().getMainHandStack().isOf(net.minecraft.item.Items.TRIDENT)
+                            && !ServerCombatStanceState.isLocked(context.player().getUuid())) {
+                        ServerBlockState.updateHeld(context.player().getUuid(), false);
+                        ServerBlockState.releaseClassicHold(context.player().getUuid());
                         return;
                     }
 
@@ -471,12 +679,21 @@ public class CombatNetworking {
                         return;
                     }
 
+                    boolean classicMode = ModGameRules.classicMode(context.player());
+                    if (classicMode && ServerBlockState.keepClassicHoldAlive(context.player().getUuid())) {
+                        return;
+                    }
+
                     // 起手防御本身不立刻扣体力，格挡命中时在命中系统里按护甲消耗倍率处理。
                     if (!ServerBlockState.startBlock(
                             context.player().getUuid(),
                             CombatDirection.fromOrdinalSafe(payload.directionOrdinal()),
                             canBlockWithShield,
-                            ModGameRules.classicMode(context.player())
+                            classicMode,
+                            canBlockWithShield
+                                    ? EquipmentCombatAttributesRegistry.getShield(context.player().getOffHandStack())
+                                            .perfectWindowMultiplier()
+                                    : 1.0
                     )) {
                         return;
                     }
@@ -495,10 +712,6 @@ public class CombatNetworking {
                 StartDodgePayload.ID,
                 (payload, context) -> {
                     if (!CombatItemUtil.canUseCustomCombat(context.player())) {
-                        return;
-                    }
-
-                    if (!PlayerPassiveSkillProgress.isUnlocked(context.player(), "dodge")) {
                         return;
                     }
 
@@ -532,14 +745,14 @@ public class CombatNetworking {
                             false
                     );
                     if (hasLockedLargeShield(context.player())) {
-                        staminaCost *= CombatControlConfig.LARGE_SHIELD_DODGE_STAMINA_COST_MULTIPLIER;
+                        staminaCost *= EquipmentCombatAttributesRegistry.getShield(context.player().getOffHandStack()).dodgeStaminaCostMultiplier();
                     }
 
                     if (!ServerStaminaState.consume(context.player(), staminaCost)) {
                         return;
                     }
 
-                    ServerCombatControlState.startDodge(context.player().getUuid(), direction);
+                    ServerCombatControlState.startDodge(context.player(), direction);
 
                     Vec3d dodgeVelocity = getDodgeVelocity(context.player().getYaw(), direction, 0);
                     Vec3d currentVelocity = context.player().getVelocity();
@@ -552,12 +765,137 @@ public class CombatNetworking {
                     context.player().velocityModified = true;
                 }
         );
+
+        ServerPlayNetworking.registerGlobalReceiver(
+                StartExecutionPayload.ID,
+                (payload, context) -> {
+                    if (!CombatItemUtil.canUseCustomCombat(context.player())) {
+                        return;
+                    }
+                    if (!ServerCombatControlState.canAttack(context.player())) {
+                        syncAttackRejected(context.player());
+                        return;
+                    }
+
+                    Entity entity = context.player().getWorld().getEntityById(payload.targetEntityId());
+                    if (!(entity instanceof LivingEntity target) || !target.isAlive()) {
+                        return;
+                    }
+                    if (target instanceof ServerPlayerEntity && !serverPvpEnabled(context.player())) {
+                        return;
+                    }
+                    ServerWorld world = (ServerWorld) context.player().getWorld();
+                    if (!ServerExecutionState.canExecute(world, context.player(), target)) {
+                        return;
+                    }
+
+                    CombatDirection direction = ServerCombatStanceState.get(context.player().getUuid());
+                    ComboMoveConfig executionMove = CombatWeaponUtil.resolveExecutionMove(context.player(), direction);
+                    if (executionMove == null) {
+                        return;
+                    }
+                    double horizontalDistance = horizontalDistance(context.player(), target);
+                    if (executionMove.suctionDistance() > 0.0 && horizontalDistance > executionMove.suctionDistance()) {
+                        return;
+                    }
+                    if (executionMove.suctionMinDistance() > 0.0 && horizontalDistance < executionMove.suctionMinDistance()) {
+                        return;
+                    }
+                    if (!canPlaySuctionVictimAnimation(target)) {
+                        return;
+                    }
+
+                    ActiveServerAttack previousAttack = ServerCombatState.getAttack(context.player().getUuid());
+                    if (previousAttack != null) {
+                        ServerComboState.recordFinishedAttack(
+                                context.player().getUuid(),
+                                previousAttack,
+                                world.getTime()
+                        );
+                        ServerCombatState.removeAttack(context.player().getUuid());
+                    }
+
+                    ServerExecutionState.consume(target);
+                    PassiveSkillPerks.onExecutionStarted(context.player());
+                    ServerStaminaState.setCurrent(context.player(), ServerStaminaState.getMax(context.player()));
+                    context.player().addStatusEffect(new StatusEffectInstance(ModStatusEffects.ANALGESIA, 25 * 20, 3), context.player());
+                    context.player().addStatusEffect(new StatusEffectInstance(ModStatusEffects.VITALITY, 25 * 20, 0), context.player());
+
+                    double attackSpeedMultiplier =
+                            EquipmentCombatAttributesRegistry.weaponAttackSpeedMultiplier(context.player());
+                    attackSpeedMultiplier *= EquipmentCombatAttributesRegistry.armorAttackSpeedMultiplier(context.player());
+                    attackSpeedMultiplier *= PassiveSkillPerks.attackSpeedMultiplier(
+                            context.player(),
+                            context.player().getMainHandStack()
+                    );
+                    if (BeowulfArmState.isActive(context.player())) {
+                        attackSpeedMultiplier *= BeowulfArmState.ATTACK_SPEED_MULTIPLIER;
+                    }
+                    if (hasLargeShield(context.player())) {
+                        attackSpeedMultiplier *= EquipmentCombatAttributesRegistry.getShield(context.player().getOffHandStack()).attackSpeedMultiplier();
+                    }
+
+                    int totalTicks = CombatAttackTiming.getComboAttackTotalTicks(executionMove.animationName());
+                    totalTicks = Math.max(1, (int) Math.ceil(totalTicks / attackSpeedMultiplier));
+
+                    ServerCombatState.removeAttack(target.getUuid());
+                    ServerBlockState.clearAll(target.getUuid());
+                    ServerComboState.clear(context.player().getUuid());
+                    ServerComboState.clear(target.getUuid());
+                    if (target instanceof MobEntity mob) {
+                        HumanoidCombatAiTicker.interruptFollowUps(mob);
+                    }
+                    alignMasterCounterPair(context.player(), target, executionMove.suctionFixedDistance());
+                    ServerCombatControlState.disableMovement(context.player().getUuid(), totalTicks);
+                    ServerCombatControlState.disableMovement(target.getUuid(), totalTicks);
+                    ServerCombatControlState.disableAttack(
+                            target.getUuid(),
+                            totalTicks + CombatControlConfig.COMBO_HIT_REACTION_ATTACK_DISABLE_EXTRA_TICKS
+                    );
+                    ServerCombatControlState.disableBlock(target.getUuid(), totalTicks);
+
+                    ServerCombatState.startAttack(
+                            context.player().getUuid(),
+                            direction,
+                            context.player().getYaw(),
+                            target.getId(),
+                            false,
+                            totalTicks,
+                            (float) attackSpeedMultiplier,
+                            executionMove,
+                            CombatWeaponUtil.resolveAttackMove(context.player(), direction),
+                            world.getTime(),
+                            false
+                    );
+                    ServerCombatStanceState.set(
+                            context.player().getUuid(),
+                            CombatDirection.afterSuccessfulAttack(direction)
+                    );
+                    syncComboAttackAnimation(
+                            context.player(),
+                            direction,
+                            executionMove,
+                            (float) attackSpeedMultiplier
+                    );
+                    if (!executionMove.victimAnimationName().isBlank()) {
+                        syncVictimAnimation(
+                                target,
+                                direction,
+                                executionMove.victimAnimationName(),
+                                (float) attackSpeedMultiplier,
+                                true
+                        );
+                    }
+                }
+        );
     }
 
     private static void syncServerConfig(ServerPlayerEntity player) {
         ServerPlayNetworking.send(
                 player,
                 new ServerConfigSyncPayload(
+                        CombatServerConfig.lightweightDamageModeEnabled(),
+                        CombatServerConfig.lightweightBlockingModeEnabled(),
                         CombatServerConfig.modEquipmentGenerationEnabled(),
                         CombatServerConfig.zombieLeaderHealthFixEnabled(),
                         CombatServerConfig.mobToughnessEnabled(),
@@ -565,11 +903,40 @@ public class CombatNetworking {
                         CombatServerConfig.vanillaHurtSoundVolumeMultiplier(),
                         CombatServerConfig.masterCounterWindowTicks(),
                         CombatServerConfig.blockWindowTicks(),
+                        CombatServerConfig.unperfectBlockWindowTicks(),
                         CombatServerConfig.combatMinDistance(),
+                        CombatServerConfig.collisionCacheRadius(),
+                        CombatServerConfig.experimentalIllagerUndeadHostilityEnabled(),
+                        CombatServerConfig.disableVanillaLeftHandedMobs(),
+                        CombatServerConfig.enderDragonOverhaulEnabled(),
+                        CombatServerConfig.legacyCollisionCalculationEnabled(),
+                        CombatServerConfig.clientProjectileHurtboxEnabled(),
+                        CombatServerConfig.reachAttributeHitboxScalingEnabled(),
+                        CombatServerConfig.blockingMovementSlowdownEnabled(),
+                        CombatServerConfig.mountedKccCombatEnabled(),
+                        CombatServerConfig.reachAttributeHitboxScalePerBlock(),
                         CombatServerConfig.vanillaAttackWeaponIds(),
-                        player.hasPermissionLevel(2)
+                        CombatServerConfig.vanillaAttackEntityIds(),
+                        player.getServer() != null && player.getServer().isPvpEnabled(),
+                        canEditServerConfig(player)
                 )
         );
+        if (ServerPlayNetworking.canSend(player, PlayerInterruptConfigSyncPayload.ID)) {
+            ServerPlayNetworking.send(
+                    player,
+                    new PlayerInterruptConfigSyncPayload(CombatServerConfig.alwaysEnablePlayerInterrupt())
+            );
+        }
+    }
+
+    private static boolean canEditServerConfig(ServerPlayerEntity player) {
+        return player.hasPermissionLevel(2);
+    }
+
+    public static void syncDataDrivenClientState(ServerPlayerEntity player) {
+        if (player != null && ServerPlayNetworking.canSend(player, SkillUiDataSyncPayload.ID)) {
+            ServerPlayNetworking.send(player, SkillUiDataSyncPayload.current());
+        }
     }
 
     private static Vec3d getDodgeVelocity(float yaw, DodgeDirection direction, int ageTicks) {
@@ -649,13 +1016,20 @@ public class CombatNetworking {
             return false;
         }
 
+        // Beast/configured attacks also use ActiveServerAttack, but animals
+        // must never enter humanoid block/master-counter cinematics.
+        if (!(target instanceof net.minecraft.entity.player.PlayerEntity)
+                && !com.kingdomcomecombat.ai.HumanoidCombatAiProfiles.hasProfile(target)) {
+            return false;
+        }
+
         if (player.squaredDistanceTo(target) > 2.0 * 2.0) {
             return false;
         }
 
         ActiveServerAttack targetAttack = ServerCombatState.getAttack(target.getUuid());
 
-        if (targetAttack == null) {
+        if (targetAttack == null || CombatItemUtil.isPolearm(target.getMainHandStack())) {
             return false;
         }
 
@@ -693,7 +1067,7 @@ public class CombatNetworking {
                 * EquipmentCombatAttributesRegistry.armorStaminaCostMultiplier(player);
         staminaCost *= PassiveSkillPerks.staminaCostMultiplier(player, player.getMainHandStack(), false, true);
         if (hasLockedLargeShield(player)) {
-            staminaCost *= CombatControlConfig.LARGE_SHIELD_ATTACK_STAMINA_COST_MULTIPLIER;
+            staminaCost *= EquipmentCombatAttributesRegistry.getShield(player.getOffHandStack()).attackStaminaCostMultiplier();
         }
 
         if (!ServerCombatControlState.canAttack(player)) {
@@ -701,13 +1075,14 @@ public class CombatNetworking {
             return true;
         }
 
-        if (!ServerStaminaState.consume(player, staminaCost)) {
+        if (!CombatServerConfig.attacksDoNotConsumeStamina()
+                && !ServerStaminaState.consume(player, staminaCost)) {
             syncAttackRejected(player);
             return true;
         }
 
+        PassiveSkillPerks.afterMasterCounter(player, target, player.getMainHandStack());
         ServerCombatState.removeAttack(target.getUuid());
-        PassiveSkillPerks.afterMasterCounter(player, player.getMainHandStack());
         if (target instanceof MobEntity mob) {
             HumanoidCombatAiTicker.interruptFollowUps(mob);
         }
@@ -745,7 +1120,7 @@ public class CombatNetworking {
             attackSpeedMultiplier *= BeowulfArmState.ATTACK_SPEED_MULTIPLIER;
         }
         if (hasLargeShield(player)) {
-            attackSpeedMultiplier *= CombatControlConfig.LARGE_SHIELD_ATTACK_SPEED_MULTIPLIER;
+            attackSpeedMultiplier *= EquipmentCombatAttributesRegistry.getShield(player.getOffHandStack()).attackSpeedMultiplier();
         }
         totalTicks = Math.max(1, (int) Math.ceil(totalTicks / attackSpeedMultiplier));
 
@@ -781,12 +1156,12 @@ public class CombatNetworking {
         AttackMoveConfig victimMove = AttackMoveConfigs.getNamed(configName + "_victim");
 
         if (victimMove != null) {
-            syncComboAttackAnimation(
-                    target,
-                    getOppositeDirection(direction),
-                    victimMove.animationName(),
-                    1.0F,
-                    false
+                    syncVictimAnimation(
+                            target,
+                            getOppositeDirection(direction),
+                            victimMove.animationName(),
+                            1.0F,
+                            false
             );
         }
 
@@ -874,7 +1249,9 @@ public class CombatNetworking {
         Entity target = world.getEntityById(targetEntityId);
         if (target instanceof LivingEntity livingTarget
                 && livingTarget.isAlive()
-                && livingTarget != player) {
+                && livingTarget != player
+                && (!(livingTarget instanceof ServerPlayerEntity)
+                || serverPvpEnabled(player))) {
             return livingTarget;
         }
 
@@ -887,6 +1264,15 @@ public class CombatNetworking {
     }
 
     private static boolean canPlaySuctionVictimAnimation(LivingEntity target) {
+        // Player victims use the same player-animation packet path as attackers.
+        // PvP permission is enforced by resolveComboTarget before reaching here.
+        if (target instanceof ServerPlayerEntity) {
+            return true;
+        }
+        if (ExecutionTargetConfig.isExtraExecutable(target)) {
+            return true;
+        }
+
         Identifier id = Registries.ENTITY_TYPE.getId(target.getType());
         if (!"minecraft".equals(id.getNamespace())) {
             return false;
@@ -942,11 +1328,7 @@ public class CombatNetworking {
                 bladeTrail
         );
 
-        for (ServerPlayerEntity player : ((ServerWorld) attacker.getWorld()).getPlayers()) {
-            if (player.squaredDistanceTo(attacker) <= 64.0 * 64.0) {
-                ServerPlayNetworking.send(player, payload);
-            }
-        }
+        sendToTrackingPlayers(attacker, payload);
     }
 
     private static void syncAttackAnimation(
@@ -964,11 +1346,31 @@ public class CombatNetworking {
                 moveConfig == null ? "" : moveConfig.animationName()
         );
 
-        for (ServerPlayerEntity player : ((ServerWorld) attacker.getWorld()).getPlayers()) {
-            if (player.squaredDistanceTo(attacker) <= 64.0 * 64.0) {
-                ServerPlayNetworking.send(player, payload);
-            }
-        }
+        sendToTrackingPlayers(attacker, payload);
+    }
+
+    private static void syncVictimAnimation(
+            LivingEntity victim,
+            CombatDirection direction,
+            String animationName,
+            float speedMultiplier,
+            boolean holdLastFrame
+    ) {
+        EntityCinematicVictimAnimationPayload payload = new EntityCinematicVictimAnimationPayload(
+                victim.getId(),
+                direction.ordinal(),
+                animationName,
+                speedMultiplier,
+                holdLastFrame
+        );
+        sendToTrackingPlayers(victim, payload);
+    }
+
+    private static void sendToTrackingPlayers(
+            LivingEntity entity,
+            net.minecraft.network.packet.CustomPayload payload
+    ) {
+        CombatNetworkBroadcaster.sendTrackingAndSelf(entity, payload);
     }
 
     private static void syncAttackRejected(ServerPlayerEntity player) {
@@ -976,5 +1378,41 @@ public class CombatNetworking {
                 player,
                 new EntityAttackInterruptPayload(player.getId())
         );
+    }
+
+    private static void syncPlayerAttackWarning(
+            ServerPlayerEntity attacker,
+            int targetEntityId,
+            CombatDirection direction,
+            boolean unblockable
+    ) {
+        if (targetEntityId < 0 || !serverPvpEnabled(attacker)) {
+            return;
+        }
+        Entity target = attacker.getWorld().getEntityById(targetEntityId);
+        if (!(target instanceof ServerPlayerEntity player)
+                || player == attacker
+                || player.squaredDistanceTo(attacker) > 12.0 * 12.0) {
+            return;
+        }
+        ServerPlayNetworking.send(
+                player,
+                new IncomingAttackWarningPayload(
+                        attacker.getId(),
+                        direction.ordinal(),
+                        unblockable
+                                ? IncomingAttackWarningPayload.UNBLOCKABLE
+                                : (!ModGameRules.playerDirectionalBlocking(attacker.getWorld())
+                                || CombatItemUtil.hasDirectionAgnosticBlock(player)
+                                ? IncomingAttackWarningPayload.DIRECTION_FREE_BLOCK
+                                : IncomingAttackWarningPayload.DIRECTIONAL_BLOCK)
+                )
+        );
+    }
+
+    private static boolean serverPvpEnabled(ServerPlayerEntity player) {
+        // Keep this exact player/world access form compatible with the source
+        // transforms used by the 1.21.9+ generated source sets.
+        return player.getServer() != null && player.getServer().isPvpEnabled();
     }
 }

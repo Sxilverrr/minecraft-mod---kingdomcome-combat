@@ -1,0 +1,29 @@
+{
+  "type": "modonomicon:content",
+  "category": "kingdom_come_combat:combat",
+  "description": "book.kingdom_come_combat.combat_manual.warning_icons.description",
+  "icon": {"id": "minecraft:shield"},
+  "id": "kingdom_come_combat:combat/warning_icons",
+  "name": "book.kingdom_come_combat.combat_manual.warning_icons.name",
+  "pages": [
+    {
+      "type": "modonomicon:text",
+      "text": "book.kingdom_come_combat.combat_manual.warning_icons.blocking.text",
+      "title": "book.kingdom_come_combat.combat_manual.warning_icons.blocking.title"
+    },
+    {
+      "type": "modonomicon:text",
+      "text": "book.kingdom_come_combat.combat_manual.warning_icons.other.text",
+      "title": "book.kingdom_come_combat.combat_manual.warning_icons.other.title"
+    },
+    {
+      "type": "modonomicon:text",
+      "text": "book.kingdom_come_combat.combat_manual.warning_icons.modes.text",
+      "title": "book.kingdom_come_combat.combat_manual.warning_icons.modes.title"
+    }
+  ],
+  "parents": [{"entry": "kingdom_come_combat:combat/basics"}],
+  "sort_number": 3,
+  "x": 0,
+  "y": 1
+}

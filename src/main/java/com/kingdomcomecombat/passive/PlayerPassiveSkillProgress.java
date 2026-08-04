@@ -1,12 +1,16 @@
 package com.kingdomcomecombat.passive;
 
 import com.kingdomcomecombat.network.PassiveSkillUnlocksSyncPayload;
+import com.kingdomcomecombat.network.PassiveSkillConfigsSyncPayload;
+import com.kingdomcomecombat.equipment.MobCombatAttributesRegistry;
+import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.advancement.AdvancementEntry;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.entity.mob.HostileEntity;
 import net.minecraft.storage.ReadView;
 import net.minecraft.storage.WriteView;
 import net.minecraft.text.Text;
@@ -19,15 +23,31 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public final class PlayerPassiveSkillProgress {
     private static final String NBT_KEY = "kingdom_come_combat_unlocked_passive_skills";
+    private static final String COMBAT_EXPERIENCE_NBT_KEY = "kingdom_come_combat_combat_experience";
+    private static final String COMBAT_EXPERIENCE_REMAINDER_NBT_KEY =
+            "kingdom_come_combat_combat_experience_remainder";
     private static final ConcurrentHashMap<UUID, Set<String>> UNLOCKED = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<UUID, Integer> COMBAT_EXPERIENCE = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<UUID, Double> COMBAT_EXPERIENCE_REMAINDER =
+            new ConcurrentHashMap<>();
     private static int scanTicks;
 
     private PlayerPassiveSkillProgress() {
     }
 
     public static void register() {
-        ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> sync(handler.player));
+        ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
+            sync(handler.player);
+            ServerPlayNetworking.send(handler.player, PassiveSkillConfigsSyncPayload.current());
+        });
         ServerTickEvents.END_SERVER_TICK.register(PlayerPassiveSkillProgress::tick);
+        ServerLivingEntityEvents.AFTER_DEATH.register((entity, source) -> {
+            if (source.getAttacker() instanceof ServerPlayerEntity player
+                    && (entity instanceof HostileEntity
+                    || MobCombatAttributesRegistry.get(entity).isPresent())) {
+                addCombatExperience(player, CombatExperienceConfig.kill());
+            }
+        });
     }
 
     public static boolean isUnlocked(ServerPlayerEntity player, String skillId) {
@@ -64,13 +84,14 @@ public final class PlayerPassiveSkillProgress {
             return false;
         }
         int cost = config.experienceCost();
-        if (player.totalExperience < cost) {
-            player.sendMessage(Text.literal("经验不足：需要 " + cost + " 经验"), false);
+        if (combatExperience(player) < cost) {
+            player.sendMessage(Text.literal("战斗经验不足：需要 " + cost + " 点"), false);
             return false;
         }
 
         if (cost > 0) {
-            player.addExperience(-cost);
+            COMBAT_EXPERIENCE.compute(player.getUuid(), (uuid, current) ->
+                    Math.max(0, (current == null ? 0 : current) - cost));
         }
         boolean changed = unlock(player, skillId);
         if (changed) {
@@ -83,8 +104,42 @@ public final class PlayerPassiveSkillProgress {
         return UNLOCKED.computeIfAbsent(uuid, ignored -> new HashSet<>());
     }
 
+    public static int combatExperience(ServerPlayerEntity player) {
+        return COMBAT_EXPERIENCE.getOrDefault(player.getUuid(), 0);
+    }
+
+    public static void addCombatExperience(ServerPlayerEntity player, int amount) {
+        if (player == null || amount <= 0) {
+            return;
+        }
+        COMBAT_EXPERIENCE.merge(player.getUuid(), amount, (current, added) -> {
+            long total = (long) current + added;
+            return (int) Math.min(Integer.MAX_VALUE, total);
+        });
+        sync(player);
+    }
+
+    public static void addCombatExperienceFromVanilla(ServerPlayerEntity player, int vanillaExperience) {
+        if (player == null || vanillaExperience <= 0
+                || CombatExperienceConfig.vanillaExperienceMultiplier() <= 0.0) {
+            return;
+        }
+        double converted = vanillaExperience * CombatExperienceConfig.vanillaExperienceMultiplier()
+                + COMBAT_EXPERIENCE_REMAINDER.getOrDefault(player.getUuid(), 0.0);
+        int wholeExperience = (int) Math.min(Integer.MAX_VALUE, Math.floor(converted));
+        COMBAT_EXPERIENCE_REMAINDER.put(
+                player.getUuid(),
+                wholeExperience == Integer.MAX_VALUE ? 0.0 : converted - wholeExperience
+        );
+        if (wholeExperience > 0) {
+            addCombatExperience(player, wholeExperience);
+        }
+    }
+
     public static void clearCache() {
         UNLOCKED.clear();
+        COMBAT_EXPERIENCE.clear();
+        COMBAT_EXPERIENCE_REMAINDER.clear();
     }
 
     public static void load(ServerPlayerEntity player, ReadView view) {
@@ -98,20 +153,46 @@ public final class PlayerPassiveSkillProgress {
             }
         }
         UNLOCKED.put(player.getUuid(), skills);
+        COMBAT_EXPERIENCE.put(player.getUuid(), Math.max(0, view.getInt(COMBAT_EXPERIENCE_NBT_KEY, 0)));
+        COMBAT_EXPERIENCE_REMAINDER.put(
+                player.getUuid(),
+                Math.max(0.0, Math.min(0.999999,
+                        view.getDouble(COMBAT_EXPERIENCE_REMAINDER_NBT_KEY, 0.0)))
+        );
     }
 
     public static void save(ServerPlayerEntity player, WriteView view) {
         view.putString(NBT_KEY, String.join(",", unlocked(player.getUuid())));
+        view.putInt(COMBAT_EXPERIENCE_NBT_KEY, combatExperience(player));
+        view.putDouble(
+                COMBAT_EXPERIENCE_REMAINDER_NBT_KEY,
+                COMBAT_EXPERIENCE_REMAINDER.getOrDefault(player.getUuid(), 0.0)
+        );
     }
 
     public static void copy(ServerPlayerEntity oldPlayer, ServerPlayerEntity newPlayer) {
         UNLOCKED.put(newPlayer.getUuid(), new HashSet<>(unlocked(oldPlayer.getUuid())));
+        COMBAT_EXPERIENCE.put(newPlayer.getUuid(), combatExperience(oldPlayer));
+        COMBAT_EXPERIENCE_REMAINDER.put(
+                newPlayer.getUuid(),
+                COMBAT_EXPERIENCE_REMAINDER.getOrDefault(oldPlayer.getUuid(), 0.0)
+        );
     }
 
     public static void sync(ServerPlayerEntity player) {
         ServerPlayNetworking.send(
                 player,
-                new PassiveSkillUnlocksSyncPayload(unlocked(player.getUuid()).stream().sorted().toList())
+                new PassiveSkillUnlocksSyncPayload(
+                        unlocked(player.getUuid()).stream().sorted().toList(),
+                        combatExperience(player),
+                        CombatExperienceConfig.kill(),
+                        CombatExperienceConfig.perfectBlock(),
+                        CombatExperienceConfig.perfectCounter(),
+                        CombatExperienceConfig.attack(),
+                        CombatExperienceConfig.masterCounter(),
+                        CombatExperienceConfig.combo(),
+                        CombatExperienceConfig.vanillaExperienceMultiplier()
+                )
         );
     }
 

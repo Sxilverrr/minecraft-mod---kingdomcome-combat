@@ -140,6 +140,61 @@
         }
       ]
     },
+    "strong_edge": {
+      "display_name": "剑刃重击",
+      "level": 4,
+      "sequence": "左右下右",
+      "animation": "combo_strong_edge",
+      "victim_animation": "combo_strong_edge",
+      "required_weapon_tag": "short_sword",
+      "damage_modifiers": {
+        "thrust": 0.0,
+        "strike": 0.8,
+        "slash": 1.0
+      },
+      "hit_zones": [
+        {
+          "hit": "head",
+          "parts": ["neck"]
+        }
+      ],
+      "impact_multiplier": 1.25,
+      "stamina_cost": 35.0,
+      "horizontal_knockback": 0.4,
+      "blade_trail": true,
+      "hit_reaction": true,
+      "hit_reaction_interrupts_attack": true,
+      "hit_reaction_movement_lock_ticks": 27,
+      "suction": true,
+      "suction_distance": 2.6,
+      "suction_fixed_distance": 1.9,
+      "lunge": false,
+      "use_real_hitbox": false,
+      "injury_type": "head",
+      "injury_level": 4,
+      "attack_chain": [
+        {
+          "tick": 5,
+          "hit_weapon": true,
+          "weapon_clash_sound": "sword_hit_sword"
+        },
+        {
+          "tick": 15,
+          "damage_modifiers": {
+            "thrust": 0.0,
+            "strike": 0.8,
+            "slash": 1.4
+          },
+          "hit_zones": [
+            {
+              "hit": "head",
+              "parts": ["neck"]
+            }
+          ]
+        }
+
+      ]
+    },
     "butcher": {
       "display_name": "屠杀击",
       "level": 2,

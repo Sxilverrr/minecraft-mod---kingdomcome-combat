@@ -1,7 +1,7 @@
 package com.kingdomcomecombat.combat;
 
 public class CombatMovementConfig {
-    public static final double DEFAULT_COMBAT_MIN_DISTANCE = 1.60;
+    public static final double DEFAULT_COMBAT_MIN_DISTANCE = 1.45;
     /**
      * 锁定状态移动倍率。
      *
@@ -11,6 +11,7 @@ public class CombatMovementConfig {
      * 0.88 会比较像“略微沉重”，但不至于 W 变得很慢。
      */
     public static final double LOCKED_MOVEMENT_MULTIPLIER = 1.0;
+    public static final double BLOCK_HOLD_MOVEMENT_MULTIPLIER = 0.75;
 
     public static final boolean DISABLE_SPRINT_WHEN_LOCKED = true;
     public static final boolean DISABLE_SNEAK_WHEN_LOCKED = true;

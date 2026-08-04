@@ -27,24 +27,37 @@
       "hit_zones": [
         {
           "hit": "head",
-          "parts": ["face"]
+          "parts": [
+            "face"
+          ]
         },
         {
           "hit": "body",
-          "parts": ["chest"]
+          "parts": [
+            "chest"
+          ]
         },
         {
           "hit": "arms",
-          "parts": ["arm"]
+          "parts": [
+            "arm"
+          ]
         },
         {
           "hit": "legs",
-          "parts": ["thigh"]
+          "parts": [
+            "thigh"
+          ]
         }
       ],
       "impact_multiplier": 1.0,
       "stamina_cost": 4.0,
-      "use_real_hitbox": false
+      "use_real_hitbox": false,
+      "defense_direction": "left",
+      "classic_directional_block": false,
+      "blockable": true,
+      "dodgeable": true,
+      "jump_dodge_legs": false
     },
     "zombie_right": {
       "id": "zombie_right",
@@ -57,24 +70,37 @@
       "hit_zones": [
         {
           "hit": "head",
-          "parts": ["face"]
+          "parts": [
+            "face"
+          ]
         },
         {
           "hit": "body",
-          "parts": ["chest"]
+          "parts": [
+            "chest"
+          ]
         },
         {
           "hit": "arms",
-          "parts": ["arm"]
+          "parts": [
+            "arm"
+          ]
         },
         {
           "hit": "legs",
-          "parts": ["thigh"]
+          "parts": [
+            "thigh"
+          ]
         }
       ],
       "impact_multiplier": 1.0,
       "stamina_cost": 4.0,
-      "use_real_hitbox": false
+      "use_real_hitbox": false,
+      "defense_direction": "right",
+      "classic_directional_block": false,
+      "blockable": true,
+      "dodgeable": true,
+      "jump_dodge_legs": false
     },
     "attack_right_heavy": {
       "id": "attack_right_heavy",
@@ -87,25 +113,40 @@
       "hit_zones": [
         {
           "hit": "head",
-          "parts": ["side_head"]
+          "parts": [
+            "side_head"
+          ]
         },
         {
           "hit": "body",
-          "parts": ["chest", "abdomen"]
+          "parts": [
+            "chest",
+            "abdomen"
+          ]
         },
         {
           "hit": "arms",
-          "parts": ["arm"]
+          "parts": [
+            "arm"
+          ]
         },
         {
           "hit": "legs",
-          "parts": ["thigh", "knee"]
+          "parts": [
+            "thigh",
+            "knee"
+          ]
         }
       ],
       "impact_multiplier": 1.4,
       "stamina_cost": 8.0,
       "use_real_hitbox": true,
-      "transition_ticks": 3
+      "transition_ticks": 3,
+      "defense_direction": "right",
+      "classic_directional_block": false,
+      "blockable": true,
+      "dodgeable": true,
+      "jump_dodge_legs": false
     },
     "attack_left_heavy": {
       "id": "attack_left_heavy",
@@ -118,25 +159,40 @@
       "hit_zones": [
         {
           "hit": "head",
-          "parts": ["side_head"]
+          "parts": [
+            "side_head"
+          ]
         },
         {
           "hit": "body",
-          "parts": ["chest", "abdomen"]
+          "parts": [
+            "chest",
+            "abdomen"
+          ]
         },
         {
           "hit": "arms",
-          "parts": ["arm"]
+          "parts": [
+            "arm"
+          ]
         },
         {
           "hit": "legs",
-          "parts": ["thigh", "knee"]
+          "parts": [
+            "thigh",
+            "knee"
+          ]
         }
       ],
       "impact_multiplier": 1.4,
       "stamina_cost": 8.0,
       "use_real_hitbox": true,
-      "transition_ticks": 3
+      "transition_ticks": 3,
+      "defense_direction": "left",
+      "classic_directional_block": false,
+      "blockable": true,
+      "dodgeable": true,
+      "jump_dodge_legs": false
     },
     "attack_up_heavy": {
       "id": "attack_up_heavy",
@@ -149,29 +205,45 @@
       "hit_zones": [
         {
           "hit": "head",
-          "parts": ["crown"]
+          "parts": [
+            "crown"
+          ]
         },
         {
           "hit": "body",
-          "parts": ["chest"]
+          "parts": [
+            "chest"
+          ]
         },
         {
           "hit": "arms",
-          "parts": ["shoulder"]
+          "parts": [
+            "shoulder"
+          ]
         },
         {
           "hit": "legs",
-          "parts": ["thigh", "knee"]
+          "parts": [
+            "thigh",
+            "knee"
+          ]
         },
         {
           "hit": "arms",
-          "parts": ["shoulder"]
+          "parts": [
+            "shoulder"
+          ]
         }
       ],
       "impact_multiplier": 1.4,
       "stamina_cost": 8.0,
       "use_real_hitbox": true,
-      "transition_ticks": 3
+      "transition_ticks": 3,
+      "defense_direction": "up",
+      "classic_directional_block": false,
+      "blockable": true,
+      "dodgeable": true,
+      "jump_dodge_legs": false
     },
     "attack_down_heavy": {
       "id": "attack_down_heavy",
@@ -184,25 +256,177 @@
       "hit_zones": [
         {
           "hit": "head",
-          "parts": ["crown"]
+          "parts": [
+            "crown"
+          ]
         },
         {
           "hit": "body",
-          "parts": ["abdomen"]
+          "parts": [
+            "abdomen"
+          ]
         },
         {
           "hit": "arms",
-          "parts": ["hand"]
+          "parts": [
+            "hand"
+          ]
         },
         {
           "hit": "legs",
-          "parts": ["knee"]
+          "parts": [
+            "knee"
+          ]
         }
       ],
       "impact_multiplier": 1.4,
       "stamina_cost": 8.0,
       "use_real_hitbox": true,
-      "transition_ticks": 3
+      "transition_ticks": 3,
+      "defense_direction": "down",
+      "classic_directional_block": false,
+      "blockable": true,
+      "dodgeable": true,
+      "jump_dodge_legs": true
+    },
+    "attack_right_longweapon": {
+      "id": "attack_right_longweapon",
+      "animation": "attack_right_longweapon",
+      "damage_modifiers": {
+        "thrust": 0.8,
+        "strike": 0.8,
+        "slash": 1.0
+      },
+      "hit_zones": [
+        {
+          "hit": "head",
+          "parts": [
+            "side_head"
+          ]
+        },
+        {
+          "hit": "body",
+          "parts": [
+            "chest",
+            "abdomen"
+          ]
+        },
+        {
+          "hit": "arms",
+          "parts": [
+            "arm",
+            "hand"
+          ]
+        },
+        {
+          "hit": "legs",
+          "parts": [
+            "thigh"
+          ]
+        }
+      ],
+      "impact_multiplier": 1.2,
+      "stamina_cost": 7.0,
+      "use_real_hitbox": true,
+      "transition_ticks": 3,
+      "defense_direction": "right",
+      "classic_directional_block": false,
+      "blockable": true,
+      "dodgeable": true,
+      "jump_dodge_legs": false
+    },
+    "attack_left_longweapon": {
+      "id": "attack_left_longweapon",
+      "animation": "attack_left_longweapon",
+      "damage_modifiers": {
+        "thrust": 0.8,
+        "strike": 0.8,
+        "slash": 1.0
+      },
+      "hit_zones": [
+        {
+          "hit": "head",
+          "parts": [
+            "side_head"
+          ]
+        },
+        {
+          "hit": "body",
+          "parts": [
+            "chest",
+            "abdomen"
+          ]
+        },
+        {
+          "hit": "arms",
+          "parts": [
+            "arm",
+            "hand"
+          ]
+        },
+        {
+          "hit": "legs",
+          "parts": [
+            "thigh"
+          ]
+        }
+      ],
+      "impact_multiplier": 1.2,
+      "stamina_cost": 7.0,
+      "use_real_hitbox": true,
+      "transition_ticks": 3,
+      "defense_direction": "left",
+      "classic_directional_block": false,
+      "blockable": true,
+      "dodgeable": true,
+      "jump_dodge_legs": false
+    },
+    "attack_down_longweapon": {
+      "id": "attack_down_longweapon",
+      "animation": "attack_down_longweapon",
+      "damage_modifiers": {
+        "thrust": 1.25,
+        "strike": 0.4,
+        "slash": 0.4
+      },
+      "hit_zones": [
+        {
+          "hit": "head",
+          "parts": [
+            "face",
+            "neck"
+          ]
+        },
+        {
+          "hit": "body",
+          "parts": [
+            "chest",
+            "abdomen"
+          ]
+        },
+        {
+          "hit": "arms",
+          "parts": [
+            "hand"
+          ]
+        },
+        {
+          "hit": "legs",
+          "parts": [
+            "knee",
+            "thigh"
+          ]
+        }
+      ],
+      "impact_multiplier": 1.2,
+      "stamina_cost": 7.0,
+      "use_real_hitbox": true,
+      "transition_ticks": 3,
+      "defense_direction": "down",
+      "classic_directional_block": false,
+      "blockable": true,
+      "dodgeable": true,
+      "jump_dodge_legs": true
     },
     "attack_right_longsword": {
       "id": "attack_right_longsword",
@@ -215,25 +439,38 @@
       "hit_zones": [
         {
           "hit": "head",
-          "parts": ["side_head"]
+          "parts": [
+            "side_head"
+          ]
         },
         {
           "hit": "body",
-          "parts": ["chest"]
+          "parts": [
+            "chest"
+          ]
         },
         {
           "hit": "arms",
-          "parts": ["arm"]
+          "parts": [
+            "arm"
+          ]
         },
         {
           "hit": "legs",
-          "parts": ["thigh"]
+          "parts": [
+            "thigh"
+          ]
         }
       ],
       "impact_multiplier": 1.0,
       "stamina_cost": 7.0,
       "use_real_hitbox": true,
-      "transition_ticks": 3
+      "transition_ticks": 3,
+      "defense_direction": "right",
+      "classic_directional_block": false,
+      "blockable": true,
+      "dodgeable": true,
+      "jump_dodge_legs": false
     },
     "attack_left_longsword": {
       "id": "attack_left_longsword",
@@ -246,25 +483,38 @@
       "hit_zones": [
         {
           "hit": "head",
-          "parts": ["side_head"]
+          "parts": [
+            "side_head"
+          ]
         },
         {
           "hit": "body",
-          "parts": ["chest"]
+          "parts": [
+            "chest"
+          ]
         },
         {
           "hit": "arms",
-          "parts": ["arm"]
+          "parts": [
+            "arm"
+          ]
         },
         {
           "hit": "legs",
-          "parts": ["thigh"]
+          "parts": [
+            "thigh"
+          ]
         }
       ],
       "impact_multiplier": 1.0,
       "stamina_cost": 7.0,
       "use_real_hitbox": true,
-      "transition_ticks": 3
+      "transition_ticks": 3,
+      "defense_direction": "left",
+      "classic_directional_block": false,
+      "blockable": true,
+      "dodgeable": true,
+      "jump_dodge_legs": false
     },
     "attack_up_longsword": {
       "id": "attack_up_longsword",
@@ -277,21 +527,32 @@
       "hit_zones": [
         {
           "hit": "head",
-          "parts": ["crown"]
+          "parts": [
+            "crown"
+          ]
         },
         {
           "hit": "body",
-          "parts": ["chest"]
+          "parts": [
+            "chest"
+          ]
         },
         {
           "hit": "arms",
-          "parts": ["shoulder"]
+          "parts": [
+            "shoulder"
+          ]
         }
       ],
       "impact_multiplier": 1.0,
       "stamina_cost": 6.0,
       "use_real_hitbox": true,
-      "transition_ticks": 3
+      "transition_ticks": 3,
+      "defense_direction": "up",
+      "classic_directional_block": false,
+      "blockable": true,
+      "dodgeable": true,
+      "jump_dodge_legs": false
     },
     "attack_down_longsword": {
       "id": "attack_down_longsword",
@@ -304,28 +565,39 @@
       "hit_zones": [
         {
           "hit": "head",
-          "parts": ["face"]
+          "parts": [
+            "face"
+          ]
         },
         {
           "hit": "body",
-          "parts": ["abdomen"]
+          "parts": [
+            "abdomen"
+          ]
         },
         {
           "hit": "arms",
-          "parts": ["arm"]
+          "parts": [
+            "arm"
+          ]
         },
         {
           "hit": "legs",
-          "parts": ["thigh"]
+          "parts": [
+            "thigh"
+          ]
         }
       ],
       "impact_multiplier": 1.0,
       "stamina_cost": 8.0,
       "use_real_hitbox": true,
-      "transition_ticks": 3
+      "transition_ticks": 3,
+      "defense_direction": "down",
+      "classic_directional_block": false,
+      "blockable": true,
+      "dodgeable": true,
+      "jump_dodge_legs": true
     },
-
-
     "master_counter_right": {
       "id": "master_counter_right",
       "animation": "master_strike_right",
@@ -337,7 +609,9 @@
       "hit_zones": [
         {
           "hit": "head",
-          "parts": ["neck"]
+          "parts": [
+            "neck"
+          ]
         }
       ],
       "hit_reaction": false,
@@ -348,7 +622,12 @@
       "transition_ticks": 3,
       "direct_hit_tick": 13,
       "weapon_clash_tick": 4,
-      "weapon_clash_sound": "sword_hit_sword"
+      "weapon_clash_sound": "sword_hit_sword",
+      "defense_direction": "right",
+      "classic_directional_block": false,
+      "blockable": true,
+      "dodgeable": true,
+      "jump_dodge_legs": false
     },
     "master_counter_right_victim": {
       "id": "master_counter_right_victim",
@@ -362,7 +641,12 @@
       "impact_multiplier": 0.0,
       "stamina_cost": 0.0,
       "use_real_hitbox": false,
-      "transition_ticks": 3
+      "transition_ticks": 3,
+      "defense_direction": "right",
+      "classic_directional_block": false,
+      "blockable": true,
+      "dodgeable": true,
+      "jump_dodge_legs": false
     },
     "master_counter_left": {
       "id": "master_counter_left",
@@ -375,7 +659,9 @@
       "hit_zones": [
         {
           "hit": "body",
-          "parts": ["chest"]
+          "parts": [
+            "chest"
+          ]
         }
       ],
       "impact_multiplier": 1.25,
@@ -386,7 +672,12 @@
       "transition_ticks": 3,
       "direct_hit_tick": 8,
       "weapon_clash_tick": 4,
-      "weapon_clash_sound": "sword_hit_sword"
+      "weapon_clash_sound": "sword_hit_sword",
+      "defense_direction": "left",
+      "classic_directional_block": false,
+      "blockable": true,
+      "dodgeable": true,
+      "jump_dodge_legs": false
     },
     "master_counter_left_victim": {
       "id": "master_counter_left_victim",
@@ -400,7 +691,12 @@
       "impact_multiplier": 0.0,
       "stamina_cost": 0.0,
       "use_real_hitbox": false,
-      "transition_ticks": 3
+      "transition_ticks": 3,
+      "defense_direction": "left",
+      "classic_directional_block": false,
+      "blockable": true,
+      "dodgeable": true,
+      "jump_dodge_legs": false
     },
     "master_counter_up": {
       "id": "master_counter_up",
@@ -413,7 +709,9 @@
       "hit_zones": [
         {
           "hit": "body",
-          "parts": ["chest"]
+          "parts": [
+            "chest"
+          ]
         }
       ],
       "impact_multiplier": 1.2,
@@ -424,7 +722,12 @@
       "transition_ticks": 3,
       "direct_hit_tick": 12,
       "weapon_clash_tick": 4,
-      "weapon_clash_sound": "sword_hit_sword"
+      "weapon_clash_sound": "sword_hit_sword",
+      "defense_direction": "up",
+      "classic_directional_block": false,
+      "blockable": true,
+      "dodgeable": true,
+      "jump_dodge_legs": false
     },
     "master_counter_up_victim": {
       "id": "master_counter_up_victim",
@@ -438,7 +741,12 @@
       "impact_multiplier": 0.0,
       "stamina_cost": 0.0,
       "use_real_hitbox": false,
-      "transition_ticks": 3
+      "transition_ticks": 3,
+      "defense_direction": "up",
+      "classic_directional_block": false,
+      "blockable": true,
+      "dodgeable": true,
+      "jump_dodge_legs": false
     },
     "master_counter_down": {
       "id": "master_counter_down",
@@ -451,7 +759,9 @@
       "hit_zones": [
         {
           "hit": "head",
-          "parts": ["crown"]
+          "parts": [
+            "crown"
+          ]
         }
       ],
       "impact_multiplier": 2.25,
@@ -462,7 +772,12 @@
       "transition_ticks": 3,
       "direct_hit_tick": 13,
       "weapon_clash_tick": 6,
-      "weapon_clash_sound": "sword_hit_sword"
+      "weapon_clash_sound": "sword_hit_sword",
+      "defense_direction": "down",
+      "classic_directional_block": false,
+      "blockable": true,
+      "dodgeable": true,
+      "jump_dodge_legs": true
     },
     "master_counter_left_down": {
       "id": "master_counter_down_victim",
@@ -476,7 +791,12 @@
       "impact_multiplier": 0.0,
       "stamina_cost": 0.0,
       "use_real_hitbox": false,
-      "transition_ticks": 3
+      "transition_ticks": 3,
+      "defense_direction": "left",
+      "classic_directional_block": false,
+      "blockable": true,
+      "dodgeable": true,
+      "jump_dodge_legs": true
     },
     "beast_body_slam": {
       "id": "beast_body_slam",
@@ -489,11 +809,17 @@
       "hit_zones": [
         {
           "hit": "body",
-          "parts": ["chest", "abdomen"]
+          "parts": [
+            "chest",
+            "abdomen"
+          ]
         },
         {
           "hit": "legs",
-          "parts": ["knee", "thigh"]
+          "parts": [
+            "knee",
+            "thigh"
+          ]
         }
       ],
       "direct_hit_height_parts": [
@@ -514,7 +840,12 @@
       "stamina_cost": 12.0,
       "use_real_hitbox": false,
       "transition_ticks": 4,
-      "direct_hit_tick": 8
+      "direct_hit_tick": 8,
+      "defense_direction": "right",
+      "classic_directional_block": true,
+      "blockable": false,
+      "dodgeable": true,
+      "jump_dodge_legs": true
     }
   },
   "moves": {
@@ -528,20 +859,31 @@
       "hit_zones": [
         {
           "hit": "head",
-          "parts": ["side_head"]
+          "parts": [
+            "side_head"
+          ]
         },
         {
           "hit": "shoulder",
-          "parts": ["shoulder"]
+          "parts": [
+            "shoulder"
+          ]
         },
         {
           "hit": "legs",
-          "parts": ["thigh"]
+          "parts": [
+            "thigh"
+          ]
         }
       ],
       "impact_multiplier": 1.0,
       "stamina_cost": 5.0,
-      "use_real_hitbox": true
+      "use_real_hitbox": true,
+      "defense_direction": "right",
+      "classic_directional_block": false,
+      "blockable": true,
+      "dodgeable": true,
+      "jump_dodge_legs": false
     },
     "left": {
       "id": "left_slash",
@@ -553,20 +895,31 @@
       "hit_zones": [
         {
           "hit": "head",
-          "parts": ["side_head"]
+          "parts": [
+            "side_head"
+          ]
         },
         {
           "hit": "shoulder",
-          "parts": ["shoulder"]
+          "parts": [
+            "shoulder"
+          ]
         },
         {
           "hit": "legs",
-          "parts": ["thigh"]
+          "parts": [
+            "thigh"
+          ]
         }
       ],
       "impact_multiplier": 1.0,
       "stamina_cost": 5.0,
-      "use_real_hitbox": true
+      "use_real_hitbox": true,
+      "defense_direction": "left",
+      "classic_directional_block": false,
+      "blockable": true,
+      "dodgeable": true,
+      "jump_dodge_legs": false
     },
     "up": {
       "id": "upper_cut",
@@ -578,24 +931,37 @@
       "hit_zones": [
         {
           "hit": "head",
-          "parts": ["crown"]
+          "parts": [
+            "crown"
+          ]
         },
         {
           "hit": "body",
-          "parts": ["chest"]
+          "parts": [
+            "chest"
+          ]
         },
         {
           "hit": "legs",
-          "parts": ["thigh"]
+          "parts": [
+            "thigh"
+          ]
         },
         {
           "hit": "arms",
-          "parts": ["shoulder"]
+          "parts": [
+            "shoulder"
+          ]
         }
       ],
       "impact_multiplier": 1.0,
       "stamina_cost": 7.0,
-      "use_real_hitbox": true
+      "use_real_hitbox": true,
+      "defense_direction": "up",
+      "classic_directional_block": false,
+      "blockable": true,
+      "dodgeable": true,
+      "jump_dodge_legs": false
     },
     "down": {
       "id": "downward_cut",
@@ -607,20 +973,31 @@
       "hit_zones": [
         {
           "hit": "head",
-          "parts": ["face"]
+          "parts": [
+            "face"
+          ]
         },
         {
           "hit": "body",
-          "parts": ["abdomen"]
+          "parts": [
+            "abdomen"
+          ]
         },
         {
           "hit": "legs",
-          "parts": ["knee"]
+          "parts": [
+            "knee"
+          ]
         }
       ],
       "impact_multiplier": 1.0,
       "stamina_cost": 6.0,
-      "use_real_hitbox": true
+      "use_real_hitbox": true,
+      "defense_direction": "down",
+      "classic_directional_block": false,
+      "blockable": true,
+      "dodgeable": true,
+      "jump_dodge_legs": true
     }
   }
 }

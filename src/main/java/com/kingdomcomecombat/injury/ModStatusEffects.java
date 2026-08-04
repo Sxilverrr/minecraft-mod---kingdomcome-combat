@@ -7,6 +7,7 @@ import net.minecraft.entity.attribute.EntityAttributeInstance;
 import net.minecraft.entity.attribute.EntityAttributeModifier;
 import net.minecraft.entity.attribute.EntityAttributes;
 import net.minecraft.entity.effect.StatusEffect;
+import net.minecraft.entity.effect.StatusEffectCategory;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.registry.Registries;
@@ -15,6 +16,7 @@ import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.util.Identifier;
 
 import java.util.List;
+import java.util.ArrayList;
 
 public class ModStatusEffects {
     public static final RegistryEntry<StatusEffect> ARM_INJURY =
@@ -31,6 +33,10 @@ public class ModStatusEffects {
             register("bleeding", 0xB00020);
     public static final RegistryEntry<StatusEffect> ANALGESIA =
             register("analgesia", 0x6F8193);
+    public static final RegistryEntry<StatusEffect> VITALITY =
+            register("vitality", StatusEffectCategory.BENEFICIAL, 0xE6C84F);
+    public static final RegistryEntry<StatusEffect> CORROSION =
+            register("corrosion", StatusEffectCategory.HARMFUL, 0x6E8B3D);
 
     private static final Identifier TORSO_HEALTH_PENALTY_ID =
             Identifier.of(KingdomComeCombat.MOD_ID, "torso_injury_max_health");
@@ -63,7 +69,8 @@ public class ModStatusEffects {
     }
 
     public static void applyInjury(LivingEntity entity, String type, int level) {
-        if (!ModGameRules.traumaEnabled(entity)) {
+        if (com.kingdomcomecombat.config.CombatServerConfig.lightweightDamageModeEnabled()
+                || !ModGameRules.traumaEnabled(entity)) {
             return;
         }
         RegistryEntry<StatusEffect> effect = effectFor(type);
@@ -77,6 +84,12 @@ public class ModStatusEffects {
             current = existing.getAmplifier() + 1;
         }
 
+        if (entity instanceof net.minecraft.server.network.ServerPlayerEntity player
+                && effect != BLEEDING
+                && com.kingdomcomecombat.hardship.HardshipSelectionState.active(player, "hardship_05")) {
+            level += Math.max(0, (int) com.kingdomcomecombat.hardship.HardshipSelectionState.prek(
+                    player, "hardship_05", "extra_injury_levels", 1.0));
+        }
         int nextLevel = Math.max(1, Math.min(8, current + level));
         entity.addStatusEffect(new StatusEffectInstance(
                 effect,
@@ -95,6 +108,10 @@ public class ModStatusEffects {
             entity.removeStatusEffect(effect);
         }
         syncEffectiveAttributeModifiers(entity);
+    }
+
+    public static boolean isInjuryOrBleeding(RegistryEntry<StatusEffect> effect) {
+        return INJURIES.contains(effect);
     }
 
     public static int level(LivingEntity entity, RegistryEntry<StatusEffect> effect) {
@@ -138,6 +155,18 @@ public class ModStatusEffects {
             }
         }
         return false;
+    }
+
+    public static boolean healBleedingOrRandomWound(LivingEntity entity) {
+        if (reduceInjury(entity, BLEEDING, 1)) {
+            return true;
+        }
+        List<RegistryEntry<StatusEffect>> candidates = new ArrayList<>();
+        for (RegistryEntry<StatusEffect> effect : WOUND_INJURIES) {
+            if (level(entity, effect) > 0) candidates.add(effect);
+        }
+        return !candidates.isEmpty() && reduceInjury(
+                entity, candidates.get(entity.getRandom().nextInt(candidates.size())), 1);
     }
 
     public static int reduceWoundsAtOrBelow(LivingEntity entity, int maxLevel, int budget) {
@@ -249,7 +278,15 @@ public class ModStatusEffects {
     }
 
     private static RegistryEntry<StatusEffect> register(String id, int color) {
-        StatusEffect effect = new InjuryStatusEffect(color);
+        return register(id, StatusEffectCategory.HARMFUL, color);
+    }
+
+    private static RegistryEntry<StatusEffect> register(
+            String id,
+            StatusEffectCategory category,
+            int color
+    ) {
+        StatusEffect effect = new CombatStatusEffect(category, color);
         return Registry.registerReference(
                 Registries.STATUS_EFFECT,
                 Identifier.of(KingdomComeCombat.MOD_ID, id),

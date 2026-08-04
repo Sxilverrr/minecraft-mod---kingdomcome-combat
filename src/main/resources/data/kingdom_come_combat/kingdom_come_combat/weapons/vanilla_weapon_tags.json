@@ -1,0 +1,178 @@
+{
+  "_comment": "原版近战武器的 tag 形式配置。数值与 defaults/equipment.json 当前各武器分类完全一致；精确物品配置仍拥有更高优先级。",
+  "items": {
+    "#kingdom_come_combat:vanilla_swords": {
+      "damage_panel": {
+        "thrust": 1.2,
+        "strike": 0.2,
+        "slash": 1.2
+      },
+      "attack_speed_multiplier": 1.0,
+      "base_impact": 18.0,
+      "block_impact_mitigation": 0.75,
+      "armor_break_multiplier": 0.35,
+      "real_hitbox_size_units": {
+        "x": 3.0,
+        "y": 1.0,
+        "z": 23.5
+      }
+    },
+    "#kingdom_come_combat:vanilla_pickaxes": {
+      "damage_panel": {
+        "thrust": 2.1,
+        "strike": 1.4,
+        "slash": 0.0
+      },
+      "attack_speed_multiplier": 1.0,
+      "base_impact": 30.0,
+      "block_impact_mitigation": 0.65,
+      "armor_break_multiplier": 1.5,
+      "real_hitbox_size_units": {
+        "x": 5.0,
+        "y": 1.0,
+        "z": 22.5
+      },
+      "real_hitbox_rotation_degrees": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": -45.0
+      }
+    },
+    "#kingdom_come_combat:vanilla_axes": {
+      "damage_panel": {
+        "thrust": 0.0,
+        "strike": 0.6,
+        "slash": 0.9
+      },
+      "attack_speed_multiplier": 1.0,
+      "base_impact": 35.0,
+      "block_impact_mitigation": 0.65,
+      "armor_break_multiplier": 1.3,
+      "real_hitbox_size_units": {
+        "x": 5.0,
+        "y": 1.0,
+        "z": 22.5
+      },
+      "real_hitbox_rotation_degrees": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": -45.0
+      }
+    },
+    "#kingdom_come_combat:vanilla_shovels": {
+      "damage_panel": {
+        "thrust": 0.0,
+        "strike": 0.5,
+        "slash": 0.5
+      },
+      "attack_speed_multiplier": 1.0,
+      "base_impact": 25.0,
+      "block_impact_mitigation": 0.65,
+      "armor_break_multiplier": 0.2,
+      "real_hitbox_size_units": {
+        "x": 3.0,
+        "y": 1.0,
+        "z": 22.5
+      }
+    },
+    "#kingdom_come_combat:vanilla_hoes": {
+      "damage_panel": {
+        "thrust": 0.0,
+        "strike": 0.5,
+        "slash": 0.5
+      },
+      "attack_speed_multiplier": 1.0,
+      "base_impact": 25.0,
+      "block_impact_mitigation": 0.65,
+      "armor_break_multiplier": 0.2,
+      "real_hitbox_size_units": {
+        "x": 3.0,
+        "y": 1.0,
+        "z": 22.5
+      }
+    },
+    "#kingdom_come_combat:vanilla_maces": {
+      "damage_panel": {
+        "thrust": 0.0,
+        "strike": 1.7,
+        "slash": 0.0
+      },
+      "attack_speed_multiplier": 0.8,
+      "base_impact": 40.0,
+      "block_impact_mitigation": 0.65,
+      "armor_break_multiplier": 0.2,
+      "attack_moves": {
+        "right": "attack_right_heavy",
+        "left": "attack_left_heavy",
+        "up": "attack_up_heavy",
+        "down": "attack_down_heavy"
+      }
+    },
+    "#kingdom_come_combat:vanilla_tridents": {
+      "damage_panel": {
+        "thrust": 1.2,
+        "strike": 0.2,
+        "slash": 0.8
+      },
+      "attack_speed_multiplier": 1.0,
+      "base_impact": 50.0,
+      "block_impact_mitigation": 0.85,
+      "armor_break_multiplier": 0.5,
+      "real_hitbox_size_units": {
+        "x": 4.0,
+        "y": 4.0,
+        "z": 32.0
+      },
+      "real_hitbox_offset_units": {
+        "x": -5.0,
+        "y": 20.0,
+        "z": 0.0
+      },
+      "real_hitbox_rotation_degrees": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "attack_moves": {
+        "right": "attack_right_longweapon",
+        "left": "attack_left_longweapon",
+        "up": "attack_up_longsword",
+        "down": "attack_down_longweapon"
+      },
+      "stance_animations": {
+        "right": "stance_right_longweapon",
+        "left": "stance_left_longweapon",
+        "up": "stance_up_longsword",
+        "down": "stance_down_longweapon"
+      }
+    },
+    "#kingdom_come_combat:vanilla_spears": {
+      "damage_panel": {
+        "thrust": 1.0,
+        "strike": 0.35,
+        "slash": 0.65
+      },
+      "attack_speed_multiplier": 1.0,
+      "base_impact": 50.0,
+      "block_impact_mitigation": 0.7,
+      "armor_break_multiplier": 0.45,
+      "real_hitbox_size_units": {
+        "x": 4.0,
+        "y": 4.0,
+        "z": 34.0
+      },
+      "attack_moves": {
+        "right": "attack_right_longweapon",
+        "left": "attack_left_longweapon",
+        "up": "attack_up_longsword",
+        "down": "attack_down_longweapon"
+      },
+      "stance_animations": {
+        "right": "stance_right_longweapon",
+        "left": "stance_left_longweapon",
+        "up": "stance_up_longsword",
+        "down": "stance_down_longweapon"
+      }
+    }
+  }
+}

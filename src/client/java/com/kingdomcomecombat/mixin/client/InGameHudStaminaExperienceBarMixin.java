@@ -1,7 +1,9 @@
 package com.kingdomcomecombat.mixin.client;
 
 import com.kingdomcomecombat.client.lockon.LockOnState;
+import com.kingdomcomecombat.client.feedback.CauldronWashScreenEffect;
 import com.kingdomcomecombat.client.stamina.ClientStaminaState;
+import com.kingdomcomecombat.client.game.ClientGameRuleState;
 import com.kingdomcomecombat.riding.KccHorseRidingData;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
@@ -25,28 +27,27 @@ public class InGameHudStaminaExperienceBarMixin {
             CallbackInfo ci
     ) {
         MinecraftClient client = MinecraftClient.getInstance();
-        if (client.player == null) {
+        if (client.player == null || client.options.hudHidden) {
             return;
         }
 
-        int x = (context.getScaledWindowWidth() - BAR_WIDTH) / 2;
-        int y = context.getScaledWindowHeight() - 29;
-        int nextY = y;
-
         if (client.player.getVehicle() instanceof AbstractHorseEntity horse
                 && (Object) horse instanceof KccHorseRidingData horseData) {
-            renderBar(context, x, nextY, horseData.kingdomcomecombat$getHorseCurrentSpeed(), 0xFF0B1C28, 0xFF59C7FF, 0xFF1877B8);
-            nextY -= 8;
-
+            int horseX = 12;
+            int horseY = context.getScaledWindowHeight() - 34;
             double maxStamina = horseData.kingdomcomecombat$getHorseMaxStamina();
             double staminaProgress = maxStamina <= 0.0 ? 0.0 : horseData.kingdomcomecombat$getHorseStamina() / maxStamina;
-            renderBar(context, x, nextY, staminaProgress, 0xFF26230D, 0xFFFFE36E, 0xFFC99B13);
-            nextY -= 8;
+            renderBar(context, horseX, horseY - 8, horseData.kingdomcomecombat$getHorseCurrentSpeed(), 0xFF0B1C28, 0xFF59C7FF, 0xFF1877B8);
+            renderBar(context, horseX, horseY, staminaProgress, 0xFF26230D, 0xFFFFE36E, 0xFFC99B13);
         }
 
-        if (LockOnState.locked) {
-            renderBar(context, x, nextY, ClientStaminaState.progress(), 0xFF2D2608, 0xFFFFD447, 0xFFC88600);
+        if (LockOnState.locked && !ClientGameRuleState.hardcoreMode()) {
+            int x = (context.getScaledWindowWidth() - BAR_WIDTH) / 2;
+            int y = context.getScaledWindowHeight() - 29;
+            renderBar(context, x, y, ClientStaminaState.progress(), 0xFF2D2608, 0xFFFFD447, 0xFFC88600);
         }
+
+        CauldronWashScreenEffect.render(context);
     }
 
     private static void renderBar(

@@ -2,6 +2,7 @@ package com.kingdomcomecombat.mixin.client;
 
 import com.kingdomcomecombat.client.compat.FirstPersonRenderCompat;
 import com.kingdomcomecombat.client.compat.PalAnimationStateCompat;
+import com.kingdomcomecombat.client.render.CollisionOnlyRenderContext;
 import com.llamalad7.mixinextras.sugar.Local;
 import com.zigythebird.playeranim.accessors.IPlayerAnimationState;
 import net.minecraft.client.render.VertexConsumerProvider;
@@ -37,7 +38,8 @@ public class EntityRenderDispatcherPalCompatMixin {
             CallbackInfo ci,
             @Local S state
     ) {
-        if (FirstPersonRenderCompat.isExternalBodyRenderOrPreparing()
+        if ((FirstPersonRenderCompat.isExternalBodyRenderOrPreparing()
+                || CollisionOnlyRenderContext.isActive())
                 && state instanceof IPlayerAnimationState playerAnimationState) {
             PalAnimationStateCompat.setFirstPersonPass(playerAnimationState, false);
         }

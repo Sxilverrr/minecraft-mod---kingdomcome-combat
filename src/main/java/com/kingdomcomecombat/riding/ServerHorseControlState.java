@@ -21,6 +21,7 @@ public final class ServerHorseControlState {
             boolean jumpPressed,
             float yaw
     ) {
+        float safeYaw = Float.isFinite(yaw) ? yaw : player.getYaw();
         INPUTS.put(
                 player.getUuid(),
                 new Input(
@@ -28,10 +29,14 @@ public final class ServerHorseControlState {
                         clamp(forward),
                         sprintPressed,
                         jumpPressed,
-                        yaw,
+                        safeYaw,
                         player.getWorld().getTime()
                 )
         );
+    }
+
+    public static void clear(UUID playerUuid) {
+        INPUTS.remove(playerUuid);
     }
 
     public static Input get(ServerPlayerEntity player) {
@@ -51,6 +56,9 @@ public final class ServerHorseControlState {
     }
 
     private static float clamp(float value) {
+        if (!Float.isFinite(value)) {
+            return 0.0F;
+        }
         return Math.max(-1.0F, Math.min(1.0F, value));
     }
 

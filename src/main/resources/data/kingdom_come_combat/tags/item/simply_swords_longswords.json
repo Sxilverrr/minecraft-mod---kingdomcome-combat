@@ -1,0 +1,10 @@
+{
+  "replace": false,
+  "values": [
+    {"id": "#simplyswords:implicit/longsword", "required": false},
+    {"id": "#simplyswords:implicit/katana", "required": false},
+    {"id": "#simplyswords:implicit/claymore", "required": false},
+    {"id": "#simplyswords:implicit/twinblade", "required": false},
+    {"id": "#simplyswords:implicit/warglaive", "required": false}
+  ]
+}

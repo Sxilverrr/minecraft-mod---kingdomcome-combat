@@ -24,7 +24,8 @@ public class StaminaMaxProvider {
                 0.0,
                 1.0 - 0.07 * ModStatusEffects.effectiveLevel(entity, ModStatusEffects.HEAD_INJURY)
         );
-        return getBaseMaxStamina(entity) * getHealthMaxMultiplier(entity) * headInjuryMultiplier;
+        return (getBaseMaxStamina(entity) + PassiveSkillPerks.maxStaminaBonus(entity))
+                * getHealthMaxMultiplier(entity) * headInjuryMultiplier;
     }
 
     public static double getBaseMaxStamina(LivingEntity entity) {
@@ -45,6 +46,10 @@ public class StaminaMaxProvider {
         return StaminaConfig.DEFAULT_MOB_MAX_STAMINA;
     }
 
+    public static double getOriginalMaxStamina(LivingEntity entity) {
+        return Math.max(1.0, getBaseMaxStamina(entity) + PassiveSkillPerks.maxStaminaBonus(entity));
+    }
+
     private static double getHealthMaxMultiplier(LivingEntity entity) {
         float maxHealth = entity.getMaxHealth();
         if (maxHealth <= 0.0001F) {
@@ -58,12 +63,12 @@ public class StaminaMaxProvider {
     public static double getRegenPerTick(LivingEntity entity) {
         Double entityOverride = ENTITY_REGEN_PER_TICK.get(entity.getUuid());
         if (entityOverride != null) {
-            return entityOverride;
+            return entityOverride * PassiveSkillPerks.staminaRegenMultiplier(entity);
         }
 
         Double typeOverride = ENTITY_TYPE_REGEN_PER_TICK.get(entity.getType());
         if (typeOverride != null) {
-            return typeOverride;
+            return typeOverride * PassiveSkillPerks.staminaRegenMultiplier(entity);
         }
 
         double torsoMultiplier = Math.max(

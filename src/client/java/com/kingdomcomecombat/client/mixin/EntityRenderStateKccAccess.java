@@ -22,4 +22,8 @@ public interface EntityRenderStateKccAccess {
     void kingdomcomecombat$setBodyBloodPercent(double percent);
 
     double kingdomcomecombat$getBodyBloodPercent();
+
+    void kingdomcomecombat$setDragonArmorBroken(boolean broken);
+
+    boolean kingdomcomecombat$isDragonArmorBroken();
 }

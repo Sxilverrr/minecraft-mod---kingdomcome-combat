@@ -1,10 +1,15 @@
 package com.kingdomcomecombat.injury;
 
 import com.kingdomcomecombat.KingdomComeCombat;
+import com.kingdomcomecombat.config.CombatServerConfig;
 import com.kingdomcomecombat.game.ModGameRules;
 import com.kingdomcomecombat.item.ModItems;
 import com.kingdomcomecombat.passive.PassiveSkillPerks;
+import com.kingdomcomecombat.collision.HumanoidHurtboxLibrary;
+import com.kingdomcomecombat.equipment.MobCombatAttributes;
+import com.kingdomcomecombat.equipment.MobCombatAttributesRegistry;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
+import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.damage.DamageType;
@@ -16,11 +21,13 @@ import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.ActionResult;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.ArrayList;
 
 public class InjuryTicker {
     private static final int LOW_TIER_WOUND_MAX_LEVEL = 3;
@@ -39,13 +46,38 @@ public class InjuryTicker {
             EquipmentSlot.CHEST,
             EquipmentSlot.LEGS
     );
+    private static final List<EquipmentSlot> ARMOR_SLOTS = List.of(
+            EquipmentSlot.HEAD,
+            EquipmentSlot.CHEST,
+            EquipmentSlot.LEGS,
+            EquipmentSlot.FEET
+    );
 
     private static final Map<UUID, Integer> naturalRecoveryTimers = new HashMap<>();
+    private static final Map<UUID, Float> mobHealProgress = new HashMap<>();
 
     private InjuryTicker() {
     }
 
     public static void register() {
+        UseEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
+            if (CombatServerConfig.changedBandageUseEnabled()
+                    || world.isClient() || !player.isSneaking() || !(entity instanceof LivingEntity target)) {
+                return ActionResult.PASS;
+            }
+            ItemStack bandage = player.getStackInHand(hand);
+            if (!bandage.isOf(ModItems.BANDAGE) || !ModStatusEffects.reduceInjury(
+                    target, ModStatusEffects.BLEEDING, 1)) {
+                return ActionResult.PASS;
+            }
+            int bandageDamage = player instanceof ServerPlayerEntity serverPlayer
+                    && com.kingdomcomecombat.hardship.HardshipSelectionState.active(serverPlayer, "hardship_05")
+                    ? Math.max(1, (int) Math.ceil(com.kingdomcomecombat.hardship.HardshipSelectionState.prek(
+                            serverPlayer, "hardship_05", "bandage_durability_multiplier", 2.0))) : 1;
+            bandage.damage(bandageDamage, player, hand == net.minecraft.util.Hand.MAIN_HAND
+                    ? EquipmentSlot.MAINHAND : EquipmentSlot.OFFHAND);
+            return ActionResult.SUCCESS;
+        });
         ServerTickEvents.END_SERVER_TICK.register(server -> {
             for (ServerWorld world : server.getWorlds()) {
                 long worldTime = world.getTime();
@@ -60,7 +92,12 @@ public class InjuryTicker {
                         continue;
                     }
 
-                    if (!ModGameRules.traumaEnabled(living)) {
+                    if (maintenanceTick) {
+                        tickCorrosion(living);
+                    }
+
+                    if (com.kingdomcomecombat.config.CombatServerConfig.lightweightDamageModeEnabled()
+                            || !ModGameRules.traumaEnabled(living)) {
                         ModStatusEffects.clearInjuries(living);
                         naturalRecoveryTimers.remove(living.getUuid());
                         continue;
@@ -72,7 +109,7 @@ public class InjuryTicker {
                             living.damage(
                                     world,
                                     world.getDamageSources().create(BLEEDING_DAMAGE),
-                                    bleeding
+                                    1.0F
                             );
                         }
                     }
@@ -89,6 +126,88 @@ public class InjuryTicker {
                 }
             }
         });
+    }
+
+    public static void onEntityHealed(LivingEntity entity, float healedHealth) {
+        if (healedHealth <= 0.0F || entity instanceof net.minecraft.entity.player.PlayerEntity) return;
+        if (!ModStatusEffects.hasBleeding(entity) && ModStatusEffects.totalWoundLevels(entity) <= 0) {
+            mobHealProgress.remove(entity.getUuid());
+            return;
+        }
+        float threshold = Math.max(0.001F, entity.getMaxHealth() * 0.05F);
+        float progress = mobHealProgress.getOrDefault(entity.getUuid(), 0.0F) + healedHealth;
+        while (progress + 1.0E-5F >= threshold) {
+            if (!ModStatusEffects.healBleedingOrRandomWound(entity)) {
+                mobHealProgress.remove(entity.getUuid());
+                return;
+            }
+            progress -= threshold;
+        }
+        if (progress > 0.0F) mobHealProgress.put(entity.getUuid(), progress);
+        else mobHealProgress.remove(entity.getUuid());
+    }
+
+    private static void tickCorrosion(LivingEntity entity) {
+        int level = ModStatusEffects.level(entity, ModStatusEffects.CORROSION);
+        if (level <= 0) {
+            return;
+        }
+
+        if (!HumanoidHurtboxLibrary.isHumanoidTarget(entity)) {
+            corrodeNaturalArmor(entity, level);
+            return;
+        }
+
+        List<EquipmentSlot> candidates = new ArrayList<>();
+        for (EquipmentSlot slot : ARMOR_SLOTS) {
+            ItemStack stack = entity.getEquippedStack(slot);
+            if (!stack.isEmpty() && stack.isDamageable() && stack.getDamage() < stack.getMaxDamage()) {
+                candidates.add(slot);
+            }
+        }
+        if (candidates.isEmpty()) {
+            return;
+        }
+
+        EquipmentSlot slot = candidates.get(entity.getRandom().nextInt(candidates.size()));
+        ItemStack stack = entity.getEquippedStack(slot);
+        int amount = Math.max(1, (int) Math.ceil(stack.getMaxDamage() * level * 0.01));
+        stack.damage(amount, entity, slot);
+    }
+
+    private static void corrodeNaturalArmor(LivingEntity entity, int level) {
+        MobCombatAttributes attributes = MobCombatAttributesRegistry.get(entity).orElse(null);
+        if (attributes == null) {
+            return;
+        }
+
+        List<MobCombatAttributesRegistry.ArmorSection> candidates = new ArrayList<>();
+        if (hasNaturalArmorRemaining(entity, attributes.headArmor(), MobCombatAttributesRegistry.ArmorSection.HEAD)) {
+            candidates.add(MobCombatAttributesRegistry.ArmorSection.HEAD);
+        }
+        if (hasNaturalArmorRemaining(entity, attributes.bodyArmor(), MobCombatAttributesRegistry.ArmorSection.BODY)) {
+            candidates.add(MobCombatAttributesRegistry.ArmorSection.BODY);
+        }
+        if (candidates.isEmpty()) {
+            return;
+        }
+
+        MobCombatAttributesRegistry.ArmorSection section =
+                candidates.get(entity.getRandom().nextInt(candidates.size()));
+        MobCombatAttributes.NaturalArmor armor = section == MobCombatAttributesRegistry.ArmorSection.HEAD
+                ? attributes.headArmor()
+                : attributes.bodyArmor();
+        int amount = Math.max(1, (int) Math.ceil(armor.durability() * level * 0.01));
+        MobCombatAttributesRegistry.damageArmor(entity, section, amount);
+    }
+
+    private static boolean hasNaturalArmorRemaining(
+            LivingEntity entity,
+            MobCombatAttributes.NaturalArmor armor,
+            MobCombatAttributesRegistry.ArmorSection section
+    ) {
+        return armor.durability() > 0
+                && MobCombatAttributesRegistry.armorDamage(entity, section) < armor.durability();
     }
 
     public static void advanceNaturalRecoveryFromHeal(LivingEntity entity, float healedHealth) {
@@ -112,7 +231,13 @@ public class InjuryTicker {
 
     public static double naturalRegenerationMultiplier(LivingEntity entity) {
         int woundLevels = ModStatusEffects.totalEffectiveWoundLevels(entity);
-        return Math.max(0.05, 1.0 - woundLevels * 0.03);
+        double multiplier = Math.max(0.05, 1.0 - woundLevels * 0.03);
+        if (entity instanceof ServerPlayerEntity player
+                && com.kingdomcomecombat.hardship.HardshipSelectionState.active(player, "hardship_05")) {
+            multiplier *= com.kingdomcomecombat.hardship.HardshipSelectionState.prek(
+                    player, "hardship_05", "natural_regeneration_multiplier", 0.7);
+        }
+        return multiplier;
     }
 
     public static void healLowTierWoundsFromSleep(ServerPlayerEntity player) {
@@ -129,6 +254,9 @@ public class InjuryTicker {
     }
 
     private static void healWithEquippedBandages(LivingEntity entity) {
+        if (CombatServerConfig.changedBandageUseEnabled()) {
+            return;
+        }
         for (EquipmentSlot slot : BANDAGE_SLOTS) {
             ItemStack stack = entity.getEquippedStack(slot);
             if (!stack.isOf(ModItems.BANDAGE)) {
@@ -173,7 +301,11 @@ public class InjuryTicker {
             return;
         }
 
-        int nextDamage = stack.getDamage() + 1;
+        int amount = entity instanceof ServerPlayerEntity player
+                && com.kingdomcomecombat.hardship.HardshipSelectionState.active(player, "hardship_05")
+                ? Math.max(1, (int) Math.ceil(com.kingdomcomecombat.hardship.HardshipSelectionState.prek(
+                        player, "hardship_05", "bandage_durability_multiplier", 2.0))) : 1;
+        int nextDamage = stack.getDamage() + amount;
         if (nextDamage >= stack.getMaxDamage()) {
             entity.equipStack(slot, ItemStack.EMPTY);
             entity.sendEquipmentBreakStatus(stack.getItem(), slot);

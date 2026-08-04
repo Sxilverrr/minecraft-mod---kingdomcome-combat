@@ -2,7 +2,29 @@
   "items": {
     "minecraft:shield": {
       "type": "large",
-      "block_impact_mitigation": 0.94
+      "block_impact_mitigation": 0.94,
+      "attack_stamina_cost_multiplier": 1.7,
+      "dodge_stamina_cost_multiplier": 2.0,
+      "locked_movement_speed_multiplier": 0.75,
+      "attack_speed_multiplier": 0.85,
+      "attack_lunge_multiplier": 0.62,
+      "exhausted_disable_ticks": 60,
+      "blocking_angle_multiplier": 1.0,
+      "perfect_window_multiplier": 2.0,
+      "perfect_attacker_disable_bonus_ticks": 0
+    },
+    "kingdom_come_combat:medium_shield": {
+      "type": "small",
+      "block_impact_mitigation": 0.82,
+      "attack_stamina_cost_multiplier": 1.0,
+      "dodge_stamina_cost_multiplier": 1.0,
+      "locked_movement_speed_multiplier": 1.0,
+      "attack_speed_multiplier": 1.0,
+      "attack_lunge_multiplier": 1.0,
+      "exhausted_disable_ticks": 0,
+      "blocking_angle_multiplier": 0.6,
+      "perfect_window_multiplier": 1.4,
+      "perfect_attacker_disable_bonus_ticks": 6
     }
   }
 }

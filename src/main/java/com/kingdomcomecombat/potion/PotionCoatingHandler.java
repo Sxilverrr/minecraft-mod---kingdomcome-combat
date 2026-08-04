@@ -7,8 +7,11 @@ import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.NbtComponent;
 import net.minecraft.component.type.PotionContentsComponent;
 import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
+import net.minecraft.entity.projectile.PersistentProjectileEntity;
+import net.minecraft.entity.projectile.ProjectileEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.ItemUsage;
 import net.minecraft.item.Items;
@@ -17,11 +20,15 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Hand;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
 
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.UUID;
+import java.util.List;
+import java.util.Optional;
 
 public final class PotionCoatingHandler {
     private static final int COATING_TICKS = 60;
@@ -29,6 +36,8 @@ public final class PotionCoatingHandler {
     private static final int WEAPON_CHARGES = 8;
     private static final String CHARGES_KEY = "kingdom_come_combat_potion_coating_charges";
     private static final String ACTIVE_ANIMATION_KEY = "kingdom_come_combat_potion_coating_active";
+    private static final String DRAGON_BREATH_ARROW_NAME = "kingdom_come_combat.dragon_breath_arrow";
+    private static final int DRAGON_BREATH_ARROW_COLOR = 0xB02CFF;
 
     private static final Map<UUID, ActiveCoating> ACTIVE_COATINGS = new HashMap<>();
 
@@ -48,9 +57,12 @@ public final class PotionCoatingHandler {
         }
 
         ActiveCoating.Kind kind;
-        if (isCoatableArrowStack(mainHand)) {
+        if (isCoatableArrowStack(mainHand, potionContents)) {
             kind = ActiveCoating.Kind.ARROWS;
         } else if (isCoatableWeapon(player, mainHand)) {
+            if (isDragonBreathContents(potionContents)) {
+                return false;
+            }
             kind = ActiveCoating.Kind.WEAPON;
         } else {
             return false;
@@ -84,11 +96,13 @@ public final class PotionCoatingHandler {
     }
 
     public static boolean isPotionCoatingCandidate(PlayerEntity player, ItemStack stack) {
-        if (player == null || player.getMainHandStack() != stack || getUsablePotionContents(player.getOffHandStack()) == null) {
+        if (player == null || player.getMainHandStack() != stack) {
             return false;
         }
-
-        return isCoatableArrowStack(stack) || isCoatableWeapon(player, stack);
+        PotionContentsComponent contents = getUsablePotionContents(player.getOffHandStack());
+        if (contents == null) return false;
+        return isCoatableArrowStack(stack, contents)
+                || (!isDragonBreathContents(contents) && isCoatableWeapon(player, stack));
     }
 
     public static void applyCoatedWeaponEffects(LivingEntity attacker, LivingEntity target, float damage) {
@@ -108,6 +122,25 @@ public final class PotionCoatingHandler {
                 0.25F
         );
         setWeaponCharges(weapon, charges - 1);
+    }
+
+    public static boolean isDragonBreathArrow(Entity projectile) {
+        if (!(projectile instanceof PersistentProjectileEntity persistent)) {
+            return false;
+        }
+        PotionContentsComponent contents = persistent.getItemStack().get(DataComponentTypes.POTION_CONTENTS);
+        return isDragonBreathContents(contents);
+    }
+
+    public static ItemStack createDragonBreathArrowStack(int count) {
+        ItemStack stack = new ItemStack(Items.TIPPED_ARROW, Math.max(1, count));
+        stack.set(DataComponentTypes.POTION_CONTENTS, new PotionContentsComponent(
+                Optional.empty(), Optional.of(DRAGON_BREATH_ARROW_COLOR), List.of(),
+                Optional.of(DRAGON_BREATH_ARROW_NAME)));
+        stack.set(DataComponentTypes.CUSTOM_NAME,
+                Text.translatable("item.minecraft.tipped_arrow.effect." + DRAGON_BREATH_ARROW_NAME)
+                        .formatted(Formatting.LIGHT_PURPLE));
+        return stack;
     }
 
     private static void tick(MinecraftServer server) {
@@ -148,20 +181,26 @@ public final class PotionCoatingHandler {
         }
 
         if (coating.kind == ActiveCoating.Kind.ARROWS) {
-            return isCoatableArrowStack(player.getMainHandStack());
+            return isCoatableArrowStack(player.getMainHandStack(), coating.potionContents);
         }
         return isCoatableWeapon(player, player.getMainHandStack());
     }
 
     private static void finishArrowCoating(ServerPlayerEntity player, PotionContentsComponent potionContents) {
         ItemStack arrows = player.getMainHandStack();
-        if (!isCoatableArrowStack(arrows)) {
+        if (!isCoatableArrowStack(arrows, potionContents)) {
             return;
         }
 
-        arrows.decrement(ARROWS_PER_COATING);
-        ItemStack tippedArrows = new ItemStack(Items.TIPPED_ARROW, ARROWS_PER_COATING);
+        int arrowCount = arrowsPerCoating(potionContents);
+        arrows.decrement(arrowCount);
+        ItemStack tippedArrows = new ItemStack(Items.TIPPED_ARROW, arrowCount);
         tippedArrows.set(DataComponentTypes.POTION_CONTENTS, potionContents);
+        if (isDragonBreathContents(potionContents)) {
+            tippedArrows.set(DataComponentTypes.CUSTOM_NAME,
+                    Text.translatable("item.minecraft.tipped_arrow.effect." + DRAGON_BREATH_ARROW_NAME)
+                            .formatted(Formatting.LIGHT_PURPLE));
+        }
         giveOrDrop(player, tippedArrows);
         consumeOffhandPotion(player);
     }
@@ -191,6 +230,14 @@ public final class PotionCoatingHandler {
     }
 
     private static PotionContentsComponent getUsablePotionContents(ItemStack stack) {
+        if (stack.isOf(Items.DRAGON_BREATH)) {
+            return new PotionContentsComponent(
+                    Optional.empty(),
+                    Optional.of(DRAGON_BREATH_ARROW_COLOR),
+                    List.of(),
+                    Optional.of(DRAGON_BREATH_ARROW_NAME)
+            );
+        }
         if (!stack.isOf(Items.POTION)) {
             return null;
         }
@@ -199,8 +246,18 @@ public final class PotionCoatingHandler {
         return potionContents != null && potionContents.hasEffects() ? potionContents : null;
     }
 
-    private static boolean isCoatableArrowStack(ItemStack stack) {
-        return stack.isOf(Items.ARROW) && stack.getCount() >= ARROWS_PER_COATING;
+    private static boolean isDragonBreathContents(PotionContentsComponent contents) {
+        return contents != null && contents.customName()
+                .map(DRAGON_BREATH_ARROW_NAME::equals)
+                .orElse(false);
+    }
+
+    private static boolean isCoatableArrowStack(ItemStack stack, PotionContentsComponent contents) {
+        return stack.isOf(Items.ARROW) && stack.getCount() >= arrowsPerCoating(contents);
+    }
+
+    private static int arrowsPerCoating(PotionContentsComponent contents) {
+        return isDragonBreathContents(contents) ? 2 : ARROWS_PER_COATING;
     }
 
     private static boolean isCoatableWeapon(PlayerEntity player, ItemStack stack) {

@@ -7,14 +7,19 @@ import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.AttributeModifiersComponent;
 import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.attribute.EntityAttribute;
+import net.minecraft.entity.attribute.EntityAttributeModifier;
 import net.minecraft.entity.attribute.EntityAttributes;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.tag.ItemTags;
+import net.minecraft.registry.tag.TagKey;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.Vec3d;
+import com.kingdomcomecombat.config.CombatServerConfig;
+import net.minecraft.registry.entry.RegistryEntry;
 
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -25,6 +30,7 @@ public class EquipmentCombatAttributesRegistry {
     public static final Identifier BRACERS_ENCHANTMENT_ID =
             Identifier.of("kingdom_come_combat", "bracers");
     private static final Map<Identifier, WeaponCombatAttributes> WEAPONS = new HashMap<>();
+    private static final Map<TagKey<Item>, WeaponCombatAttributes> TAG_WEAPONS = new LinkedHashMap<>();
     private static final Map<Identifier, ArmorCombatAttributes> ARMOR = new HashMap<>();
     private static final Map<Identifier, ShieldCombatAttributes> SHIELDS = new HashMap<>();
     public static final java.util.List<EquipmentSlot> ARMOR_PANEL_SLOTS = java.util.List.of(
@@ -46,6 +52,10 @@ public class EquipmentCombatAttributesRegistry {
         registerWeapon(Registries.ITEM.getId(item), attributes);
     }
 
+    public static void registerWeapon(TagKey<Item> itemTag, WeaponCombatAttributes attributes) {
+        TAG_WEAPONS.put(itemTag, attributes);
+    }
+
     public static void registerArmor(Identifier itemId, ArmorCombatAttributes attributes) {
         ARMOR.put(itemId, attributes);
     }
@@ -62,10 +72,100 @@ public class EquipmentCombatAttributesRegistry {
         registerShield(Registries.ITEM.getId(item), attributes);
     }
 
+    public static Map<String, ShieldCombatAttributes> shieldSnapshot() {
+        Map<String, ShieldCombatAttributes> result = new HashMap<>();
+        SHIELDS.forEach((id, attributes) -> result.put(id.toString(), attributes));
+        return Map.copyOf(result);
+    }
+
+    public static Map<String, WeaponCombatAttributes> weaponSnapshot() {
+        Map<String, WeaponCombatAttributes> result = new HashMap<>();
+        WEAPONS.forEach((id, attributes) -> result.put(id.toString(), attributes));
+        TAG_WEAPONS.forEach((tag, attributes) -> {
+            for (RegistryEntry<Item> item : Registries.ITEM.iterateEntries(tag)) {
+                result.putIfAbsent(Registries.ITEM.getId(item.value()).toString(), attributes);
+            }
+        });
+        return Map.copyOf(result);
+    }
+
+    /** A client-facing snapshot also materializes category fallbacks per item. */
+    public static Map<String, WeaponCombatAttributes> clientWeaponSnapshot() {
+        Map<String, WeaponCombatAttributes> result = new HashMap<>(weaponSnapshot());
+        for (Item item : Registries.ITEM) {
+            ItemStack stack = safeDefaultStack(item);
+            if (stack.isEmpty()) continue;
+            if (CombatItemUtil.isLongsword(stack)
+                    || CombatItemUtil.isPolearm(stack)
+                    || CombatItemUtil.isShortSword(stack)
+                    || CombatItemUtil.isHeavyWeapon(stack)
+                    || stack.isIn(ItemTags.PICKAXES)
+                    || stack.isIn(ItemTags.HOES)
+                    || stack.isIn(ItemTags.SHOVELS)) {
+                result.putIfAbsent(Registries.ITEM.getId(item).toString(), getWeapon(stack));
+            }
+        }
+        return Map.copyOf(result);
+    }
+
+    public static Map<String, ArmorCombatAttributes> armorSnapshot() {
+        Map<String, ArmorCombatAttributes> result = new HashMap<>();
+        ARMOR.forEach((id, attributes) -> result.put(id.toString(), attributes));
+        return Map.copyOf(result);
+    }
+
+    /** A client-facing snapshot also materializes automatic armor panels. */
+    public static Map<String, ArmorCombatAttributes> clientArmorSnapshot() {
+        Map<String, ArmorCombatAttributes> result = new HashMap<>(armorSnapshot());
+        for (Item item : Registries.ITEM) {
+            ItemStack stack = safeDefaultStack(item);
+            if (stack.isEmpty()) continue;
+            EquipmentSlot slot = armorSlot(stack);
+            if (slot != null && armorValue(stack, slot) > 0.0) {
+                result.putIfAbsent(Registries.ITEM.getId(item).toString(), fallbackArmor(stack));
+            }
+        }
+        return Map.copyOf(result);
+    }
+
+    public static void replaceWeapons(Map<String, WeaponCombatAttributes> weapons) {
+        WEAPONS.clear();
+        TAG_WEAPONS.clear();
+        if (weapons == null) return;
+        weapons.forEach((id, attributes) -> {
+            Identifier parsed = Identifier.tryParse(id);
+            if (parsed != null && attributes != null) WEAPONS.put(parsed, attributes);
+        });
+    }
+
+    public static void replaceShields(Map<String, ShieldCombatAttributes> shields) {
+        SHIELDS.clear();
+        if (shields == null) return;
+        shields.forEach((id, attributes) -> {
+            Identifier parsed = Identifier.tryParse(id);
+            if (parsed != null && attributes != null) SHIELDS.put(parsed, attributes);
+        });
+    }
+
+    public static void replaceArmor(Map<String, ArmorCombatAttributes> armor) {
+        ARMOR.clear();
+        if (armor == null) return;
+        armor.forEach((id, attributes) -> {
+            Identifier parsed = Identifier.tryParse(id);
+            if (parsed != null && attributes != null) ARMOR.put(parsed, attributes);
+        });
+    }
+
     public static void clear() {
         WEAPONS.clear();
+        TAG_WEAPONS.clear();
         ARMOR.clear();
         SHIELDS.clear();
+    }
+
+    public static void clearWeapons() {
+        WEAPONS.clear();
+        TAG_WEAPONS.clear();
     }
 
     public static WeaponCombatAttributes getWeapon(ItemStack stack) {
@@ -73,10 +173,12 @@ public class EquipmentCombatAttributesRegistry {
             return defaultFallbackWeapon();
         }
 
-        return WEAPONS.getOrDefault(
-                Registries.ITEM.getId(stack.getItem()),
-                fallbackWeapon(stack)
-        );
+        WeaponCombatAttributes exact = WEAPONS.get(Registries.ITEM.getId(stack.getItem()));
+        if (exact != null) return exact;
+        for (Map.Entry<TagKey<Item>, WeaponCombatAttributes> entry : TAG_WEAPONS.entrySet()) {
+            if (stack.isIn(entry.getKey())) return entry.getValue();
+        }
+        return fallbackWeapon(stack);
     }
 
     public static Optional<WeaponCombatAttributes> getConfiguredWeapon(ItemStack stack) {
@@ -84,12 +186,127 @@ public class EquipmentCombatAttributesRegistry {
             return Optional.empty();
         }
 
-        return Optional.ofNullable(WEAPONS.get(Registries.ITEM.getId(stack.getItem())));
+        WeaponCombatAttributes exact = WEAPONS.get(Registries.ITEM.getId(stack.getItem()));
+        if (exact != null) return Optional.of(exact);
+        for (Map.Entry<TagKey<Item>, WeaponCombatAttributes> entry : TAG_WEAPONS.entrySet()) {
+            if (stack.isIn(entry.getKey())) return Optional.of(entry.getValue());
+        }
+        return Optional.empty();
     }
 
     public static Vec3d realHitboxSizeUnits(ItemStack stack, Vec3d fallback) {
         WeaponCombatAttributes attributes = getWeapon(stack);
         return attributes.hasCustomRealHitboxSize() ? attributes.realHitboxSizeUnits() : fallback;
+    }
+
+    public static Vec3d realHitboxSizeUnits(LivingEntity wielder, ItemStack stack, Vec3d fallback) {
+        Vec3d size = realHitboxSizeUnits(stack, fallback);
+        if (wielder == null || !CombatServerConfig.reachAttributeHitboxScalingEnabled()) return size;
+        double delta = weaponEntityAttackRangeModifier(stack);
+        double scale = Math.max(0.1,
+                1.0 + delta * CombatServerConfig.reachAttributeHitboxScalePerBlock());
+        // Reach changes weapon length, not its thickness: scale only the
+        // configured hitbox's longest axis.
+        if (size.z >= size.x && size.z >= size.y) {
+            return new Vec3d(size.x, size.y, size.z * scale);
+        }
+        if (size.x >= size.y) {
+            return new Vec3d(size.x * scale, size.y, size.z);
+        }
+        return new Vec3d(size.x, size.y * scale, size.z);
+    }
+
+    private static double weaponEntityAttackRangeModifier(ItemStack stack) {
+        AttributeModifiersComponent modifiers = stack.get(DataComponentTypes.ATTRIBUTE_MODIFIERS);
+        if (modifiers == null) {
+            return 0.0;
+        }
+
+        Map<RegistryEntry<EntityAttribute>, ReachModifierValues> valuesByAttribute = new LinkedHashMap<>();
+        modifiers.applyModifiers(
+                EquipmentSlot.MAINHAND,
+                (attribute, modifier) -> {
+                    if (!isEntityAttackRangeAttribute(attribute)) {
+                        return;
+                    }
+                    valuesByAttribute.computeIfAbsent(
+                            attribute,
+                            ignored -> new ReachModifierValues(safeAttributeDefaultValue(attribute))
+                    ).add(modifier);
+                }
+        );
+
+        return valuesByAttribute.values().stream()
+                .mapToDouble(ReachModifierValues::delta)
+                .sum();
+    }
+
+    private static ItemStack safeDefaultStack(Item item) {
+        try {
+            return item.getDefaultStack();
+        } catch (RuntimeException exception) {
+            // Some modded items expose deferred attribute holders from their
+            // default components. During datapack/bootstrap reload those
+            // holders (for example swim_speed) may not be bound yet.
+            return ItemStack.EMPTY;
+        }
+    }
+
+    private static double safeAttributeDefaultValue(RegistryEntry<EntityAttribute> attribute) {
+        try {
+            return attribute.value().getDefaultValue();
+        } catch (RuntimeException exception) {
+            // ADD_VALUE reach modifiers remain valid without a bound base;
+            // defer multiplied-base semantics until the registry is ready.
+            return 0.0;
+        }
+    }
+
+    private static boolean isEntityAttackRangeAttribute(RegistryEntry<EntityAttribute> attribute) {
+        if (attribute.equals(EntityAttributes.ENTITY_INTERACTION_RANGE)) {
+            return true;
+        }
+
+        String path = attribute.getKey()
+                .map(key -> key.getValue().getPath())
+                .orElse("");
+        if (path.contains("block")) {
+            return false;
+        }
+        return path.equals("reach")
+                || path.equals("entity_interaction_range")
+                || path.equals("entity_reach")
+                || path.equals("entity_reach_distance")
+                || path.equals("attack_range")
+                || path.equals("attack_reach")
+                || path.equals("attack_distance")
+                || path.equals("entity_attack_range")
+                || path.equals("entity_attack_reach")
+                || path.equals("melee_range")
+                || path.equals("melee_reach");
+    }
+
+    private static final class ReachModifierValues {
+        private final double base;
+        private double added;
+        private double multipliedBase;
+        private double multipliedTotal = 1.0;
+
+        private ReachModifierValues(double base) {
+            this.base = base;
+        }
+
+        private void add(EntityAttributeModifier modifier) {
+            switch (modifier.operation()) {
+                case ADD_VALUE -> added += modifier.value();
+                case ADD_MULTIPLIED_BASE -> multipliedBase += modifier.value();
+                case ADD_MULTIPLIED_TOTAL -> multipliedTotal *= 1.0 + modifier.value();
+            }
+        }
+
+        private double delta() {
+            return (base + added + base * multipliedBase) * multipliedTotal - base;
+        }
     }
 
     public static Vec3d realHitboxOffsetUnits(ItemStack stack, Vec3d fallback) {
@@ -105,8 +322,9 @@ public class EquipmentCombatAttributesRegistry {
     public static boolean hasFallbackWeapon(ItemStack stack) {
         return stack != null
                 && !stack.isEmpty()
-                && !WEAPONS.containsKey(Registries.ITEM.getId(stack.getItem()))
+                && getConfiguredWeapon(stack).isEmpty()
                 && (CombatItemUtil.isFightingMace(stack)
+                        || CombatItemUtil.isPolearm(stack)
                         || stack.isIn(ItemTags.SWORDS)
                         || stack.isIn(ItemTags.PICKAXES)
                         || stack.isIn(ItemTags.AXES)
@@ -118,6 +336,7 @@ public class EquipmentCombatAttributesRegistry {
         return stack != null
                 && !stack.isEmpty()
                 && (CombatItemUtil.isFightingMace(stack)
+                || CombatItemUtil.isPolearm(stack)
                 || stack.isIn(ItemTags.SWORDS)
                 || stack.isIn(ItemTags.AXES)
                 || stack.isIn(ItemTags.PICKAXES)
@@ -136,7 +355,7 @@ public class EquipmentCombatAttributesRegistry {
         if (stack == null || stack.isEmpty()) {
             return new ShieldCombatAttributes(
                     ShieldCombatAttributes.Size.SMALL,
-                    EquipmentFallbackConfig.imperfectBlockImpactMitigation()
+                    EquipmentFallbackConfig.imperfectBlockImpactMitigation(), 1, 1, 1, 1, 1, 0, 1, 1, 0
             );
         }
 
@@ -149,13 +368,13 @@ public class EquipmentCombatAttributesRegistry {
         if (stack.isOf(Items.SHIELD)) {
             return new ShieldCombatAttributes(
                     ShieldCombatAttributes.Size.LARGE,
-                    CombatControlConfig.LARGE_SHIELD_BLOCK_IMPACT_MITIGATION
+                    EquipmentFallbackConfig.imperfectBlockImpactMitigation(), 1, 1, 1, 1, 1, 0, 1, 1, 0
             );
         }
 
         return new ShieldCombatAttributes(
                 ShieldCombatAttributes.Size.SMALL,
-                EquipmentFallbackConfig.imperfectBlockImpactMitigation()
+                EquipmentFallbackConfig.imperfectBlockImpactMitigation(), 1, 1, 1, 1, 1, 0, 1, 1, 0
         );
     }
 
@@ -285,6 +504,23 @@ public class EquipmentCombatAttributesRegistry {
     }
 
     private static WeaponCombatAttributes fallbackWeapon(ItemStack stack) {
+        if (CombatItemUtil.isPolearm(stack)) {
+            return new WeaponCombatAttributes(
+                    EquipmentFallbackConfig.polearm(),
+                    EquipmentFallbackConfig.polearmBlockImpactMitigation(),
+                    EquipmentFallbackConfig.polearmBaseImpact(),
+                    EquipmentFallbackConfig.polearmArmorBreakMultiplier(),
+                    EquipmentFallbackConfig.polearmAttackSpeedMultiplier(),
+                    EquipmentFallbackConfig.polearmRealHitboxSizeUnits(),
+                    EquipmentFallbackConfig.polearmRealHitboxOffsetUnits(),
+                    EquipmentFallbackConfig.polearmRealHitboxRotationDegrees(),
+                    EquipmentFallbackConfig.polearmAttackMoveIds(),
+                    EquipmentFallbackConfig.polearmStanceAnimationNames(),
+                    EquipmentFallbackConfig.polearmWeaponToughness(),
+                    EquipmentFallbackConfig.polearmMinimumDurabilityPanelMultiplier(),
+                    EquipmentFallbackConfig.polearmHeldMovementSpeedMultiplier()
+            );
+        }
         if (CombatItemUtil.isLongsword(stack)) {
             return new WeaponCombatAttributes(
                     EquipmentFallbackConfig.longsword(),
@@ -315,7 +551,10 @@ public class EquipmentCombatAttributesRegistry {
             );
         }
 
-        if (CombatItemUtil.isHeavyWeapon(stack)) {
+        // Axes and pickaxes are also members of the broad heavy-weapon
+        // category, but they have dedicated configurable fallbacks below.
+        // Only fighting maces belong in this branch.
+        if (CombatItemUtil.isFightingMace(stack)) {
             return new WeaponCombatAttributes(
                     EquipmentFallbackConfig.fightingMace(),
                     EquipmentFallbackConfig.fightingMaceBlockImpactMitigation(),
@@ -404,7 +643,11 @@ public class EquipmentCombatAttributesRegistry {
                 EquipmentFallbackConfig.defaultWeaponRealHitboxOffsetUnits(),
                 EquipmentFallbackConfig.defaultWeaponRealHitboxRotationDegrees(),
                 EquipmentFallbackConfig.defaultWeaponAttackMoveIds(),
-                EquipmentFallbackConfig.defaultWeaponStanceAnimationNames()
+                EquipmentFallbackConfig.defaultWeaponStanceAnimationNames(),
+                EquipmentFallbackConfig.defaultWeaponExecutionMoveIds(),
+                EquipmentFallbackConfig.defaultWeaponToughness(),
+                EquipmentFallbackConfig.defaultMinimumDurabilityPanelMultiplier(),
+                EquipmentFallbackConfig.defaultHeldMovementSpeedMultiplier()
         );
     }
 
@@ -445,6 +688,11 @@ public class EquipmentCombatAttributesRegistry {
     }
 
     private static EquipmentSlot armorSlot(ItemStack stack) {
+        var equippable = stack.get(DataComponentTypes.EQUIPPABLE);
+        if (equippable != null && equippable.slot().isArmorSlot()) {
+            return equippable.slot();
+        }
+
         if (stack.isIn(ItemTags.HEAD_ARMOR)) {
             return EquipmentSlot.HEAD;
         }

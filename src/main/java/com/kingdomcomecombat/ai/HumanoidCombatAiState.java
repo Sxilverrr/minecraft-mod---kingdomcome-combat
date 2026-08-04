@@ -28,6 +28,7 @@ public class HumanoidCombatAiState {
     public int visibilityCheckTicks = 0;
     public int visibilityTargetId = -1;
     public boolean cachedTargetVisible = false;
+    public boolean stanceSynced = false;
 
     public void tickCooldowns() {
         ticksSinceLastAttack++;

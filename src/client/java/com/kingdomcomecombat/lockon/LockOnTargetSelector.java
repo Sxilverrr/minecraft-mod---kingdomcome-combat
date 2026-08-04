@@ -1,12 +1,17 @@
 package com.kingdomcomecombat.client.lockon;
 
 import com.kingdomcomecombat.config.CombatClientConfig;
+import com.kingdomcomecombat.client.config.ClientServerConfigState;
+import com.kingdomcomecombat.client.animation.ClientEntityGeckoAnimationState;
+import com.kingdomcomecombat.collision.HumanoidHurtboxLibrary;
 import com.kingdomcomecombat.equipment.MobCombatAttributesRegistry;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.decoration.ArmorStandEntity;
 import net.minecraft.entity.mob.HostileEntity;
+import net.minecraft.entity.mob.Angerable;
 import net.minecraft.entity.mob.MobEntity;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.RaycastContext;
@@ -135,10 +140,19 @@ public class LockOnTargetSelector {
     }
 
     public static boolean isLockableTarget(MinecraftClient client, LivingEntity target) {
+        if (target instanceof PlayerEntity) {
+            return ClientServerConfigState.pvpEnabled();
+        }
         if (target instanceof ArmorStandEntity) {
             return true;
         }
-
+        if (MobCombatAttributesRegistry.get(target).isPresent()) {
+            return true;
+        }
+        if (ClientEntityGeckoAnimationState.hasActiveCombatLayer(target.getId())
+                || HumanoidHurtboxLibrary.hasSyncedAiConfiguration(target)) {
+            return true;
+        }
         if (client.player != null
                 && target instanceof MobEntity mob
                 && mob.getTarget() == client.player) {
@@ -151,12 +165,7 @@ public class LockOnTargetSelector {
             return true;
         }
 
-        if (target instanceof MobEntity
-                && MobCombatAttributesRegistry.get(target).isPresent()) {
-            return true;
-        }
-
-        return target instanceof HostileEntity;
+        return target instanceof HostileEntity || target instanceof Angerable;
     }
 
     public static Vec3d getTargetLockPoint(LivingEntity target) {

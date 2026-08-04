@@ -1,5 +1,23 @@
 {
   "_comment": "一个文件可以写多个武器。damage_panel 是武器刺击/打击/斩击修正。attack_speed_multiplier 是攻击动画倍率，会和护甲/技能等速度倍率乘算。armor_break_multiplier 是攻击造成护甲耐久消耗的倍率。real_hitbox_size_units/offset/rotation 可按武器覆盖真实武器碰撞盒。attack_moves/stance_animations 可按方向绑定单独动作。",
+  "_tag_comment": "items 中的键可以写成 #namespace:tag，或在单项文件中使用 tag 字段。精确物品 ID 配置优先，tag 只作为未精确配置武器的兜底；aliases 也支持 #tag。",
+  "_tag_example": {
+    "items": {
+      "#example_mod:longswords": {
+        "damage_panel": {"thrust": 0.8, "strike": 0.4, "slash": 1.1},
+        "attack_speed_multiplier": 0.9,
+        "attack_moves": {
+          "right": "attack_right_longsword",
+          "left": "attack_left_longsword"
+        }
+      },
+      "example_mod:special_longsword": {
+        "attack_speed_multiplier": 1.05
+      }
+    },
+    "inheritance": "defaults/equipment.json global -> #example_mod:longswords -> example_mod:special_longsword"
+  },
+  "_durability_comment": "weapon_toughness 是用武器格挡时消耗的耐久；minimum_durability_panel_multiplier 是武器损坏至极限时刃口面板的最低倍率；held_movement_speed_multiplier 是手持移动速度倍率。单独武器配置会覆盖 defaults/equipment.json 的 global 默认值。",
   "items": {
     "minecraft:wooden_sword": {
       "damage_panel": {
@@ -18,7 +36,7 @@
         "slash": 0.0
       },
       "attack_speed_multiplier": 0.8,
-      "base_impact": 10.0,
+      "base_impact": 40.0,
       "block_impact_mitigation": 0.65,
       "armor_break_multiplier": 0.2,
       "attack_moves": {
@@ -27,6 +45,80 @@
         "up": "attack_up_heavy",
         "down": "attack_down_heavy"
       }
+    },
+    "minecraft:trident": {
+      "damage_panel": {"thrust": 1.2, "strike": 0.2, "slash": 0.8},
+      "attack_speed_multiplier": 1.0,
+      "base_impact": 50.0,
+      "block_impact_mitigation": 0.85,
+      "armor_break_multiplier": 0.5,
+      "real_hitbox_size_units": {"x": 4.0, "y": 4.0, "z": 32.0},
+      "real_hitbox_offset_units": {
+        "x": -5.0,
+        "y": 20.0,
+        "z": 0.0
+      },
+      "real_hitbox_rotation_degrees": {
+        "x": 0.0,
+        "y": 90.0,
+        "z": 0.0
+      },
+
+      "attack_moves": {
+        "right": "attack_right_longweapon",
+        "left": "attack_left_longweapon",
+        "up": "attack_up_longsword",
+        "down": "attack_down_longweapon"
+      },
+      "stance_animations": {
+        "right": "stance_right_longweapon",
+        "left": "stance_left_longweapon",
+        "up": "stance_up_longsword",
+        "down": "stance_down_longweapon"
+      }
+    },
+    "minecraft:wooden_spear": {
+      "aliases": [
+        "minecraft:stone_spear",
+        "minecraft:copper_spear",
+        "minecraft:iron_spear",
+        "minecraft:golden_spear",
+        "minecraft:diamond_spear",
+        "minecraft:netherite_spear"
+      ],
+      "damage_panel": {"thrust": 1.0, "strike": 0.35, "slash": 0.65},
+      "attack_speed_multiplier": 1.0,
+      "base_impact": 50.0,
+      "block_impact_mitigation": 0.70,
+      "armor_break_multiplier": 0.45,
+      "real_hitbox_size_units": {"x": 4.0, "y": 4.0, "z": 34.0},
+      "attack_moves": {
+        "right": "attack_right_longweapon",
+        "left": "attack_left_longweapon",
+        "up": "attack_up_longsword",
+        "down": "attack_down_longweapon"
+      },
+      "stance_animations": {
+        "right": "stance_right_longweapon",
+        "left": "stance_left_longweapon",
+        "up": "stance_up_longsword",
+        "down": "stance_down_longweapon"
+      }
+    },
+    "kingdom_come_combat:copper_poleaxe": {
+      "minimum_durability_panel_multiplier": 0.90
+    },
+    "kingdom_come_combat:golden_poleaxe": {
+      "minimum_durability_panel_multiplier": 0.90
+    },
+    "kingdom_come_combat:iron_poleaxe": {
+      "minimum_durability_panel_multiplier": 0.90
+    },
+    "kingdom_come_combat:diamond_poleaxe": {
+      "minimum_durability_panel_multiplier": 0.90
+    },
+    "kingdom_come_combat:netherite_poleaxe": {
+      "minimum_durability_panel_multiplier": 0.90
     },
     "kingdom_come_combat:wooden_longsword": {
       "damage_panel": {

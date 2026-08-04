@@ -9,9 +9,6 @@ import net.minecraft.client.render.entity.model.SkeletonEntityModel;
 import net.minecraft.client.render.entity.state.BipedEntityRenderState;
 import net.minecraft.client.render.entity.state.SkeletonEntityRenderState;
 import net.minecraft.client.render.entity.state.ZombieEntityRenderState;
-import org.joml.Quaternionf;
-import org.joml.Vector3f;
-
 import java.util.Optional;
 
 public class VanillaSkeletonGeckoAnimationApplier {
@@ -32,11 +29,19 @@ public class VanillaSkeletonGeckoAnimationApplier {
             BipedEntityRenderState state
     ) {
         int entityId = ((EntityRenderStateKccAccess) state).kingdomcomecombat$getEntityId();
+        if (!ClientEntityGeckoAnimationState.shouldRenderCombatAnimation(entityId)) {
+            if (ClientHitReactionState.hasActive(entityId)) {
+                applyHitReactionOnly(model, entityId);
+            }
+            return;
+        }
         ClientEntityGeckoAnimationState.ActiveAnimation animation =
                 ClientEntityGeckoAnimationState.get(entityId);
 
         if (animation == null) {
-            applyHitReactionOnly(model, entityId);
+            if (ClientHitReactionState.hasActive(entityId)) {
+                applyHitReactionOnly(model, entityId);
+            }
             return;
         }
 
@@ -52,7 +57,28 @@ public class VanillaSkeletonGeckoAnimationApplier {
             applyAnimationLayer(model, layer);
         }
 
-        applyHitReactionOnly(model, entityId);
+        if (ClientHitReactionState.hasActive(entityId)) {
+            applyHitReactionOnly(model, entityId);
+        }
+    }
+
+    public static void applyBipedCombatLayers(
+            BipedEntityModel<? extends BipedEntityRenderState> model,
+            BipedEntityRenderState state
+    ) {
+        int entityId = ((EntityRenderStateKccAccess) state).kingdomcomecombat$getEntityId();
+        if (!ClientEntityGeckoAnimationState.shouldRenderCombatAnimation(entityId)) return;
+        if (ClientEntityGeckoAnimationState.get(entityId) == null) return;
+        if (state instanceof SkeletonEntityRenderState skeletonState) {
+            skeletonState.attacking = false;
+        } else if (state instanceof ZombieEntityRenderState zombieState) {
+            zombieState.attacking = false;
+        }
+        state.handSwingProgress = 0.0F;
+        for (ClientEntityGeckoAnimationState.ActiveAnimation layer :
+                ClientEntityGeckoAnimationState.getLayers(entityId)) {
+            applyAnimationLayer(model, layer);
+        }
     }
 
     public static void applyIllager(
@@ -64,11 +90,19 @@ public class VanillaSkeletonGeckoAnimationApplier {
             ModelPart rightLeg,
             ModelPart leftLeg
     ) {
+        if (!ClientEntityGeckoAnimationState.shouldRenderCombatAnimation(entityId)) {
+            if (ClientHitReactionState.hasActive(entityId)) {
+                applyIllagerHitReactionOnly(entityId, head, rightArm, leftArm, rightLeg, leftLeg);
+            }
+            return;
+        }
         ClientEntityGeckoAnimationState.ActiveAnimation animation =
                 ClientEntityGeckoAnimationState.get(entityId);
 
         if (animation == null) {
-            applyIllagerHitReactionOnly(entityId, head, rightArm, leftArm, rightLeg, leftLeg);
+            if (ClientHitReactionState.hasActive(entityId)) {
+                applyIllagerHitReactionOnly(entityId, head, rightArm, leftArm, rightLeg, leftLeg);
+            }
             return;
         }
 
@@ -77,21 +111,49 @@ public class VanillaSkeletonGeckoAnimationApplier {
             applyIllagerAnimationLayer(root, head, rightArm, leftArm, rightLeg, leftLeg, layer);
         }
 
-        applyIllagerHitReactionOnly(entityId, head, rightArm, leftArm, rightLeg, leftLeg);
+        if (ClientHitReactionState.hasActive(entityId)) {
+            applyIllagerHitReactionOnly(entityId, head, rightArm, leftArm, rightLeg, leftLeg);
+        }
+    }
+
+    public static void applyGenericParts(
+            int entityId,
+            ModelPart body,
+            ModelPart head,
+            ModelPart rightArm,
+            ModelPart leftArm,
+            ModelPart rightLeg,
+            ModelPart leftLeg
+    ) {
+        if (!ClientEntityGeckoAnimationState.shouldRenderCombatAnimation(entityId)) return;
+        for (ClientEntityGeckoAnimationState.ActiveAnimation layer :
+                ClientEntityGeckoAnimationState.getLayers(entityId)) {
+            applyBone(body, sampleBone(layer, "torso"), layer.weight());
+            applyBone(head, sampleBone(layer, "head"), layer.weight());
+            applyBone(rightArm, sampleBone(layer, "rightArm"), layer.weight());
+            applyBone(leftArm, sampleBone(layer, "leftArm"), layer.weight());
+            applyBone(rightLeg, sampleBone(layer, "rightLeg"), layer.weight());
+            applyBone(leftLeg, sampleBone(layer, "leftLeg"), layer.weight());
+        }
+
+        if (ClientHitReactionState.hasActive(entityId)) {
+            applyIllagerHitReactionOnly(entityId, head, rightArm, leftArm, rightLeg, leftLeg);
+        }
     }
 
     private static void applyAnimationLayer(
             BipedEntityModel<? extends BipedEntityRenderState> model,
             ClientEntityGeckoAnimationState.ActiveAnimation animation
     ) {
-        BoneTransform bodyTransform = sampleBone(animation, "body");
-
-        applyRootBone(model.body, bodyTransform, animation.weight());
-        applyChildBone(model.head, sampleBone(animation, "head"), animation.weight(), bodyTransform);
-        applyChildBone(model.rightArm, sampleBone(animation, "rightArm"), animation.weight(), bodyTransform);
-        applyChildBone(model.leftArm, sampleBone(animation, "leftArm"), animation.weight(), bodyTransform);
-        applyChildBone(model.rightLeg, sampleBone(animation, "rightLeg"), animation.weight(), bodyTransform);
-        applyChildBone(model.leftLeg, sampleBone(animation, "leftLeg"), animation.weight(), bodyTransform);
+        // PAL's PlayerModelMixin maps the model torso to the "torso" channel.
+        // The separate "body" channel is applied to the renderer's root matrix
+        // by MobPalBodyTransformApplier, exactly as PAL's PlayerRendererMixin does.
+        applyBone(model.body, sampleBone(animation, "torso"), animation.weight());
+        applyBone(model.head, sampleBone(animation, "head"), animation.weight());
+        applyBone(model.rightArm, sampleBone(animation, "rightArm"), animation.weight());
+        applyBone(model.leftArm, sampleBone(animation, "leftArm"), animation.weight());
+        applyBone(model.rightLeg, sampleBone(animation, "rightLeg"), animation.weight());
+        applyBone(model.leftLeg, sampleBone(animation, "leftLeg"), animation.weight());
     }
 
     private static void applyIllagerAnimationLayer(
@@ -103,14 +165,24 @@ public class VanillaSkeletonGeckoAnimationApplier {
             ModelPart leftLeg,
             ClientEntityGeckoAnimationState.ActiveAnimation animation
     ) {
-        BoneTransform bodyTransform = sampleBone(animation, "body");
+        ModelPart body = root != null && root.hasChild("body") ? root.getChild("body") : null;
 
-        applyRootBone(root, bodyTransform, animation.weight());
-        applyChildBone(head, sampleBone(animation, "head"), animation.weight(), BoneTransform.ZERO);
-        applyChildBone(rightArm, sampleBone(animation, "rightArm"), animation.weight(), BoneTransform.ZERO);
-        applyChildBone(leftArm, sampleBone(animation, "leftArm"), animation.weight(), BoneTransform.ZERO);
-        applyChildBone(rightLeg, sampleBone(animation, "rightLeg"), animation.weight(), BoneTransform.ZERO);
-        applyChildBone(leftLeg, sampleBone(animation, "leftLeg"), animation.weight(), BoneTransform.ZERO);
+        if (body != null) {
+            applyBone(body, sampleBone(animation, "torso"), animation.weight());
+            applyBone(head, sampleBone(animation, "head"), animation.weight());
+            applyBone(rightArm, sampleBone(animation, "rightArm"), animation.weight());
+            applyBone(leftArm, sampleBone(animation, "leftArm"), animation.weight());
+            applyBone(rightLeg, sampleBone(animation, "rightLeg"), animation.weight());
+            applyBone(leftLeg, sampleBone(animation, "leftLeg"), animation.weight());
+            return;
+        }
+
+        applyBone(root, sampleBone(animation, "torso"), animation.weight());
+        applyBone(head, sampleBone(animation, "head"), animation.weight());
+        applyBone(rightArm, sampleBone(animation, "rightArm"), animation.weight());
+        applyBone(leftArm, sampleBone(animation, "leftArm"), animation.weight());
+        applyBone(rightLeg, sampleBone(animation, "rightLeg"), animation.weight());
+        applyBone(leftLeg, sampleBone(animation, "leftLeg"), animation.weight());
     }
 
     private static void applyIllagerHitReactionOnly(
@@ -238,93 +310,31 @@ public class VanillaSkeletonGeckoAnimationApplier {
         return new BoneTransform(rotation, position);
     }
 
-    private static void applyRootBone(
+    private static void applyBone(
             ModelPart part,
             BoneTransform own,
             float weight
     ) {
+        if (part == null) return;
         ModelTransform defaults = part.getDefaultTransform();
 
         own.rotation().ifPresent(pose -> {
-            part.pitch = lerp(part.pitch, defaults.pitch() + pose.x() * DEG_TO_RAD, weight);
+            // Match PAL RenderUtil.translatePartToBone exactly: X/Z are the
+            // animation's absolute rotations, while Y keeps the model's bind yaw.
+            // Adding bind pitch/roll here twists custom humanoid arms noticeably
+            // in animations with large roll values (for example halfsword).
+            part.pitch = lerp(part.pitch, pose.x() * DEG_TO_RAD, weight);
             part.yaw = lerp(part.yaw, defaults.yaw() + pose.y() * DEG_TO_RAD, weight);
-            part.roll = lerp(part.roll, defaults.roll() + pose.z() * DEG_TO_RAD, weight);
+            part.roll = lerp(part.roll, pose.z() * DEG_TO_RAD, weight);
         });
 
         own.position().ifPresent(pose -> {
             part.originX = lerp(part.originX, defaults.x() + pose.x(), weight);
-            part.originY = lerp(part.originY, defaults.y() + pose.y(), weight);
+            // Player Animation Library converts animation-space Y to Minecraft
+            // model-space Y by negating it in RenderUtil.translatePartToBone.
+            part.originY = lerp(part.originY, defaults.y() - pose.y(), weight);
             part.originZ = lerp(part.originZ, defaults.z() + pose.z(), weight);
         });
-    }
-
-    private static void applyChildBone(
-            ModelPart part,
-            BoneTransform own,
-            float weight,
-            BoneTransform parent
-    ) {
-        ModelTransform defaults = part.getDefaultTransform();
-
-        own.rotation().ifPresent(pose -> {
-            part.pitch = lerp(part.pitch, defaults.pitch() + pose.x() * DEG_TO_RAD, weight);
-            part.yaw = lerp(part.yaw, defaults.yaw() + pose.y() * DEG_TO_RAD, weight);
-            part.roll = lerp(part.roll, defaults.roll() + pose.z() * DEG_TO_RAD, weight);
-        });
-
-        own.position().ifPresent(pose -> {
-            part.originX = lerp(part.originX, defaults.x() + pose.x(), weight);
-            part.originY = lerp(part.originY, defaults.y() + pose.y(), weight);
-            part.originZ = lerp(part.originZ, defaults.z() + pose.z(), weight);
-        });
-
-        applyParentTransform(part, parent, weight);
-    }
-
-    private static void applyParentTransform(
-            ModelPart part,
-            BoneTransform parent,
-            float weight
-    ) {
-        if (parent.rotation().isEmpty() && parent.position().isEmpty()) {
-            return;
-        }
-
-        ModelTransform defaults = part.getDefaultTransform();
-        Vector3f baseOffset = new Vector3f(
-                part.originX - defaults.x(),
-                part.originY - defaults.y(),
-                part.originZ - defaults.z()
-        );
-
-        parent.position().ifPresent(pose -> baseOffset.add(pose.x(), pose.y(), pose.z()));
-
-        if (parent.rotation().isPresent()) {
-            GeckoLikeAnimationLibrary.BonePose pose = parent.rotation().get();
-            Quaternionf parentRotation = new Quaternionf()
-                    .rotateZYX(
-                            pose.z() * DEG_TO_RAD,
-                            pose.y() * DEG_TO_RAD,
-                            pose.x() * DEG_TO_RAD
-                    );
-
-            Vector3f bindOffset = new Vector3f(
-                    defaults.x(),
-                    defaults.y(),
-                    defaults.z()
-            );
-            Vector3f rotatedOffset = parentRotation.transform(new Vector3f(bindOffset));
-            rotatedOffset.sub(bindOffset);
-            baseOffset.add(rotatedOffset);
-
-            part.pitch = lerp(part.pitch, part.pitch + pose.x() * DEG_TO_RAD, weight);
-            part.yaw = lerp(part.yaw, part.yaw + pose.y() * DEG_TO_RAD, weight);
-            part.roll = lerp(part.roll, part.roll + pose.z() * DEG_TO_RAD, weight);
-        }
-
-        part.originX = lerp(part.originX, defaults.x() + baseOffset.x, weight);
-        part.originY = lerp(part.originY, defaults.y() + baseOffset.y, weight);
-        part.originZ = lerp(part.originZ, defaults.z() + baseOffset.z, weight);
     }
 
     private static float lerp(float from, float to, float progress) {
@@ -336,6 +346,5 @@ public class VanillaSkeletonGeckoAnimationApplier {
             Optional<GeckoLikeAnimationLibrary.BonePose> rotation,
             Optional<GeckoLikeAnimationLibrary.BonePose> position
     ) {
-        static final BoneTransform ZERO = new BoneTransform(Optional.empty(), Optional.empty());
     }
 }

@@ -9,11 +9,13 @@ public class CombatControlConfig {
     public static final int PERFECT_COUNTER_WINDOW_TICKS = 8;
     public static final int PERFECT_COUNTER_SLOW_TICKS = 3;
     public static final double PERFECT_COUNTER_ATTACK_SPEED_SCALE = 0.3;
+    public static final double MOB_ATTACK_STAMINA_COST_MULTIPLIER = 0.4;
     public static final int MASTER_COUNTER_WINDOW_TICKS = 8;
     public static final int MASTER_COUNTER_EARLY_GRACE_TICKS = 2;
     public static final int BLOCK_INPUT_COOLDOWN_TICKS = 16;
 
     public static final int DODGE_TOTAL_TICKS = 10;
+    public static final int DODGE_COOLDOWN_TICKS = 0;
     public static final int DODGE_INVULN_START_TICK = 1;
     public static final int DODGE_INVULN_END_TICK = 11;
     public static final int DODGE_ATTACK_DISABLE_TICKS = 12;
@@ -23,9 +25,9 @@ public class CombatControlConfig {
 
     public static final double DODGE_STAMINA_COST = 18.0;
     public static final double FORWARD_STEP_STAMINA_COST = 7.0;
-    public static final double DODGE_SIDE_SPEED = 0.27;
-    public static final double DODGE_BACK_SPEED = 0.27;
-    public static final double FORWARD_STEP_SPEED = 0.16;
+    public static final double DODGE_SIDE_SPEED = 0.21;
+    public static final double DODGE_BACK_SPEED = 0.21;
+    public static final double FORWARD_STEP_SPEED = 0.13;
 
     public static final double PERFECT_BLOCK_STAMINA_COST = 5.0;
     public static final double PERFECT_BLOCK_ATTACKER_STAMINA_COST = 15.0;
@@ -33,13 +35,6 @@ public class CombatControlConfig {
     public static final int SHIELD_PERFECT_BLOCK_BONUS_TICKS = 8;
     public static final double SHIELD_PERFECT_BLOCK_ATTACKER_STAMINA_MULTIPLIER = 1.6;
     public static final double SMALL_SHIELD_BLOCK_IMPACT_MITIGATION = 0.88;
-    public static final double LARGE_SHIELD_BLOCK_IMPACT_MITIGATION = 0.94;
-    public static final double LARGE_SHIELD_ATTACK_STAMINA_COST_MULTIPLIER = 1.7;
-    public static final double LARGE_SHIELD_DODGE_STAMINA_COST_MULTIPLIER = 2.0;
-    public static final double LARGE_SHIELD_LOCKED_MOVEMENT_SPEED_MULTIPLIER = 0.75;
-    public static final double LARGE_SHIELD_ATTACK_SPEED_MULTIPLIER = 0.85;
-    public static final double LARGE_SHIELD_ATTACK_LUNGE_MULTIPLIER = 0.62;
-    public static final int LARGE_SHIELD_EXHAUSTED_DISABLE_TICKS = 60;
     public static final double DEFAULT_ATTACK_HORIZONTAL_KNOCKBACK = 0.08;
 
     private CombatControlConfig() {

@@ -1,0 +1,33 @@
+{
+  "type": "modonomicon:content",
+  "category": "kingdom_come_combat:combat",
+  "description": "book.kingdom_come_combat.combat_manual.executions.description",
+  "icon": {
+    "id": "kingdom_come_combat:iron_longsword"
+  },
+  "id": "kingdom_come_combat:combat/executions",
+  "name": "book.kingdom_come_combat.combat_manual.executions.name",
+  "pages": [
+    {
+      "type": "modonomicon:text",
+      "text": "book.kingdom_come_combat.combat_manual.executions.intro.text",
+      "title": "book.kingdom_come_combat.combat_manual.executions.intro.title"
+    },
+    {
+      "type": "modonomicon:text",
+      "text": "book.kingdom_come_combat.combat_manual.executions.config.text",
+      "title": "book.kingdom_come_combat.combat_manual.executions.config.title"
+    }
+  ],
+  "parents": [
+    {
+      "entry": "kingdom_come_combat:combat/techniques"
+    },
+    {
+      "entry": "kingdom_come_combat:combat/combos"
+    }
+  ],
+  "sort_number": 5,
+  "x": 2,
+  "y": 1
+}

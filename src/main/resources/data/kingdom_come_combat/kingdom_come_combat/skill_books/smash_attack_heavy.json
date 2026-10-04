@@ -5,5 +5,5 @@
   "illustration": "smash_attack_heavy",
   "first_page": "输入：上、左、右。上段、左斩后，以右斩收尾，用重武器单手刺击对手的面部",
   "second_page": "重武器的攻击很容易造成巨大的杀伤，特别是针对面部，比起用剑柄攻击敌人，重武器显然更加有效",
-  "translations": {"en_us": {"title": "Crushing Blow heavy weapon", "first_page": "Input: Up, Left, then Right. then stab with the heavy weapon straight to the face", "second_page": "instead of using a pommel to strike them in the face, a heavy weapon will clearly done the job better"}}
+  "translations": {"en_us": {"title": "Heavy Weapon Crushing Blow", "first_page": "Input: Up, Left, Right. After an overhead and left cut, finish from the right by thrusting the heavy weapon one-handed into the opponent's face.", "second_page": "A heavy weapon does terrible damage, especially to the face. It does this job far better than a sword pommel."}}
 }

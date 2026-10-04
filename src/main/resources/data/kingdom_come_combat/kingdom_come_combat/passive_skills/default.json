@@ -454,7 +454,7 @@
       "translations": {
         "en_us": {
           "name": "Second Intention",
-          "description": "When your master strike counters an opponent's perfect defensive counter, restore 35 stamina."
+          "description": "When your Master Strike counters an opponent's perfect defensive counter, restore 35 stamina."
         }
       },
       "source": "experience",

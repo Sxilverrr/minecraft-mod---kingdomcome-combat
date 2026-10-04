@@ -57,13 +57,15 @@ public final class CombatCommands {
                 .map(ComboMoveConfig::id)
                 .anyMatch(comboId::equals);
         if (!exists) {
-            player.sendMessage(Text.literal("未知连招：" + comboId), false);
+            player.sendMessage(Text.translatable("message.kingdom_come_combat.unknown_combo", comboId), false);
             return 0;
         }
 
         boolean changed = PlayerComboProgress.unlock(player, comboId);
         player.sendMessage(
-                Text.literal(changed ? "已解锁连招：" + comboId : "已经拥有连招：" + comboId),
+                Text.translatable(changed
+                        ? "message.kingdom_come_combat.combo_unlocked"
+                        : "message.kingdom_come_combat.combo_already_unlocked", comboId),
                 false
         );
         return changed ? 1 : 0;
@@ -82,7 +84,7 @@ public final class CombatCommands {
 
         String comboId = SkillBookItem.comboId(stack).orElse("");
         if (comboId.isBlank()) {
-            player.sendMessage(Text.literal("手上没有可学习的技能书"), false);
+            player.sendMessage(Text.translatable("message.kingdom_come_combat.no_learnable_skill_book"), false);
             return 0;
         }
 
@@ -91,7 +93,7 @@ public final class CombatCommands {
                 .findFirst()
                 .orElse(null);
         if (combo == null) {
-            player.sendMessage(Text.literal("技能书记录的招式不存在：" + comboId), false);
+            player.sendMessage(Text.translatable("message.kingdom_come_combat.skill_book_combo_missing", comboId), false);
             return 0;
         }
 
@@ -105,8 +107,8 @@ public final class CombatCommands {
         String passiveSkills = PlayerPassiveSkillProgress.unlocked(player.getUuid()).stream()
                 .sorted()
                 .collect(Collectors.joining(", "));
-        player.sendMessage(Text.literal("玩家已解锁连招：" + combos), false);
-        player.sendMessage(Text.literal("玩家已解锁被动：" + passiveSkills), false);
+        player.sendMessage(Text.translatable("message.kingdom_come_combat.unlocked_combos", combos), false);
+        player.sendMessage(Text.translatable("message.kingdom_come_combat.unlocked_passives", passiveSkills), false);
         return 1;
     }
 }

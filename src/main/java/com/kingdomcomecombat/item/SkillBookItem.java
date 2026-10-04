@@ -236,15 +236,19 @@ public class SkillBookItem extends WrittenBookItem {
                 .findFirst()
                 .orElse(null);
         if (combo == null) {
-            player.sendMessage(Text.literal("技能书记录的招式不存在：" + comboId), false);
+            player.sendMessage(Text.translatable("message.kingdom_come_combat.skill_book_combo_missing", comboId), false);
             return false;
         }
 
         boolean changed = PlayerComboProgress.unlock(player, comboId);
+        SkillBookTexts.Entry book = SkillBookTexts.all().get(comboId);
+        String name = book == null
+                ? combo.displayName()
+                : book.title(normalizeLanguage(player.getClientOptions().language()));
         player.sendMessage(
-                Text.literal(changed
-                        ? "习得招式：" + combo.displayName()
-                        : "你已经掌握了：" + combo.displayName()),
+                Text.translatable(changed
+                        ? "message.kingdom_come_combat.learned_combo"
+                        : "message.kingdom_come_combat.already_learned", name),
                 false
         );
         return changed;
@@ -257,14 +261,15 @@ public class SkillBookItem extends WrittenBookItem {
 
         PassiveSkillConfig passive = PassiveSkillConfigs.get(passiveId);
         if (passive == null) {
-            player.sendMessage(Text.literal("技能书记录的被动技能不存在：" + passiveId), false);
+            player.sendMessage(Text.translatable("message.kingdom_come_combat.skill_book_passive_missing", passiveId), false);
             return false;
         }
         boolean changed = PlayerPassiveSkillProgress.unlock(player, passiveId);
         player.sendMessage(
-                Text.literal(changed
-                        ? "习得被动技能：" + passive.name()
-                        : "你已经掌握了：" + passive.name()),
+                Text.translatable(changed
+                        ? "message.kingdom_come_combat.learned_passive"
+                        : "message.kingdom_come_combat.already_learned",
+                        passive.name(player.getClientOptions().language())),
                 false
         );
         return changed;
@@ -273,7 +278,7 @@ public class SkillBookItem extends WrittenBookItem {
     public static boolean learnFromHeldBook(ServerPlayerEntity player, String comboId, String passiveId) {
         if (!heldBookMatches(player, Hand.MAIN_HAND, comboId, passiveId)
                 && !heldBookMatches(player, Hand.OFF_HAND, comboId, passiveId)) {
-            player.sendMessage(Text.literal("手上没有对应的技能书"), false);
+            player.sendMessage(Text.translatable("message.kingdom_come_combat.no_matching_skill_book"), false);
             return false;
         }
 

@@ -57,7 +57,7 @@ public final class PlayerPassiveSkillProgress {
     public static boolean unlock(ServerPlayerEntity player, String skillId) {
         PassiveSkillConfig config = PassiveSkillConfigs.get(skillId);
         if (config == null) {
-            player.sendMessage(Text.literal("被动技能不存在：" + skillId), false);
+            player.sendMessage(Text.translatable("message.kingdom_come_combat.passive_missing", skillId), false);
             return false;
         }
 
@@ -72,20 +72,20 @@ public final class PlayerPassiveSkillProgress {
     public static boolean learnWithExperience(ServerPlayerEntity player, String skillId) {
         PassiveSkillConfig config = PassiveSkillConfigs.get(skillId);
         if (config == null) {
-            player.sendMessage(Text.literal("被动技能不存在：" + skillId), false);
+            player.sendMessage(Text.translatable("message.kingdom_come_combat.passive_missing", skillId), false);
             return false;
         }
         if (config.source() != PassiveSkillConfig.Source.EXPERIENCE) {
-            player.sendMessage(Text.literal("这个被动技能不能用经验学习：" + config.name()), false);
+            player.sendMessage(Text.translatable("message.kingdom_come_combat.passive_not_experience", config.name(player.getClientOptions().language())), false);
             return false;
         }
         if (isUnlocked(player, skillId)) {
-            player.sendMessage(Text.literal("你已经掌握了：" + config.name()), false);
+            player.sendMessage(Text.translatable("message.kingdom_come_combat.already_learned", config.name(player.getClientOptions().language())), false);
             return false;
         }
         int cost = config.experienceCost();
         if (combatExperience(player) < cost) {
-            player.sendMessage(Text.literal("战斗经验不足：需要 " + cost + " 点"), false);
+            player.sendMessage(Text.translatable("message.kingdom_come_combat.not_enough_combat_experience", cost), false);
             return false;
         }
 
@@ -95,7 +95,7 @@ public final class PlayerPassiveSkillProgress {
         }
         boolean changed = unlock(player, skillId);
         if (changed) {
-            player.sendMessage(Text.literal("习得被动技能：" + config.name()), false);
+            player.sendMessage(Text.translatable("message.kingdom_come_combat.learned_passive", config.name(player.getClientOptions().language())), false);
         }
         return changed;
     }
@@ -224,7 +224,7 @@ public final class PlayerPassiveSkillProgress {
             AdvancementEntry advancement = player.getServer().getAdvancementLoader().get(id);
             if (advancement != null && player.getAdvancementTracker().getProgress(advancement).isDone()) {
                 unlock(player, skill.id());
-                player.sendMessage(Text.literal("习得被动技能：" + skill.name()), false);
+                player.sendMessage(Text.translatable("message.kingdom_come_combat.learned_passive", skill.name(player.getClientOptions().language())), false);
             }
         }
     }

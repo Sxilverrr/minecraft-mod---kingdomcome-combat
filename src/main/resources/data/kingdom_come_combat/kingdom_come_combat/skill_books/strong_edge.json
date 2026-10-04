@@ -5,5 +5,5 @@
   "illustration": "strong_edge",
   "first_page": "输入：左、右、下、右。用短剑压迫敌人的武器，然后强行切割脖子",
   "second_page": "剑刃重击会消耗大量体力，但是他带来了对敌方弱点的致命打击和控制能力",
-  "translations": {"en_us": {"title": "strong_edge", "first_page": "Input: Left, Right, Down, Right. use sword to push the weapon of your enemy and finish it with a cut on the neck", "second_page": "A hit to the neck always do it's work, but a lot of work has to be take"}}
+  "translations": {"en_us": {"title": "Strong Edge", "first_page": "Input: Left, Right, Down, Right. Press the enemy's weapon aside with the short sword, then force a cut into the neck.", "second_page": "Strong Edge costs a lot of stamina, but it lands a lethal blow on a weak point and keeps the enemy under control."}}
 }
